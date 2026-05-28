@@ -1,0 +1,6 @@
+@HlumisaProperties.Api_HostAddress = http://localhost:5216
+
+GET {{HlumisaProperties.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="HlumisaProperties.Api/HlumisaProperties.Api.csproj" Id="136bfe7d-a8da-4538-a8ae-07f8f107236e" />
+  <Project Path="HlumisaProperties.Application/HlumisaProperties.Application.csproj" />
+  <Project Path="HlumisaProperties.Domain/HlumisaProperties.Domain.csproj" />
+  <Project Path="HlumisaProperties.Infrastructure/HlumisaProperties.Infrastructure.csproj" />
+  <Project Path="WebApplication1/WebApplication1.csproj" Id="dc62b8bf-259d-4675-a331-460b37082b48" />
+</Solution>
