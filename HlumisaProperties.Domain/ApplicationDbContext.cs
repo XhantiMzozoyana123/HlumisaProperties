@@ -332,7 +332,7 @@ namespace HlumisaProperties.Domain
                     .HasMaxLength(255);
 
                 eb.Property(l => l.JsonCommunicationThread)
-                    .HasColumnType("nvarchar(max)");
+                    .HasColumnType("longtext");
 
                 eb.Property(l => l.IsContacted)
                     .HasDefaultValue(false);
@@ -449,8 +449,8 @@ namespace HlumisaProperties.Domain
             var builder = new DbContextOptionsBuilder<ApplicationDbContext>();
             var connectionString = configuration.GetConnectionString("DefaultConnection");
 
-            // Choose the appropriate database provider here
-            builder.UseSqlServer(connectionString); // Or UseSqlite, UseNpgsql, etc.
+            // MySQL provider (Pomelo)
+            builder.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
 
             return builder.Options;
         }

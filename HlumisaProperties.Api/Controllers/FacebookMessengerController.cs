@@ -14,6 +14,7 @@ namespace HlumisaProperties.Api.Controllers
         private readonly ILLMService _llmService;
         private readonly IConfiguration _configuration;
 
+ 
         public FacebookMessengerController(
             IFacebookMessengerService messengerService,
             ILLMService llmService,
@@ -33,7 +34,7 @@ namespace HlumisaProperties.Api.Controllers
             [FromQuery(Name = "hub.challenge")] string hub_challenge,
             [FromQuery(Name = "hub.verify_token")] string hub_verify_token)
         {
-            var verifyToken = _configuration["Facebook:VerifyToken"] ?? "your_verify_token_here";
+            var verifyToken = "xp@6z8DPYjJeJky";
 
             if (hub_mode == "subscribe" && hub_verify_token == verifyToken)
             {

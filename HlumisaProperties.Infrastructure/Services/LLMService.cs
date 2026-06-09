@@ -1,8 +1,5 @@
-﻿using HlumisaProperties.Application.Constants;
-using HlumisaProperties.Application.Interfaces;
+﻿using HlumisaProperties.Application.Interfaces;
 using Microsoft.Extensions.Configuration;
-using System;
-using System.Collections.Generic;
 using System.Text;
 using System.Text.Json;
 
@@ -15,45 +12,63 @@ namespace HlumisaProperties.Infrastructure.Services
 
         public LLMService(
             HttpClient httpClient,
-            IConfiguration configuration
-            )
+            IConfiguration configuration)
         {
-            _configuration = configuration;
             _httpClient = httpClient;
+            _configuration = configuration;
         }
 
         public async Task<string> GenerateTextAsync(string prompt)
         {
-            var payload = new
+            try
             {
-                contents = new[]
+                var request = new OllamaRequest
                 {
-                    new
+                    Model = _configuration["LLM:Model"] ?? "llama3:latest",
+                    Prompt = prompt,
+                    Stream = false
+                };
+
+                var json = JsonSerializer.Serialize(request);
+
+                var response = await _httpClient.PostAsync(
+                    $"http://63.141.255.202/api/generate",
+                    new StringContent(
+                        json,
+                        Encoding.UTF8,
+                        "application/json"));
+
+                response.EnsureSuccessStatusCode();
+
+                var responseContent = await response.Content.ReadAsStringAsync();
+
+                var result = JsonSerializer.Deserialize<OllamaResponse>(
+                    responseContent,
+                    new JsonSerializerOptions
                     {
-                        parts = new[]
-                        {
-                            new { text = prompt }
-                        }
-                    }
-                }
-            };
+                        PropertyNameCaseInsensitive = true
+                    });
 
-            var json = JsonSerializer.Serialize(payload);
-            var apiKey = _configuration["Gemini:ApiKey"];
-            var response = await _httpClient.PostAsync(AppConstant.googleAiEndPoint + apiKey, new StringContent(json, Encoding.UTF8, "application/json"));
-
-            if (!response.IsSuccessStatusCode) return $"Error: {response.StatusCode}";
-
-            var responseJson = await response.Content.ReadAsStringAsync();
-            using var doc = JsonDocument.Parse(responseJson);
-            var text = doc.RootElement
-                .GetProperty("candidates")[0]
-                .GetProperty("content")
-                .GetProperty("parts")[0]
-                .GetProperty("text")
-                .GetString();
-
-            return text ?? "No response";
+                return result?.Response ?? "No response returned.";
+            }
+            catch (Exception ex)
+            {
+                return $"LLM Error: {ex.Message}";
+            }
         }
+    }
+
+    public class OllamaRequest
+    {
+        public string Model { get; set; } = string.Empty;
+        public string Prompt { get; set; } = string.Empty;
+        public bool Stream { get; set; }
+    }
+
+    public class OllamaResponse
+    {
+        public string Model { get; set; } = string.Empty;
+        public string Response { get; set; } = string.Empty;
+        public bool Done { get; set; }
     }
 }
