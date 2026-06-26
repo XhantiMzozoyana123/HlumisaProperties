@@ -4,7 +4,9 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "6000:80"
+      - "6000:6000"
     env_file:
       - .env
+    environment:
+      - ASPNETCORE_URLS=http://0.0.0.0:6000
     restart: always
