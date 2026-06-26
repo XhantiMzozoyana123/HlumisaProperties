@@ -10,4 +10,8 @@
     <ProjectReference Include="..\HlumisaProperties.Application\HlumisaProperties.Application.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Twilio" Version="7.14.9" />
+  </ItemGroup>
+
 </Project>

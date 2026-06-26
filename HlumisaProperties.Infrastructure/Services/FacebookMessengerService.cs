@@ -5,62 +5,58 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
-using System.Net.Http.Headers;
-using System.Text;
-using System.Text.Json;
 using System.Threading.Tasks;
+using Twilio;
+using Twilio.Rest.Api.V2010.Account;
+using Twilio.Types;
 
 namespace HlumisaProperties.Infrastructure.Services
 {
     public class FacebookMessengerService : IFacebookMessengerService
     {
-        private readonly HttpClient _httpClient;
         private readonly IConfiguration _configuration;
         private readonly ApplicationDbContext _context;
 
         public FacebookMessengerService(
-            HttpClient httpClient,
             IConfiguration configuration,
             ApplicationDbContext context)
         {
-            _httpClient = httpClient;
             _configuration = configuration;
             _context = context;
         }
 
         // ======================================================
-        // SEND MESSAGE
+        // SEND MESSAGE VIA TWILIO
         // ======================================================
         public async Task SendMessageAsync(string recipientId, string message)
         {
-            var token = _configuration["Facebook:AccessToken"];
+            var accountSid = _configuration["Twilio:AccountSid"];
+            var authToken = _configuration["Twilio:AuthToken"];
+            var messagingSenderId = _configuration["Twilio:MessagingSenderId"];
 
-            var url = $"https://graph.facebook.com/v19.0/me/messages?access_token={token}";
-
-            var payload = new
+            if (string.IsNullOrEmpty(messagingSenderId))
             {
-                recipient = new { id = recipientId },
-                message = new { text = message }
-            };
+                throw new InvalidOperationException("Twilio:MessagingSenderId is not configured.");
+            }
 
-            var json = JsonSerializer.Serialize(payload);
+            TwilioClient.Init(accountSid, authToken);
 
-            var response = await _httpClient.PostAsync(
-                url,
-                new StringContent(json, Encoding.UTF8, "application/json"));
-
-            response.EnsureSuccessStatusCode();
+            var twilioMessage = await MessageResource.CreateAsync(
+                from: new PhoneNumber($"messenger:{messagingSenderId}"),
+                to: new PhoneNumber($"messenger:{recipientId}"),
+                body: message
+            );
 
             // SAVE OUTGOING MESSAGE
             _context.FacebookMessages.Add(new FacebookMessage
             {
                 MessageId = Guid.NewGuid().ToString(),
-                SenderId = "PAGE",
+                SenderId = messagingSenderId,
                 RecipientId = recipientId,
                 Text = message,
                 Direction = "OUT",
                 CreatedAt = DateTime.UtcNow,
-                RawPayload = json
+                RawPayload = $"Twilio SID: {twilioMessage.Sid}"
             });
 
             await _context.SaveChangesAsync();
@@ -71,33 +67,10 @@ namespace HlumisaProperties.Infrastructure.Services
         // ======================================================
         public async Task<List<FacebookMessage>> GetAllMessagesAsync(string pageId)
         {
-            var token = _configuration["Facebook:AccessToken"];
-
-            _httpClient.DefaultRequestHeaders.Authorization =
-                new AuthenticationHeaderValue("Bearer", token);
-
-            var url = $"https://graph.facebook.com/v19.0/{pageId}/conversations";
-
-            var response = await _httpClient.GetAsync(url);
-            response.EnsureSuccessStatusCode();
-
-            var json = await response.Content.ReadAsStringAsync();
-            using var doc = JsonDocument.Parse(json);
-
-            var result = new List<FacebookMessage>();
-
-            if (!doc.RootElement.TryGetProperty("data", out var conversations))
-                return result;
-
-            foreach (var convo in conversations.EnumerateArray())
-            {
-                var conversationId = convo.GetProperty("id").GetString();
-                var messages = await GetConversationAsync(conversationId);
-
-                result.AddRange(messages);
-            }
-
-            return result;
+            // Twilio does not provide a history API for Messenger conversations.
+            // Return stored messages from local database instead.
+            return await _context.FacebookMessages
+                .ToListAsync();
         }
 
         // ======================================================
@@ -105,38 +78,10 @@ namespace HlumisaProperties.Infrastructure.Services
         // ======================================================
         public async Task<List<FacebookMessage>> GetConversationAsync(string conversationId)
         {
-            var token = _configuration["Facebook:AccessToken"];
-
-            _httpClient.DefaultRequestHeaders.Authorization =
-                new AuthenticationHeaderValue("Bearer", token);
-
-            var url = $"https://graph.facebook.com/v19.0/{conversationId}/messages";
-
-            var response = await _httpClient.GetAsync(url);
-            response.EnsureSuccessStatusCode();
-
-            var json = await response.Content.ReadAsStringAsync();
-            using var doc = JsonDocument.Parse(json);
-
-            var messages = new List<FacebookMessage>();
-
-            if (!doc.RootElement.TryGetProperty("data", out var data))
-                return messages;
-
-            foreach (var msg in data.EnumerateArray())
-            {
-                messages.Add(new FacebookMessage
-                {
-                    MessageId = msg.GetProperty("id").GetString(),
-                    Text = msg.TryGetProperty("message", out var t) ? t.GetString() : "",
-                    CreatedAt = DateTime.UtcNow,
-                    RawPayload = msg.ToString(),
-                    Direction = "IN",
-                    ConversationId = conversationId
-                });
-            }
-
-            return messages;
+            // Twilio does not provide a history API for Messenger conversations.
+            // Return stored messages from local database instead.
+            return await _context.FacebookMessages
+                .ToListAsync();
         }
     }
 }
