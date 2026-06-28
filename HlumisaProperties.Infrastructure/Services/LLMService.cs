@@ -32,7 +32,7 @@ namespace HlumisaProperties.Infrastructure.Services
                 var json = JsonSerializer.Serialize(request);
 
                 var response = await _httpClient.PostAsync(
-                    $"http://63.141.255.202:11434/api/generate",
+                    $"https://llm.hlumisaproperties.online/api/generate",
                     new StringContent(
                         json,
                         Encoding.UTF8,
