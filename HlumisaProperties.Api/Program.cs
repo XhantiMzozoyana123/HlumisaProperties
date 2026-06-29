@@ -14,6 +14,13 @@ var builder = WebApplication.CreateBuilder(args);
 // ======================================================
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("LandingPage", policy =>
+        policy.AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowAnyOrigin());
+});
 
 // ======================================================
 // YOUR APPLICATION SERVICES
@@ -78,6 +85,7 @@ if (app.Environment.IsDevelopment())
 // HTTPS + AUTH
 // ======================================================
 app.UseHttpsRedirection();
+app.UseCors("LandingPage");
 app.UseAuthorization();
 
 // ======================================================
