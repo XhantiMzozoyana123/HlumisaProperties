@@ -1,0 +1,2779 @@
+(globalThis["TURBOPACK"] || (globalThis["TURBOPACK"] = [])).push([typeof document === "object" ? document.currentScript : undefined,
+"[project]/src/app/admin/books/page.tsx [app-client] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "default",
+    ()=>BooksPage
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/compiled/react/jsx-dev-runtime.js [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/client/app-dir/link.js [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/compiled/react/index.js [app-client] (ecmascript)");
+;
+var _s = __turbopack_context__.k.signature();
+"use client";
+;
+;
+/** Get today's date in South African timezone as YYYY-MM-DD */ function getTodaySA() {
+    const now = new Date();
+    const sa = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+    return sa.toISOString().split("T")[0];
+}
+const initialData = [
+    {
+        id: "jan1",
+        date: "",
+        month: "JANUARY",
+        buyer: "MASOKA",
+        seller: "E/L MANCATA",
+        originalAmount: 0,
+        amountPaid: 140000,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 30000,
+        transferCosts: 15000,
+        masterFees: 10520,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "1588",
+        area: "WELLS ESTATE",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "jan2",
+        date: "",
+        month: "JANUARY",
+        buyer: "SWELINDAWO",
+        seller: "SMILO",
+        originalAmount: 0,
+        amountPaid: 150000,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 15000,
+        transferCosts: 15000,
+        masterFees: 10520,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "",
+        area: "IBHAYI",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "jan3",
+        date: "",
+        month: "JANUARY",
+        buyer: "KITSANA",
+        seller: "NKABI",
+        originalAmount: 0,
+        amountPaid: 110000,
+        deposit: 60000,
+        lostDeed: 50000,
+        commission: 0,
+        transferCosts: 15000,
+        masterFees: 10520,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "21755",
+        area: "MOTHERWELL",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "jan4",
+        date: "",
+        month: "JANUARY",
+        buyer: "NONJAKAZI",
+        seller: "SAM",
+        originalAmount: 0,
+        amountPaid: 195000,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 15000,
+        transferCosts: 15000,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "65696",
+        area: "IBHAYI",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "jan5",
+        date: "",
+        month: "JANUARY",
+        buyer: "NDABAMBI",
+        seller: "E/L JOHNSON",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 7800,
+        commission: 0,
+        transferCosts: 21000,
+        masterFees: 10520,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "18741",
+        area: "MOTHERWELL",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "jan6",
+        date: "",
+        month: "JANUARY",
+        buyer: "MINI",
+        seller: "MTATI",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 15000,
+        transferCosts: 15000,
+        masterFees: 10520,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "31834",
+        area: "KAMVELIHLE",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "jan7",
+        date: "",
+        month: "JANUARY",
+        buyer: "PLAATJIES",
+        seller: "E/L BINDA",
+        originalAmount: 0,
+        amountPaid: 160000,
+        deposit: 0,
+        lostDeed: 7800,
+        commission: 0,
+        transferCosts: 13500,
+        masterFees: 10520,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "27922",
+        area: "MOTHERWELL",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "jan8",
+        date: "",
+        month: "JANUARY",
+        buyer: "GWATUDZI",
+        seller: "SMILE",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 0,
+        transferCosts: 21500,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "",
+        area: "MOTHERWELL",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "jan9",
+        date: "",
+        month: "JANUARY",
+        buyer: "TOBI",
+        seller: "MZOZOYANA",
+        originalAmount: 0,
+        amountPaid: 205600,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 30000,
+        transferCosts: 15600,
+        masterFees: 10520,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "28514",
+        area: "MOTHERWELL",
+        outstandingBalance: 90000,
+        statusColor: "white"
+    },
+    {
+        id: "jan10",
+        date: "",
+        month: "JANUARY",
+        buyer: "HEWANA",
+        seller: "E/L MBUTUMA",
+        originalAmount: 0,
+        amountPaid: 24000,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 11000,
+        transferCosts: 13000,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "20342",
+        area: "BETHELSDORP",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "jan11",
+        date: "",
+        month: "JANUARY",
+        buyer: "MZAYIDUME",
+        seller: "E/L MCOTOYI",
+        originalAmount: 0,
+        amountPaid: 140000,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 25000,
+        transferCosts: 15000,
+        masterFees: 10520,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "16429",
+        area: "MOTHERWELL",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "jan12",
+        date: "",
+        month: "JANUARY",
+        buyer: "GONI",
+        seller: "FANS",
+        originalAmount: 0,
+        amountPaid: 13000,
+        deposit: 7000,
+        lostDeed: 0,
+        commission: 0,
+        transferCosts: 13000,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "7958",
+        area: "BOOYSENS",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "jan13",
+        date: "",
+        month: "JANUARY",
+        buyer: "NQWENISO",
+        seller: "DAVIDS",
+        originalAmount: 0,
+        amountPaid: 163000,
+        deposit: 0,
+        lostDeed: 7800,
+        commission: 30000,
+        transferCosts: 13000,
+        masterFees: 10520,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "27114",
+        area: "MOTHERWELL",
+        outstandingBalance: 40000,
+        statusColor: "white"
+    },
+    {
+        id: "jan14",
+        date: "",
+        month: "JANUARY",
+        buyer: "JOHNSON",
+        seller: "JONAS",
+        originalAmount: 0,
+        amountPaid: 180000,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 0,
+        transferCosts: 15000,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "30583",
+        area: "MISSIONVALLE",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "jan15",
+        date: "",
+        month: "JANUARY",
+        buyer: "GABAYI",
+        seller: "E/L GANA",
+        originalAmount: 0,
+        amountPaid: 190000,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 0,
+        transferCosts: 15000,
+        masterFees: 10520,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "",
+        area: "",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "jan16",
+        date: "",
+        month: "JANUARY",
+        buyer: "KWATSHA",
+        seller: "MZOZOYANA",
+        originalAmount: 0,
+        amountPaid: 170000,
+        deposit: 0,
+        lostDeed: 7800,
+        commission: 50000,
+        transferCosts: 15000,
+        masterFees: 10520,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "24014",
+        area: "MOTHERWELL",
+        outstandingBalance: 100000,
+        statusColor: "white"
+    },
+    {
+        id: "jan17",
+        date: "",
+        month: "JANUARY",
+        buyer: "BOKOYI",
+        seller: "MZOZOYANA",
+        originalAmount: 0,
+        amountPaid: 190000,
+        deposit: 0,
+        lostDeed: 7800,
+        commission: 40000,
+        transferCosts: 15000,
+        masterFees: 10520,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "31553",
+        area: "KAMVELIHLE",
+        outstandingBalance: 44500,
+        statusColor: "white"
+    },
+    {
+        id: "jan18",
+        date: "",
+        month: "JANUARY",
+        buyer: "PONO/KAWE",
+        seller: "E/L CAKWE",
+        originalAmount: 0,
+        amountPaid: 170000,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 24000,
+        transferCosts: 15000,
+        masterFees: 10520,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "",
+        area: "MOTHERWELL",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "jan19",
+        date: "",
+        month: "JANUARY",
+        buyer: "ZEPE",
+        seller: "MANELI",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 40000,
+        transferCosts: 0,
+        masterFees: 10520,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "BOND",
+        area: "",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "jan20",
+        date: "",
+        month: "JANUARY",
+        buyer: "SIDLABANE",
+        seller: "E/L SKOSANA",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 0,
+        transferCosts: 28500,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "",
+        area: "",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "jan21",
+        date: "",
+        month: "JANUARY",
+        buyer: "SIMANGO",
+        seller: "SIMANGO",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 0,
+        transferCosts: 21500,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "19007",
+        area: "IBHAYI",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "jan22",
+        date: "",
+        month: "JANUARY",
+        buyer: "BEBE",
+        seller: "E/L QOLANI",
+        originalAmount: 0,
+        amountPaid: 203000,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 14000,
+        transferCosts: 13000,
+        masterFees: 10520,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "65033",
+        area: "IBHAYI",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "feb1",
+        date: "",
+        month: "FEBRUARY",
+        buyer: "KONA",
+        seller: "LUBAMBO",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 0,
+        transferCosts: 13000,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "7941",
+        area: "DESPATCH",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "feb2",
+        date: "",
+        month: "FEBRUARY",
+        buyer: "SAM",
+        seller: "DLAKUDLA",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 14000,
+        transferCosts: 13000,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "65696",
+        area: "IBHAYI",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "feb3",
+        date: "",
+        month: "FEBRUARY",
+        buyer: "MZOZOYANA",
+        seller: "NTEYI",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 75000,
+        transferCosts: 0,
+        masterFees: 10520,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "5351",
+        area: "WELLS ESTATE",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "feb4",
+        date: "",
+        month: "FEBRUARY",
+        buyer: "SIWENDU",
+        seller: "E/L MOSI",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 0,
+        transferCosts: 10000,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "22718",
+        area: "KAMVELIHLE",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "feb5",
+        date: "",
+        month: "FEBRUARY",
+        buyer: "MANELI",
+        seller: "RALA",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 100000,
+        transferCosts: 0,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "27969",
+        area: "MOTHERWELL",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "feb6",
+        date: "",
+        month: "FEBRUARY",
+        buyer: "SIWENDU",
+        seller: "MNYAMANA",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 7800,
+        commission: 0,
+        transferCosts: 13000,
+        masterFees: 10520,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "32937",
+        area: "MOTHERWELL",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "feb7",
+        date: "",
+        month: "FEBRUARY",
+        buyer: "SIYA",
+        seller: "MAVATHA",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 7800,
+        commission: 6000,
+        transferCosts: 13000,
+        masterFees: 10520,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "27281",
+        area: "MOTHERWELL",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "feb8",
+        date: "",
+        month: "FEBRUARY",
+        buyer: "NCULA",
+        seller: "NOTSHOBA",
+        originalAmount: 0,
+        amountPaid: 160000,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 0,
+        transferCosts: 15000,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "30801",
+        area: "MOTHERWELL",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "feb9",
+        date: "",
+        month: "FEBRUARY",
+        buyer: "NTSHOKO",
+        seller: "E/L MPOZA",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 7800,
+        commission: 0,
+        transferCosts: 13000,
+        masterFees: 10520,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "32293",
+        area: "KWANOBUHLE",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "mar1",
+        date: "",
+        month: "MARCH",
+        buyer: "XHANTI",
+        seller: "SODZEME",
+        originalAmount: 0,
+        amountPaid: 280000,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 70000,
+        transferCosts: 20000,
+        masterFees: 10520,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "3902",
+        area: "MOTHERWELL",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "mar2",
+        date: "",
+        month: "MARCH",
+        buyer: "XHANTI",
+        seller: "LUKWE",
+        originalAmount: 0,
+        amountPaid: 200000,
+        deposit: 0,
+        lostDeed: 38000,
+        commission: 25000,
+        transferCosts: 18000,
+        masterFees: 38000,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "4077",
+        area: "IBHAYI",
+        outstandingBalance: 170000,
+        statusColor: "white"
+    },
+    {
+        id: "mar3",
+        date: "",
+        month: "MARCH",
+        buyer: "MPALALA",
+        seller: "MPI",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 0,
+        transferCosts: 15000,
+        masterFees: 10520,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "33931",
+        area: "MOTHERWELL",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "mar4",
+        date: "",
+        month: "MARCH",
+        buyer: "MCAKUMBANA",
+        seller: "FUBESI",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 0,
+        transferCosts: 13000,
+        masterFees: 10520,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "13067",
+        area: "BOOYSENS PARK",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "mar5",
+        date: "",
+        month: "MARCH",
+        buyer: "BILLY",
+        seller: "MAVATA",
+        originalAmount: 0,
+        amountPaid: 195000,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 25000,
+        transferCosts: 15000,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "26739",
+        area: "MOTHERWELL",
+        outstandingBalance: 120000,
+        statusColor: "white"
+    },
+    {
+        id: "mar6",
+        date: "",
+        month: "MARCH",
+        buyer: "TSILITE",
+        seller: "NYAMAKAZI",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 0,
+        transferCosts: 21000,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "14797",
+        area: "MOTHERWELL",
+        outstandingBalance: 40000,
+        statusColor: "white"
+    },
+    {
+        id: "mar7",
+        date: "",
+        month: "MARCH",
+        buyer: "MAFUXWANA",
+        seller: "NXADI",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 30000,
+        transferCosts: 0,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "16850",
+        area: "MOTHERWELL",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "mar8",
+        date: "",
+        month: "MARCH",
+        buyer: "MLUNGWANA",
+        seller: "KOTA",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 0,
+        transferCosts: 14800,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "26420",
+        area: "BETHELSDORP",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "mar9",
+        date: "",
+        month: "MARCH",
+        buyer: "MPOFU",
+        seller: "NALITI",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 7800,
+        commission: 0,
+        transferCosts: 13000,
+        masterFees: 10520,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "",
+        area: "MOTHERWELL",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "mar10",
+        date: "",
+        month: "MARCH",
+        buyer: "MZOZOYANA",
+        seller: "MJIJWA",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 40000,
+        transferCosts: 17000,
+        masterFees: 10520,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "",
+        area: "MOTHERWELL",
+        outstandingBalance: 150000,
+        statusColor: "white"
+    },
+    {
+        id: "apr1",
+        date: "",
+        month: "APRIL",
+        buyer: "MDABULA",
+        seller: "MDABULA",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 0,
+        transferCosts: 25000,
+        masterFees: 10520,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "2835",
+        area: "IBHAYI",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "apr2",
+        date: "",
+        month: "APRIL",
+        buyer: "NYIKI",
+        seller: "KLAAS",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 7800,
+        commission: 0,
+        transferCosts: 13000,
+        masterFees: 10520,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "12169",
+        area: "KWANOBUHLE",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "apr3",
+        date: "",
+        month: "APRIL",
+        buyer: "MKHONTO",
+        seller: "E/L YOKO",
+        originalAmount: 0,
+        amountPaid: 190000,
+        deposit: 0,
+        lostDeed: 7800,
+        commission: 0,
+        transferCosts: 16000,
+        masterFees: 10520,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "24755",
+        area: "MOTHERWELL",
+        outstandingBalance: 106950,
+        statusColor: "white"
+    },
+    {
+        id: "apr4",
+        date: "",
+        month: "APRIL",
+        buyer: "VANTYI",
+        seller: "MAYISHE",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 30000,
+        transferCosts: 0,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "9106",
+        area: "IBHAYI",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "apr5",
+        date: "",
+        month: "APRIL",
+        buyer: "FANTA",
+        seller: "KHWALO",
+        originalAmount: 0,
+        amountPaid: 200000,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 20000,
+        transferCosts: 15000,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "",
+        area: "MOTHERWELL",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "apr6",
+        date: "",
+        month: "APRIL",
+        buyer: "MZALAZALA",
+        seller: "JOKANI",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 7800,
+        commission: 0,
+        transferCosts: 13000,
+        masterFees: 10520,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "16758",
+        area: "MOTHERWELL",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "apr7",
+        date: "",
+        month: "APRIL",
+        buyer: "MZOZOYANA",
+        seller: "MAGABA",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 5000,
+        transferCosts: 13000,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "",
+        area: "",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "apr8",
+        date: "",
+        month: "APRIL",
+        buyer: "NTONTELA",
+        seller: "MATANJANA",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 20000,
+        transferCosts: 0,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "BOND",
+        area: "",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "apr9",
+        date: "",
+        month: "APRIL",
+        buyer: "MANELI",
+        seller: "MANJEZI",
+        originalAmount: 0,
+        amountPaid: 195000,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 10000,
+        transferCosts: 18000,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "",
+        area: "",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "apr10",
+        date: "",
+        month: "APRIL",
+        buyer: "NGANGANI",
+        seller: "NGANGANI",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 0,
+        transferCosts: 10000,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "",
+        area: "",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "may1",
+        date: "",
+        month: "MAY",
+        buyer: "FUZANI",
+        seller: "E/L TORO",
+        originalAmount: 0,
+        amountPaid: 39000,
+        deposit: 0,
+        lostDeed: 7800,
+        commission: 0,
+        transferCosts: 13000,
+        masterFees: 10520,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "25475",
+        area: "KWANOBUHLE",
+        outstandingBalance: 16220,
+        statusColor: "white"
+    },
+    {
+        id: "may2",
+        date: "",
+        month: "MAY",
+        buyer: "MNYAMANA",
+        seller: "E/L DESI",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 7800,
+        commission: 0,
+        transferCosts: 13000,
+        masterFees: 10520,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "28121",
+        area: "KWANOBUHLE",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "may3",
+        date: "",
+        month: "MAY",
+        buyer: "NTSINI",
+        seller: "E/L TUSWA",
+        originalAmount: 0,
+        amountPaid: 153000,
+        deposit: 0,
+        lostDeed: 7800,
+        commission: 15000,
+        transferCosts: 13000,
+        masterFees: 10520,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "27040",
+        area: "MOTHERWELL",
+        outstandingBalance: 80000,
+        statusColor: "white"
+    },
+    {
+        id: "may4",
+        date: "",
+        month: "MAY",
+        buyer: "ZWENI",
+        seller: "E/L MAPU",
+        originalAmount: 0,
+        amountPaid: 60000,
+        deposit: 0,
+        lostDeed: 7800,
+        commission: 0,
+        transferCosts: 13000,
+        masterFees: 10520,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "11679",
+        area: "KWANOBUHLE",
+        outstandingBalance: 34700,
+        statusColor: "white"
+    },
+    {
+        id: "may5",
+        date: "",
+        month: "MAY",
+        buyer: "CHIEF SAI",
+        seller: "",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 30000,
+        transferCosts: 18000,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "25600",
+        area: "MOTHERWELL",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "may6",
+        date: "",
+        month: "MAY",
+        buyer: "JELA",
+        seller: "SIGUTYWA",
+        originalAmount: 0,
+        amountPaid: 150000,
+        deposit: 0,
+        lostDeed: 13000,
+        commission: 0,
+        transferCosts: 13000,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "34863",
+        area: "MOTHERWELL",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "may7",
+        date: "",
+        month: "MAY",
+        buyer: "MZOZOYANA",
+        seller: "NTENTENI",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 40000,
+        transferCosts: 18000,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "",
+        area: "MOTHERWELL",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "may8",
+        date: "",
+        month: "MAY",
+        buyer: "SNAM",
+        seller: "E/L SLATER",
+        originalAmount: 0,
+        amountPaid: 225000,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 0,
+        transferCosts: 18000,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "1357",
+        area: "WELLS ESTATE",
+        outstandingBalance: 100000,
+        statusColor: "white"
+    },
+    {
+        id: "may9",
+        date: "",
+        month: "MAY",
+        buyer: "",
+        seller: "PALAMENTE",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 0,
+        transferCosts: 18000,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "27366",
+        area: "MOTHERWELL",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "may10",
+        date: "",
+        month: "MAY",
+        buyer: "MANGE",
+        seller: "E/L TALAMBA",
+        originalAmount: 0,
+        amountPaid: 119701,
+        deposit: 0,
+        lostDeed: 7800,
+        commission: 0,
+        transferCosts: 20000,
+        masterFees: 10520,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "9708",
+        area: "KWANOBUHLE",
+        outstandingBalance: 81381,
+        statusColor: "white"
+    },
+    {
+        id: "jun1",
+        date: "",
+        month: "JUNE",
+        buyer: "MTSHAULANA",
+        seller: "ZENZILE",
+        originalAmount: 0,
+        amountPaid: 83000,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 0,
+        transferCosts: 13000,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "",
+        area: "",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "jun2",
+        date: "",
+        month: "JUNE",
+        buyer: "MJUZA",
+        seller: "MAYEKISO",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 7800,
+        commission: 0,
+        transferCosts: 13000,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "17993",
+        area: "MISSIONVALE",
+        outstandingBalance: 72200,
+        statusColor: "white"
+    },
+    {
+        id: "jun3",
+        date: "",
+        month: "JUNE",
+        buyer: "MAFUNDA",
+        seller: "DAYIMANI",
+        originalAmount: 0,
+        amountPaid: 180000,
+        deposit: 0,
+        lostDeed: 7800,
+        commission: 0,
+        transferCosts: 17000,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "",
+        area: "WELLS ESTATE",
+        outstandingBalance: 92200,
+        statusColor: "white"
+    },
+    {
+        id: "jun4",
+        date: "",
+        month: "JUNE",
+        buyer: "",
+        seller: "BOOI",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 0,
+        transferCosts: 0,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "",
+        area: "IBHAYI",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "jun5",
+        date: "",
+        month: "JUNE",
+        buyer: "MZOZOYANA",
+        seller: "NANGU",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 60000,
+        transferCosts: 20000,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "",
+        area: "MOTHERWELL",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "jun6",
+        date: "",
+        month: "JUNE",
+        buyer: "TSOTSO",
+        seller: "",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 0,
+        transferCosts: 18000,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "",
+        area: "",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "jun7",
+        date: "",
+        month: "JUNE",
+        buyer: "",
+        seller: "THANDIWE",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 0,
+        transferCosts: 0,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "",
+        area: "IBHAYI",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "jun8",
+        date: "",
+        month: "JUNE",
+        buyer: "MZOZOYANA",
+        seller: "E/L TSHIRA",
+        originalAmount: 0,
+        amountPaid: 250000,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 50000,
+        transferCosts: 20000,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "",
+        area: "MOTHERWELL",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "jun9",
+        date: "",
+        month: "JUNE",
+        buyer: "",
+        seller: "NGXANGANI",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 30000,
+        transferCosts: 18000,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "",
+        area: "IBHAYI",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "jun10",
+        date: "",
+        month: "JUNE",
+        buyer: "SIYA",
+        seller: "BAKWANA",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 0,
+        transferCosts: 0,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "",
+        area: "BLOEMENDAL",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "jun11",
+        date: "",
+        month: "JUNE",
+        buyer: "MANELI",
+        seller: "JONAS",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 20000,
+        transferCosts: 18000,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "",
+        area: "",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "jun12",
+        date: "",
+        month: "JUNE",
+        buyer: "",
+        seller: "KHASTA",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 20000,
+        transferCosts: 20000,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "",
+        area: "IBHAYI",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "jun13",
+        date: "",
+        month: "JUNE",
+        buyer: "JACK",
+        seller: "T MAN",
+        originalAmount: 0,
+        amountPaid: 0,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 0,
+        transferCosts: 18000,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "",
+        area: "NKANDLA",
+        outstandingBalance: 0,
+        statusColor: "white"
+    },
+    {
+        id: "jun14",
+        date: "",
+        month: "JUNE",
+        buyer: "JOSEPH",
+        seller: "MTATI",
+        originalAmount: 0,
+        amountPaid: 117000,
+        deposit: 0,
+        lostDeed: 50000,
+        commission: 0,
+        transferCosts: 17000,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "",
+        area: "BLOEMENDAL",
+        outstandingBalance: 80000,
+        statusColor: "white"
+    },
+    {
+        id: "jun15",
+        date: "",
+        month: "JUNE",
+        buyer: "MOODLEY",
+        seller: "SAM",
+        originalAmount: 0,
+        amountPaid: 153000,
+        deposit: 0,
+        lostDeed: 0,
+        commission: 0,
+        transferCosts: 13000,
+        masterFees: 0,
+        balance: 0,
+        electricalCertificate: 0,
+        waterAccount: 0,
+        section118: 0,
+        erfNumber: "",
+        area: "UITENHAGE",
+        outstandingBalance: 0,
+        statusColor: "white"
+    }
+];
+const fieldConfig = {
+    date: "text",
+    month: "readonly",
+    buyer: "text",
+    seller: "text",
+    originalAmount: "number",
+    amountPaid: "number",
+    deposit: "number",
+    lostDeed: "number",
+    commission: "number",
+    transferCosts: "number",
+    masterFees: "number",
+    balance: "number",
+    electricalCertificate: "number",
+    waterAccount: "number",
+    section118: "number",
+    erfNumber: "text",
+    area: "text",
+    outstandingBalance: "number"
+};
+/** Ordered keys for table columns — new layout as requested */ const columnOrder = [
+    "date",
+    "month",
+    "buyer",
+    "seller",
+    "originalAmount",
+    "amountPaid",
+    "deposit",
+    "lostDeed",
+    "commission",
+    "transferCosts",
+    "masterFees",
+    "electricalCertificate",
+    "waterAccount",
+    "section118",
+    "outstandingBalance",
+    "erfNumber",
+    "area"
+];
+const fieldLabels = {
+    date: "Date",
+    month: "Month",
+    buyer: "Buyer",
+    seller: "Seller",
+    originalAmount: "Original Amount",
+    amountPaid: "Due to Seller",
+    deposit: "Deposit",
+    lostDeed: "Lost Deed",
+    commission: "Commission",
+    transferCosts: "Transfer Costs",
+    masterFees: "Master Fees",
+    electricalCertificate: "Elec Cert",
+    waterAccount: "Water Account",
+    section118: "Section 118",
+    outstandingBalance: "Balance",
+    erfNumber: "ERF",
+    area: "Area"
+};
+/** Number columns that should be right-aligned */ const rightAlignedFields = new Set([
+    "amountPaid",
+    "deposit",
+    "lostDeed",
+    "commission",
+    "transferCosts",
+    "masterFees",
+    "balance",
+    "electricalCertificate",
+    "waterAccount",
+    "section118",
+    "outstandingBalance",
+    "originalAmount"
+]);
+function formatMoney(amount) {
+    if (amount === 0) return "";
+    return new Intl.NumberFormat("en-ZA", {
+        style: "currency",
+        currency: "ZAR",
+        maximumFractionDigits: 0
+    }).format(amount);
+}
+function getCellColorClass(color) {
+    switch(color){
+        case "red":
+            return "text-rose-300";
+        case "green":
+            return "text-emerald-300";
+        default:
+            return "text-stone-200";
+    }
+}
+function getCellBgClass(color) {
+    switch(color){
+        case "red":
+            return "bg-rose-500/10";
+        case "green":
+            return "bg-emerald-500/10";
+        default:
+            return "";
+    }
+}
+function BooksPage() {
+    _s();
+    const [data, setData] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(initialData);
+    const [selectedMonth, setSelectedMonth] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])("ALL");
+    const [editCell, setEditCell] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
+    const [editValue, setEditValue] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])("");
+    const [saved, setSaved] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
+    const [highlightedRow, setHighlightedRow] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
+    const [selectedRow, setSelectedRow] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
+    const [pendingFields, setPendingFields] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])({
+        "BooksPage.useState": ()=>{
+            const initial = {};
+            initialData.forEach({
+                "BooksPage.useState": (row)=>{
+                    if (row.lostDeed === 7800) initial[`${row.id}_lostDeed`] = true;
+                    if (row.outstandingBalance > 0) initial[`${row.id}_outstandingBalance`] = true;
+                    if (row.lostDeed === 50000) initial[`${row.id}_lostDeed`] = true;
+                }
+            }["BooksPage.useState"]);
+            return initial;
+        }
+    }["BooksPage.useState"]);
+    const [cellColors, setCellColors] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])({
+        "BooksPage.useState": ()=>{
+            const initial = {};
+            initialData.forEach({
+                "BooksPage.useState": (row)=>{
+                    if (row.outstandingBalance > 0) initial[`${row.id}_outstandingBalance`] = "red";
+                    if (row.lostDeed === 7800) initial[`${row.id}_lostDeed`] = "red";
+                    if (row.lostDeed === 50000) initial[`${row.id}_lostDeed`] = "red";
+                    if (row.commission > 39000) initial[`${row.id}_commission`] = "green";
+                }
+            }["BooksPage.useState"]);
+            return initial;
+        }
+    }["BooksPage.useState"]);
+    const [colorPickerCell, setColorPickerCell] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
+    function cycleBookStatusColor(rowId) {
+        setData((prev)=>prev.map((d)=>{
+                if (d.id !== rowId) return d;
+                const next = {
+                    white: "red",
+                    red: "green",
+                    green: "white"
+                };
+                return {
+                    ...d,
+                    statusColor: next[d.statusColor]
+                };
+            }));
+    }
+    const inputRef = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRef"])(null);
+    const tableRef = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRef"])(null);
+    const months = [
+        "ALL",
+        "JANUARY",
+        "FEBRUARY",
+        "MARCH",
+        "APRIL",
+        "MAY",
+        "JUNE"
+    ];
+    const filtered = selectedMonth === "ALL" ? data : data.filter((d)=>d.month === selectedMonth);
+    const monthlyTotals = {};
+    data.forEach((d)=>{
+        if (!monthlyTotals[d.month]) monthlyTotals[d.month] = {
+            commission: 0,
+            transferCosts: 0
+        };
+        monthlyTotals[d.month].commission += d.commission;
+        monthlyTotals[d.month].transferCosts += d.transferCosts;
+    });
+    const handleCellClick = (row, field)=>{
+        const fType = fieldConfig[field] || "readonly";
+        if (fType === "readonly") return;
+        setColorPickerCell({
+            row: row.id,
+            field
+        });
+    };
+    const handleColorSelected = (color)=>{
+        if (!colorPickerCell) return;
+        const key = `${colorPickerCell.row}_${colorPickerCell.field}`;
+        setCellColors((prev)=>({
+                ...prev,
+                [key]: color
+            }));
+        const row = data.find((d)=>d.id === colorPickerCell.row);
+        if (row) {
+            const val = row[colorPickerCell.field];
+            setEditCell({
+                row: colorPickerCell.row,
+                field: colorPickerCell.field
+            });
+            setEditValue(val != null && val !== 0 ? String(val) : "");
+            setTimeout(()=>inputRef.current?.focus(), 10);
+        }
+        setColorPickerCell(null);
+    };
+    const handleCellSave = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useCallback"])({
+        "BooksPage.useCallback[handleCellSave]": ()=>{
+            if (!editCell) return;
+            setData({
+                "BooksPage.useCallback[handleCellSave]": (prev)=>prev.map({
+                        "BooksPage.useCallback[handleCellSave]": (d)=>{
+                            if (d.id !== editCell.row) return d;
+                            const fType = fieldConfig[editCell.field] || "text";
+                            const updated = {
+                                ...d
+                            };
+                            if (fType === "number") {
+                                updated[editCell.field] = parseFloat(editValue) || 0;
+                            } else {
+                                updated[editCell.field] = editValue;
+                            }
+                            return updated;
+                        }
+                    }["BooksPage.useCallback[handleCellSave]"])
+            }["BooksPage.useCallback[handleCellSave]"]);
+            setEditCell(null);
+        }
+    }["BooksPage.useCallback[handleCellSave]"], [
+        editCell,
+        editValue
+    ]);
+    const handleKeyDown = (e)=>{
+        if (e.key === "Enter") handleCellSave();
+        if (e.key === "Escape") {
+            setEditCell(null);
+            setColorPickerCell(null);
+        }
+    };
+    const handleAddRow = ()=>{
+        const newId = `new-${Date.now()}`;
+        const newEntry = {
+            id: newId,
+            date: getTodaySA(),
+            month: selectedMonth === "ALL" ? "JULY" : selectedMonth,
+            buyer: "",
+            seller: "",
+            originalAmount: 0,
+            amountPaid: 0,
+            deposit: 0,
+            lostDeed: 0,
+            commission: 0,
+            transferCosts: 0,
+            masterFees: 0,
+            balance: 0,
+            electricalCertificate: 0,
+            waterAccount: 0,
+            section118: 0,
+            erfNumber: "",
+            area: "",
+            outstandingBalance: 0,
+            statusColor: "white"
+        };
+        setData((prev)=>[
+                ...prev,
+                newEntry
+            ]);
+        setTimeout(()=>{
+            const el = document.getElementById(`book-row-${newId}`);
+            if (el) {
+                el.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center"
+                });
+                setHighlightedRow(newId);
+                setTimeout(()=>setHighlightedRow(null), 2500);
+            }
+        }, 100);
+    };
+    const handleRemoveRow = ()=>{
+        if (!selectedRow) return;
+        setData((prev)=>prev.filter((d)=>d.id !== selectedRow));
+        setSelectedRow(null);
+    };
+    const handleRowDoubleClick = (rowId)=>{
+        setSelectedRow((prev)=>prev === rowId ? null : rowId);
+    };
+    const handleSaveAll = ()=>{
+        setData((current)=>{
+            localStorage.setItem("hlumisa-books-data", JSON.stringify(current));
+            return current;
+        });
+        setSaved(true);
+        setTimeout(()=>setSaved(false), 2000);
+    };
+    const totalCommission = filtered.reduce((s, d)=>s + d.commission, 0);
+    const totalTransfer = filtered.reduce((s, d)=>s + d.transferCosts, 0);
+    const totalMasterFees = filtered.reduce((s, d)=>s + d.masterFees, 0);
+    const totalOutstanding = filtered.reduce((s, d)=>s + d.outstandingBalance, 0);
+    const totalOutstandingUnfiltered = data.reduce((s, d)=>s + d.outstandingBalance, 0);
+    const flippedCount = filtered.filter((d)=>d.commission > 39000).length;
+    const scrollToBookRow = (rowId)=>{
+        setSelectedMonth("ALL");
+        setTimeout(()=>{
+            const el = document.getElementById(`book-row-${rowId}`);
+            if (el) {
+                el.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center"
+                });
+                setHighlightedRow(rowId);
+                setTimeout(()=>setHighlightedRow(null), 3000);
+            }
+        }, 150);
+    };
+    function renderCell(row, field) {
+        const isEditing = editCell?.row === row.id && editCell?.field === field;
+        const fType = fieldConfig[field] || "readonly";
+        if (fType === "readonly") {
+            const val = row[field];
+            return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                className: "text-stone-500",
+                children: val || "-"
+            }, void 0, false, {
+                fileName: "[project]/src/app/admin/books/page.tsx",
+                lineNumber: 355,
+                columnNumber: 14
+            }, this);
+        }
+        const val = row[field];
+        const display = fType === "number" ? formatMoney(val) || "-" : val || "-";
+        const isOutstanding = field === "outstandingBalance" && val > 0;
+        const isCommissionHighlight = field === "commission" && val > 39000;
+        const isLostDeedRed = field === "lostDeed" && val === 7800;
+        const cellKey = `${row.id}_${field}`;
+        const cellColor = cellColors[cellKey] || "white";
+        const colorClass = getCellColorClass(cellColor);
+        const bgClass = getCellBgClass(cellColor);
+        if (isEditing) {
+            return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                ref: inputRef,
+                type: fType === "number" ? "number" : "text",
+                value: editValue,
+                onChange: (e)=>setEditValue(e.target.value),
+                onBlur: handleCellSave,
+                onKeyDown: handleKeyDown,
+                className: "w-full min-w-[80px] rounded-lg border border-amber-200/40 bg-black/60 px-2 py-1 text-sm text-white outline-none",
+                autoFocus: true
+            }, void 0, false, {
+                fileName: "[project]/src/app/admin/books/page.tsx",
+                lineNumber: 369,
+                columnNumber: 9
+            }, this);
+        }
+        return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+            onClick: ()=>handleCellClick(row, field),
+            className: `cursor-pointer rounded px-1 py-0.5 transition hover:bg-amber-200/15 ${colorClass} ${bgClass} ${isOutstanding || isLostDeedRed ? "font-semibold" : ""} ${isCommissionHighlight ? "font-semibold" : ""}`,
+            children: [
+                display,
+                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                    className: "ml-1 opacity-0 group-hover:opacity-100 text-stone-500 text-xs",
+                    children: "✎"
+                }, void 0, false, {
+                    fileName: "[project]/src/app/admin/books/page.tsx",
+                    lineNumber: 380,
+                    columnNumber: 9
+                }, this)
+            ]
+        }, void 0, true, {
+            fileName: "[project]/src/app/admin/books/page.tsx",
+            lineNumber: 377,
+            columnNumber: 7
+        }, this);
+    }
+    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+        className: "space-y-6",
+        onDoubleClick: ()=>{
+            if (selectedRow) setSelectedRow(null);
+        },
+        children: [
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "flex flex-wrap items-center justify-between gap-4",
+                children: [
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h1", {
+                                className: "text-3xl font-semibold text-white",
+                                children: "Books"
+                            }, void 0, false, {
+                                fileName: "[project]/src/app/admin/books/page.tsx",
+                                lineNumber: 389,
+                                columnNumber: 11
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                className: "mt-1 text-sm text-stone-400",
+                                children: "Transaction ledger — all deals, commissions & balances."
+                            }, void 0, false, {
+                                fileName: "[project]/src/app/admin/books/page.tsx",
+                                lineNumber: 390,
+                                columnNumber: 11
+                            }, this)
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/src/app/admin/books/page.tsx",
+                        lineNumber: 388,
+                        columnNumber: 9
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "flex items-center gap-3",
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
+                                value: selectedMonth,
+                                onChange: (e)=>setSelectedMonth(e.target.value),
+                                className: "rounded-2xl border border-white/10 bg-black/30 px-4 py-2 text-sm text-white outline-none",
+                                children: months.map((m)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
+                                        value: m,
+                                        children: m === "ALL" ? "All Months" : m
+                                    }, m, false, {
+                                        fileName: "[project]/src/app/admin/books/page.tsx",
+                                        lineNumber: 395,
+                                        columnNumber: 33
+                                    }, this))
+                            }, void 0, false, {
+                                fileName: "[project]/src/app/admin/books/page.tsx",
+                                lineNumber: 393,
+                                columnNumber: 11
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                onClick: handleSaveAll,
+                                className: "rounded-full bg-amber-200 px-6 py-2 text-sm font-semibold text-stone-950 transition hover:bg-amber-100",
+                                children: saved ? "✓ Saved!" : "Save Changes"
+                            }, void 0, false, {
+                                fileName: "[project]/src/app/admin/books/page.tsx",
+                                lineNumber: 397,
+                                columnNumber: 11
+                            }, this)
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/src/app/admin/books/page.tsx",
+                        lineNumber: 392,
+                        columnNumber: 9
+                    }, this)
+                ]
+            }, void 0, true, {
+                fileName: "[project]/src/app/admin/books/page.tsx",
+                lineNumber: 387,
+                columnNumber: 7
+            }, this),
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "grid gap-4 sm:grid-cols-6",
+                children: [
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "rounded-[1.5rem] border border-white/10 bg-black/20 p-5",
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                className: "text-xs uppercase tracking-[0.3em] text-stone-400",
+                                children: "Total Commission"
+                            }, void 0, false, {
+                                fileName: "[project]/src/app/admin/books/page.tsx",
+                                lineNumber: 406,
+                                columnNumber: 11
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                className: "mt-2 text-2xl font-semibold text-white",
+                                children: formatMoney(totalCommission) || "R0"
+                            }, void 0, false, {
+                                fileName: "[project]/src/app/admin/books/page.tsx",
+                                lineNumber: 407,
+                                columnNumber: 11
+                            }, this)
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/src/app/admin/books/page.tsx",
+                        lineNumber: 405,
+                        columnNumber: 9
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "rounded-[1.5rem] border border-white/10 bg-black/20 p-5",
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                className: "text-xs uppercase tracking-[0.3em] text-stone-400",
+                                children: "Transfer Costs"
+                            }, void 0, false, {
+                                fileName: "[project]/src/app/admin/books/page.tsx",
+                                lineNumber: 410,
+                                columnNumber: 11
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                className: "mt-2 text-2xl font-semibold text-white",
+                                children: formatMoney(totalTransfer) || "R0"
+                            }, void 0, false, {
+                                fileName: "[project]/src/app/admin/books/page.tsx",
+                                lineNumber: 411,
+                                columnNumber: 11
+                            }, this)
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/src/app/admin/books/page.tsx",
+                        lineNumber: 409,
+                        columnNumber: 9
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "rounded-[1.5rem] border border-white/10 bg-black/20 p-5",
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                className: "text-xs uppercase tracking-[0.3em] text-stone-400",
+                                children: "🏠 Flipped Houses"
+                            }, void 0, false, {
+                                fileName: "[project]/src/app/admin/books/page.tsx",
+                                lineNumber: 414,
+                                columnNumber: 11
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                className: "mt-2 text-2xl font-semibold text-purple-200",
+                                children: flippedCount
+                            }, void 0, false, {
+                                fileName: "[project]/src/app/admin/books/page.tsx",
+                                lineNumber: 415,
+                                columnNumber: 11
+                            }, this)
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/src/app/admin/books/page.tsx",
+                        lineNumber: 413,
+                        columnNumber: 9
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "rounded-[1.5rem] border border-white/10 bg-black/20 p-5",
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                className: "text-xs uppercase tracking-[0.3em] text-stone-400",
+                                children: "Master Fees"
+                            }, void 0, false, {
+                                fileName: "[project]/src/app/admin/books/page.tsx",
+                                lineNumber: 418,
+                                columnNumber: 11
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                className: "mt-2 text-2xl font-semibold text-white",
+                                children: formatMoney(totalMasterFees) || "R0"
+                            }, void 0, false, {
+                                fileName: "[project]/src/app/admin/books/page.tsx",
+                                lineNumber: 419,
+                                columnNumber: 11
+                            }, this)
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/src/app/admin/books/page.tsx",
+                        lineNumber: 417,
+                        columnNumber: 9
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "rounded-[1.5rem] border border-rose-300/20 bg-rose-500/10 p-5",
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                className: "text-xs uppercase tracking-[0.3em] text-rose-300",
+                                children: "💳 Pending Payments"
+                            }, void 0, false, {
+                                fileName: "[project]/src/app/admin/books/page.tsx",
+                                lineNumber: 422,
+                                columnNumber: 11
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                className: "mt-2 text-2xl font-semibold text-rose-200",
+                                children: formatMoney(totalOutstanding) || "R0"
+                            }, void 0, false, {
+                                fileName: "[project]/src/app/admin/books/page.tsx",
+                                lineNumber: 423,
+                                columnNumber: 11
+                            }, this)
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/src/app/admin/books/page.tsx",
+                        lineNumber: 421,
+                        columnNumber: 9
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "rounded-[1.5rem] border border-amber-300/20 bg-amber-500/10 p-5",
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                className: "text-xs uppercase tracking-[0.3em] text-amber-300",
+                                children: "📊 Outstanding Total"
+                            }, void 0, false, {
+                                fileName: "[project]/src/app/admin/books/page.tsx",
+                                lineNumber: 426,
+                                columnNumber: 11
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                className: "mt-2 text-2xl font-semibold text-amber-200",
+                                children: formatMoney(totalOutstandingUnfiltered) || "R0"
+                            }, void 0, false, {
+                                fileName: "[project]/src/app/admin/books/page.tsx",
+                                lineNumber: 427,
+                                columnNumber: 11
+                            }, this)
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/src/app/admin/books/page.tsx",
+                        lineNumber: 425,
+                        columnNumber: 9
+                    }, this)
+                ]
+            }, void 0, true, {
+                fileName: "[project]/src/app/admin/books/page.tsx",
+                lineNumber: 404,
+                columnNumber: 7
+            }, this),
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "flex flex-wrap gap-2",
+                children: Object.entries(monthlyTotals).map(([month, t])=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "rounded-xl border border-white/10 bg-black/20 px-4 py-2 text-xs",
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                className: "text-stone-400",
+                                children: month
+                            }, void 0, false, {
+                                fileName: "[project]/src/app/admin/books/page.tsx",
+                                lineNumber: 434,
+                                columnNumber: 13
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                className: "ml-2 text-amber-200",
+                                children: [
+                                    "C: ",
+                                    formatMoney(t.commission)
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/src/app/admin/books/page.tsx",
+                                lineNumber: 435,
+                                columnNumber: 13
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                className: "ml-2 text-stone-400",
+                                children: [
+                                    "T: ",
+                                    formatMoney(t.transferCosts)
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/src/app/admin/books/page.tsx",
+                                lineNumber: 436,
+                                columnNumber: 13
+                            }, this)
+                        ]
+                    }, month, true, {
+                        fileName: "[project]/src/app/admin/books/page.tsx",
+                        lineNumber: 433,
+                        columnNumber: 11
+                    }, this))
+            }, void 0, false, {
+                fileName: "[project]/src/app/admin/books/page.tsx",
+                lineNumber: 431,
+                columnNumber: 7
+            }, this),
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                ref: tableRef,
+                className: "overflow-x-auto rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-md",
+                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("table", {
+                    className: "w-full text-left text-sm",
+                    children: [
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("thead", {
+                            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("tr", {
+                                className: "border-b border-white/10 text-xs uppercase tracking-wider text-stone-400",
+                                children: [
+                                    columnOrder.map((key)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
+                                            className: `px-4 py-4 ${key === "outstandingBalance" ? "text-rose-300" : ""} ${rightAlignedFields.has(key) ? "text-right" : ""}`,
+                                            children: fieldLabels[key]
+                                        }, key, false, {
+                                            fileName: "[project]/src/app/admin/books/page.tsx",
+                                            lineNumber: 446,
+                                            columnNumber: 17
+                                        }, this)),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
+                                        className: "px-4 py-4",
+                                        children: "Status"
+                                    }, void 0, false, {
+                                        fileName: "[project]/src/app/admin/books/page.tsx",
+                                        lineNumber: 450,
+                                        columnNumber: 15
+                                    }, this)
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/src/app/admin/books/page.tsx",
+                                lineNumber: 444,
+                                columnNumber: 13
+                            }, this)
+                        }, void 0, false, {
+                            fileName: "[project]/src/app/admin/books/page.tsx",
+                            lineNumber: 443,
+                            columnNumber: 11
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("tbody", {
+                            children: [
+                                filtered.map((row, idx)=>{
+                                    const isFlipped = row.commission > 39000;
+                                    const isHighlighted = highlightedRow === row.id;
+                                    const isSelected = selectedRow === row.id;
+                                    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("tr", {
+                                        id: `book-row-${row.id}`,
+                                        onDoubleClick: ()=>handleRowDoubleClick(row.id),
+                                        className: `border-b border-white/5 transition cursor-pointer ${isSelected ? "bg-amber-400/20 ring-2 ring-amber-400/50" : isHighlighted ? "bg-amber-200/20 ring-2 ring-amber-300/40" : idx % 2 === 0 ? "bg-black/10 hover:bg-white/5" : "hover:bg-white/5"}`,
+                                        children: [
+                                            columnOrder.map((field)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                    className: `px-4 py-3 ${rightAlignedFields.has(field) ? "text-right" : ""}`,
+                                                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                        className: "group",
+                                                        children: renderCell(row, field)
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/src/app/admin/books/page.tsx",
+                                                        lineNumber: 464,
+                                                        columnNumber: 23
+                                                    }, this)
+                                                }, field, false, {
+                                                    fileName: "[project]/src/app/admin/books/page.tsx",
+                                                    lineNumber: 463,
+                                                    columnNumber: 21
+                                                }, this)),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                                className: "px-4 py-3",
+                                                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                    className: "flex flex-col gap-1",
+                                                    children: [
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                            onClick: ()=>cycleBookStatusColor(row.id),
+                                                            className: `rounded-full px-2.5 py-0.5 text-xs font-medium transition cursor-pointer hover:ring-2 hover:ring-white/20 ${row.statusColor === "green" ? "bg-emerald-500/20 text-emerald-200" : row.statusColor === "red" ? "bg-rose-500/20 text-rose-200" : "bg-white/5 text-stone-300"}`,
+                                                            children: row.statusColor === "green" ? "✓ Done" : row.statusColor === "red" ? "✕ Declined" : "○ Pending"
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/src/app/admin/books/page.tsx",
+                                                            lineNumber: 469,
+                                                            columnNumber: 23
+                                                        }, this),
+                                                        isFlipped && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                            className: "inline-flex items-center gap-1 rounded-full bg-purple-500/20 px-2.5 py-0.5 text-xs font-medium text-purple-200",
+                                                            children: "🏠 Flipped"
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/src/app/admin/books/page.tsx",
+                                                            lineNumber: 474,
+                                                            columnNumber: 25
+                                                        }, this)
+                                                    ]
+                                                }, void 0, true, {
+                                                    fileName: "[project]/src/app/admin/books/page.tsx",
+                                                    lineNumber: 468,
+                                                    columnNumber: 21
+                                                }, this)
+                                            }, void 0, false, {
+                                                fileName: "[project]/src/app/admin/books/page.tsx",
+                                                lineNumber: 467,
+                                                columnNumber: 19
+                                            }, this)
+                                        ]
+                                    }, row.id, true, {
+                                        fileName: "[project]/src/app/admin/books/page.tsx",
+                                        lineNumber: 459,
+                                        columnNumber: 17
+                                    }, this);
+                                }),
+                                filtered.length === 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("tr", {
+                                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
+                                        colSpan: columnOrder.length + 1,
+                                        className: "px-4 py-8 text-center text-sm text-stone-500",
+                                        children: "No entries for this month."
+                                    }, void 0, false, {
+                                        fileName: "[project]/src/app/admin/books/page.tsx",
+                                        lineNumber: 482,
+                                        columnNumber: 19
+                                    }, this)
+                                }, void 0, false, {
+                                    fileName: "[project]/src/app/admin/books/page.tsx",
+                                    lineNumber: 482,
+                                    columnNumber: 15
+                                }, this)
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/src/app/admin/books/page.tsx",
+                            lineNumber: 453,
+                            columnNumber: 11
+                        }, this)
+                    ]
+                }, void 0, true, {
+                    fileName: "[project]/src/app/admin/books/page.tsx",
+                    lineNumber: 442,
+                    columnNumber: 9
+                }, this)
+            }, void 0, false, {
+                fileName: "[project]/src/app/admin/books/page.tsx",
+                lineNumber: 441,
+                columnNumber: 7
+            }, this),
+            colorPickerCell && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm",
+                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                    className: "w-full max-w-xs rounded-[2rem] border border-white/10 bg-[#12100e] p-8 shadow-[0_30px_100px_rgba(0,0,0,0.6)]",
+                    children: [
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            className: "mb-6 text-center",
+                            children: [
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
+                                    className: "text-lg font-semibold text-white",
+                                    children: "Choose a color"
+                                }, void 0, false, {
+                                    fileName: "[project]/src/app/admin/books/page.tsx",
+                                    lineNumber: 492,
+                                    columnNumber: 15
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                    className: "mt-1 text-sm text-stone-400",
+                                    children: [
+                                        "Select a color for ",
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                            className: "text-amber-200 font-medium",
+                                            children: fieldLabels[colorPickerCell.field]
+                                        }, void 0, false, {
+                                            fileName: "[project]/src/app/admin/books/page.tsx",
+                                            lineNumber: 493,
+                                            columnNumber: 77
+                                        }, this)
+                                    ]
+                                }, void 0, true, {
+                                    fileName: "[project]/src/app/admin/books/page.tsx",
+                                    lineNumber: 493,
+                                    columnNumber: 15
+                                }, this)
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/src/app/admin/books/page.tsx",
+                            lineNumber: 491,
+                            columnNumber: 13
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            className: "flex justify-center gap-4",
+                            children: [
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                    onClick: ()=>handleColorSelected("white"),
+                                    className: "flex h-16 w-16 items-center justify-center rounded-full border-2 border-white/30 bg-white text-sm font-medium text-stone-800 transition hover:scale-110 hover:border-white/60 hover:bg-stone-100"
+                                }, void 0, false, {
+                                    fileName: "[project]/src/app/admin/books/page.tsx",
+                                    lineNumber: 496,
+                                    columnNumber: 15
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                    onClick: ()=>handleColorSelected("red"),
+                                    className: "flex h-16 w-16 items-center justify-center rounded-full border-2 border-rose-400/30 bg-rose-500/20 text-sm font-medium transition hover:scale-110 hover:border-rose-300/60 hover:bg-rose-500/30"
+                                }, void 0, false, {
+                                    fileName: "[project]/src/app/admin/books/page.tsx",
+                                    lineNumber: 498,
+                                    columnNumber: 15
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                    onClick: ()=>handleColorSelected("green"),
+                                    className: "flex h-16 w-16 items-center justify-center rounded-full border-2 border-emerald-400/30 bg-emerald-500/20 text-sm font-medium transition hover:scale-110 hover:border-emerald-300/60 hover:bg-emerald-500/30"
+                                }, void 0, false, {
+                                    fileName: "[project]/src/app/admin/books/page.tsx",
+                                    lineNumber: 500,
+                                    columnNumber: 15
+                                }, this)
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/src/app/admin/books/page.tsx",
+                            lineNumber: 495,
+                            columnNumber: 13
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            className: "mt-6 flex justify-center",
+                            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                onClick: ()=>setColorPickerCell(null),
+                                className: "rounded-full border border-white/10 px-6 py-2 text-sm text-stone-400 transition hover:text-white hover:bg-white/5",
+                                children: "Cancel"
+                            }, void 0, false, {
+                                fileName: "[project]/src/app/admin/books/page.tsx",
+                                lineNumber: 504,
+                                columnNumber: 15
+                            }, this)
+                        }, void 0, false, {
+                            fileName: "[project]/src/app/admin/books/page.tsx",
+                            lineNumber: 503,
+                            columnNumber: 13
+                        }, this)
+                    ]
+                }, void 0, true, {
+                    fileName: "[project]/src/app/admin/books/page.tsx",
+                    lineNumber: 490,
+                    columnNumber: 11
+                }, this)
+            }, void 0, false, {
+                fileName: "[project]/src/app/admin/books/page.tsx",
+                lineNumber: 489,
+                columnNumber: 9
+            }, this),
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "flex justify-center gap-4",
+                children: [
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                        onClick: handleAddRow,
+                        className: "flex items-center gap-2 rounded-full border-2 border-dashed border-white/20 px-8 py-4 text-base text-stone-400 transition hover:border-amber-200/40 hover:text-amber-200 hover:bg-amber-200/5",
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                className: "text-2xl font-light",
+                                children: "+"
+                            }, void 0, false, {
+                                fileName: "[project]/src/app/admin/books/page.tsx",
+                                lineNumber: 514,
+                                columnNumber: 11
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                children: "Add new entry"
+                            }, void 0, false, {
+                                fileName: "[project]/src/app/admin/books/page.tsx",
+                                lineNumber: 514,
+                                columnNumber: 57
+                            }, this)
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/src/app/admin/books/page.tsx",
+                        lineNumber: 512,
+                        columnNumber: 9
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                        onClick: handleRemoveRow,
+                        disabled: !selectedRow,
+                        className: `flex items-center gap-2 rounded-full border-2 px-8 py-4 text-base transition ${selectedRow ? "border-rose-400/40 text-rose-300 hover:border-rose-300/60 hover:bg-rose-500/10 hover:text-rose-200" : "border-white/10 text-stone-600 cursor-not-allowed"}`,
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                className: "text-2xl font-light",
+                                children: "✕"
+                            }, void 0, false, {
+                                fileName: "[project]/src/app/admin/books/page.tsx",
+                                lineNumber: 518,
+                                columnNumber: 11
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                children: "Remove selected row"
+                            }, void 0, false, {
+                                fileName: "[project]/src/app/admin/books/page.tsx",
+                                lineNumber: 518,
+                                columnNumber: 57
+                            }, this)
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/src/app/admin/books/page.tsx",
+                        lineNumber: 516,
+                        columnNumber: 9
+                    }, this)
+                ]
+            }, void 0, true, {
+                fileName: "[project]/src/app/admin/books/page.tsx",
+                lineNumber: 511,
+                columnNumber: 7
+            }, this),
+            flippedCount > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "rounded-[2rem] border border-purple-300/20 bg-purple-500/5 p-6 backdrop-blur-md",
+                children: [
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
+                        className: "text-lg font-semibold text-white",
+                        children: [
+                            "🏠 Flipped Houses (Commission ",
+                            ">",
+                            " R39,000)"
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/src/app/admin/books/page.tsx",
+                        lineNumber: 524,
+                        columnNumber: 11
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                        className: "text-sm text-stone-400",
+                        children: "These deals have commission amounts exceeding R39,000. Click a row to jump to it in the table above."
+                    }, void 0, false, {
+                        fileName: "[project]/src/app/admin/books/page.tsx",
+                        lineNumber: 525,
+                        columnNumber: 11
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "mt-4 space-y-2",
+                        children: data.filter((d)=>d.commission > 39000).map((d)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                onClick: ()=>scrollToBookRow(d.id),
+                                className: "flex cursor-pointer items-center justify-between rounded-2xl border border-purple-300/10 bg-black/20 px-5 py-3 transition hover:border-amber-300/30 hover:bg-amber-200/10 hover:scale-[1.01]",
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        children: [
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                className: "text-sm font-medium text-white",
+                                                children: [
+                                                    d.buyer,
+                                                    " → ",
+                                                    d.seller
+                                                ]
+                                            }, void 0, true, {
+                                                fileName: "[project]/src/app/admin/books/page.tsx",
+                                                lineNumber: 530,
+                                                columnNumber: 22
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                className: "text-xs text-stone-400",
+                                                children: [
+                                                    d.month,
+                                                    " · ",
+                                                    d.area
+                                                ]
+                                            }, void 0, true, {
+                                                fileName: "[project]/src/app/admin/books/page.tsx",
+                                                lineNumber: 530,
+                                                columnNumber: 94
+                                            }, this)
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/src/app/admin/books/page.tsx",
+                                        lineNumber: 530,
+                                        columnNumber: 17
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                        className: "text-sm font-semibold text-purple-200",
+                                        children: formatMoney(d.commission)
+                                    }, void 0, false, {
+                                        fileName: "[project]/src/app/admin/books/page.tsx",
+                                        lineNumber: 531,
+                                        columnNumber: 17
+                                    }, this)
+                                ]
+                            }, d.id, true, {
+                                fileName: "[project]/src/app/admin/books/page.tsx",
+                                lineNumber: 528,
+                                columnNumber: 15
+                            }, this))
+                    }, void 0, false, {
+                        fileName: "[project]/src/app/admin/books/page.tsx",
+                        lineNumber: 526,
+                        columnNumber: 11
+                    }, this)
+                ]
+            }, void 0, true, {
+                fileName: "[project]/src/app/admin/books/page.tsx",
+                lineNumber: 523,
+                columnNumber: 9
+            }, this),
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "flex justify-center",
+                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
+                    href: "/admin/books/understanding",
+                    className: "inline-flex items-center gap-2 rounded-full border border-white/10 px-6 py-3 text-sm text-stone-400 transition hover:border-amber-200/40 hover:text-amber-200",
+                    children: [
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                            children: "📖"
+                        }, void 0, false, {
+                            fileName: "[project]/src/app/admin/books/page.tsx",
+                            lineNumber: 541,
+                            columnNumber: 11
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                            children: "Books Understanding — learn how this page works"
+                        }, void 0, false, {
+                            fileName: "[project]/src/app/admin/books/page.tsx",
+                            lineNumber: 541,
+                            columnNumber: 26
+                        }, this)
+                    ]
+                }, void 0, true, {
+                    fileName: "[project]/src/app/admin/books/page.tsx",
+                    lineNumber: 539,
+                    columnNumber: 9
+                }, this)
+            }, void 0, false, {
+                fileName: "[project]/src/app/admin/books/page.tsx",
+                lineNumber: 538,
+                columnNumber: 7
+            }, this),
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                className: "text-center text-xs text-stone-600",
+                children: 'Click any cell to edit. First pick a color (white/red/green), then type your value. Press Enter to save, Escape to cancel. Double-click a row to select it, then click "Remove selected row" to delete it. Hit "Save Changes" to persist to localStorage.'
+            }, void 0, false, {
+                fileName: "[project]/src/app/admin/books/page.tsx",
+                lineNumber: 545,
+                columnNumber: 7
+            }, this)
+        ]
+    }, void 0, true, {
+        fileName: "[project]/src/app/admin/books/page.tsx",
+        lineNumber: 386,
+        columnNumber: 5
+    }, this);
+}
+_s(BooksPage, "IUuuPz8wTKI2PECGHrE4QjpNVAw=");
+_c = BooksPage;
+var _c;
+__turbopack_context__.k.register(_c, "BooksPage");
+if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
+    __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
+}
+}),
+]);
+
+//# sourceMappingURL=src_app_admin_books_page_tsx_0kj9y_q._.js.map

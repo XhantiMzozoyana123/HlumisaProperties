@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/Qhama/Documents/GitHub/HlumisaProperties/HlumisaProperties.UI/admin-dashboard/src/app/page.tsx"],"sourcesContent":["\"use client\";\r\n\r\nimport { useEffect } from \"react\";\r\nimport { useRouter } from \"next/navigation\";\r\n\r\nexport default function RootPage() {\r\n  const router = useRouter();\r\n\r\n  useEffect(() => {\r\n    router.replace(\"/admin\");\r\n  }, [router]);\r\n\r\n  return (\r\n    <div className=\"flex min-h-screen items-center justify-center bg-[#12100e]\">\r\n      <p className=\"text-stone-400 text-sm\">Loading...</p>\r\n    </div>\r\n  );\r\n}"],"names":["RootPage","router","replace","className"],"mappings":";;;;;AAEA;AACA;;;AAHA;;;AAKe,SAASA;;IACtB,MAAMC,SAAS,IAAA,kJAAS;IAExB,IAAA,0KAAS;8BAAC;YACRA,OAAOC,OAAO,CAAC;QACjB;6BAAG;QAACD;KAAO;IAEX,qBACE,6LAAC;QAAIE,WAAU;kBACb,cAAA,6LAAC;YAAEA,WAAU;sBAAyB;;;;;;;;;;;AAG5C;GAZwBH;;QACP,kJAAS;;;KADFA"}}]
+}
