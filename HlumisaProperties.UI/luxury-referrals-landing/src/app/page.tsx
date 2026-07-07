@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(255,214,153,0.12),transparent_24%),linear-gradient(180deg,#12100e_0%,#070707_48%,#050505_100%)] px-6 py-10 text-white sm:px-8 lg:px-12">
+    <main className="main-bg gpu-layer min-h-screen px-6 py-10 text-white sm:px-8 lg:px-12">
       <section className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-6xl flex-col justify-center gap-10">
         <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
           <div className="space-y-6">

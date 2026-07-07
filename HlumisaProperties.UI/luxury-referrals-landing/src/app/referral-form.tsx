@@ -128,7 +128,7 @@ export function ReferralForm() {
   }
 
   return (
-    <div className="rounded-[2rem] border border-white/10 bg-white/5 p-6 shadow-[0_30px_100px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+    <div className="backdrop-card rounded-[2rem] p-6 shadow-[0_30px_100px_rgba(0,0,0,0.45)]">
       <div className="rounded-[1.5rem] border border-amber-200/15 bg-[linear-gradient(180deg,rgba(255,234,188,0.12),rgba(255,255,255,0.03))] p-5">
         <p className="text-xs uppercase tracking-[0.4em] text-amber-100/80">Referral capture</p>
         <h2 className="mt-3 text-2xl font-semibold text-white">Send us the referral</h2>

@@ -66,7 +66,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Recent referrals */}
-      <div className="rounded-[2rem] border border-white/10 bg-white/5 p-6 backdrop-blur-md">
+      <div className="backdrop-card rounded-[2rem] p-6">
         <h2 className="text-lg font-semibold text-white">Recent referrals</h2>
         <p className="text-sm text-stone-400">Latest referrals captured.</p>
         <div className="mt-4 space-y-2">
@@ -77,7 +77,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Recent properties */}
-      <div className="rounded-[2rem] border border-white/10 bg-white/5 p-6 backdrop-blur-md">
+      <div className="backdrop-card rounded-[2rem] p-6">
         <h2 className="text-lg font-semibold text-white">Recent properties</h2>
         <p className="text-sm text-stone-400">
           {onMarketProperties} on market &middot; {houses.length - onMarketProperties} under offer / sold

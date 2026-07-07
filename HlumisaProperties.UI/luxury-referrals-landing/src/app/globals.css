@@ -6,3 +6,18 @@ body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
 }
+
+/* Performance optimisations */
+.gpu-layer {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+.backdrop-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.main-bg {
+  background: linear-gradient(180deg, #12100e 0%, #0a0a08 48%, #050505 100%);
+}

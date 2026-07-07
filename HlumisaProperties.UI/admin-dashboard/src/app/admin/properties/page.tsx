@@ -129,7 +129,7 @@ export default function PropertiesPage() {
 
       {/* Add House form */}
       {showForm && (
-        <div className="rounded-[2rem] border border-white/10 bg-white/5 p-6 backdrop-blur-md">
+        <div className="backdrop-card rounded-[2rem] p-6">
           <h2 className="text-lg font-semibold text-white">New property listing</h2>
           <form className="mt-4 space-y-4" onSubmit={handleSubmit}>
             <input

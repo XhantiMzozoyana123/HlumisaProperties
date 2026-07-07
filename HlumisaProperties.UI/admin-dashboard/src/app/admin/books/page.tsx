@@ -438,7 +438,7 @@ export default function BooksPage() {
         ))}
       </div>
 
-      <div ref={tableRef} className="overflow-x-auto rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-md">
+      <div ref={tableRef} className="backdrop-card overflow-x-auto rounded-[2rem]">
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-white/10 text-xs uppercase tracking-wider text-stone-400">
@@ -486,24 +486,19 @@ export default function BooksPage() {
       </div>
 
       {colorPickerCell && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-xs rounded-[2rem] border border-white/10 bg-[#12100e] p-8 shadow-[0_30px_100px_rgba(0,0,0,0.6)]">
-            <div className="mb-6 text-center">
-              <h2 className="text-lg font-semibold text-white">Choose a color</h2>
-              <p className="mt-1 text-sm text-stone-400">Select a color for <span className="text-amber-200 font-medium">{fieldLabels[colorPickerCell.field]}</span></p>
-            </div>
-            <div className="flex justify-center gap-4">
+        <div className="fixed left-4 top-4 z-50 rounded-[2rem] border border-white/10 bg-[#12100e] p-5 shadow-[0_30px_100px_rgba(0,0,0,0.6)]">
+          <div className="text-center">
+            <p className="mb-3 text-sm text-stone-400">Color for <span className="text-amber-200 font-medium">{fieldLabels[colorPickerCell.field]}</span></p>
+            <div className="flex justify-center gap-3">
               <button onClick={() => handleColorSelected("white")}
-                className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-white/30 bg-white text-sm font-medium text-stone-800 transition hover:scale-110 hover:border-white/60 hover:bg-stone-100"></button>
+                className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-white/60 bg-white text-xs font-bold uppercase tracking-wider text-stone-800 transition hover:scale-110 hover:border-white hover:bg-stone-100">W</button>
               <button onClick={() => handleColorSelected("red")}
-                className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-rose-400/30 bg-rose-500/20 text-sm font-medium transition hover:scale-110 hover:border-rose-300/60 hover:bg-rose-500/30"></button>
+                className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-rose-400/70 bg-rose-600 text-xs font-bold uppercase tracking-wider text-white transition hover:scale-110 hover:border-rose-300 hover:bg-rose-500">R</button>
               <button onClick={() => handleColorSelected("green")}
-                className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-emerald-400/30 bg-emerald-500/20 text-sm font-medium transition hover:scale-110 hover:border-emerald-300/60 hover:bg-emerald-500/30"></button>
+                className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-emerald-400/70 bg-emerald-600 text-xs font-bold uppercase tracking-wider text-white transition hover:scale-110 hover:border-emerald-300 hover:bg-emerald-500">G</button>
             </div>
-            <div className="mt-6 flex justify-center">
-              <button onClick={() => setColorPickerCell(null)}
-                className="rounded-full border border-white/10 px-6 py-2 text-sm text-stone-400 transition hover:text-white hover:bg-white/5">Cancel</button>
-            </div>
+            <button onClick={() => setColorPickerCell(null)}
+              className="mt-3 rounded-full border border-white/10 px-4 py-1.5 text-xs text-stone-400 transition hover:text-white hover:bg-white/5">Cancel</button>
           </div>
         </div>
       )}
@@ -520,7 +515,7 @@ export default function BooksPage() {
       </div>
 
       {flippedCount > 0 && (
-        <div className="rounded-[2rem] border border-purple-300/20 bg-purple-500/5 p-6 backdrop-blur-md">
+        <div className="rounded-[2rem] border border-purple-300/20 bg-purple-500/5 p-6">
           <h2 className="text-lg font-semibold text-white">🏠 Flipped Houses (Commission {">"} R39,000)</h2>
           <p className="text-sm text-stone-400">These deals have commission amounts exceeding R39,000. Click a row to jump to it in the table above.</p>
           <div className="mt-4 space-y-2">

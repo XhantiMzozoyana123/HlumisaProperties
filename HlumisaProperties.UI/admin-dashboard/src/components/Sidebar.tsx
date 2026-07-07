@@ -23,7 +23,7 @@ export default function Sidebar() {
   }, []);
 
   return (
-    <aside className="fixed left-0 top-0 z-40 flex h-full w-64 flex-col border-r border-white/10 bg-[#0a0a08] backdrop-blur-xl">
+    <aside className="sidebar-bg gpu-layer fixed left-0 top-0 z-40 flex h-full w-64 flex-col border-r border-white/10">
       <div className="flex items-center gap-3 border-b border-white/10 px-6 py-6">
         {profilePic ? (
           <img

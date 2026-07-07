@@ -4,7 +4,6 @@
   "/admin/buyers/page": "app/admin/buyers/page.js",
   "/admin/dashboard/page": "app/admin/dashboard/page.js",
   "/admin/page": "app/admin/page.js",
-  "/admin/properties/[id]/page": "app/admin/properties/[id]/page.js",
   "/admin/properties/page": "app/admin/properties/page.js",
   "/admin/referrals/page": "app/admin/referrals/page.js",
   "/admin/sellers/page": "app/admin/sellers/page.js",
