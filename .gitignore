@@ -364,3 +364,8 @@ FodyWeavers.xsd
 
 # Secrets / environment files
 .env
+
+# Next.js build output
+.next/
+HlumisaProperties.UI/admin-dashboard/.next/
+HlumisaProperties.UI/luxury-referrals-landing/.next/
