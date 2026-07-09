@@ -1,15 +1,14 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent } from "react";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const router = useRouter();
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    // Placeholder — authentication to be wired up later
-    alert("Authentication not yet implemented. Configure your identity provider.");
+    router.push("/admin/dashboard");
   }
 
   return (
@@ -24,22 +23,6 @@ export default function LoginPage() {
         </div>
 
         <form className="space-y-4" onSubmit={handleSubmit}>
-          <input
-            className="w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none placeholder:text-stone-500"
-            placeholder="Email address"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          <input
-            className="w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none placeholder:text-stone-500"
-            placeholder="Password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
           <button
             className="w-full rounded-full bg-amber-200 px-6 py-4 text-sm font-semibold text-stone-950 transition hover:bg-amber-100"
             type="submit"

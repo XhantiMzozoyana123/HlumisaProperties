@@ -31,15 +31,8 @@ const profiles = [
   },
 ];
 
-const ADMIN_USERNAME = "ZolaMzozoyana1970";
-const ADMIN_PASSWORD = "Mzozoyana1970";
-
 export default function ProfileSelectionPage() {
   const router = useRouter();
-  const [showAuth, setShowAuth] = useState(false);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [authError, setAuthError] = useState("");
   const [profilePic, setProfilePic] = useState<string | null>(null);
 
   useEffect(() => {
@@ -49,22 +42,7 @@ export default function ProfileSelectionPage() {
 
   function handleProfileClick(profile: (typeof profiles)[0]) {
     if (!profile.fullAccess) return;
-    setShowAuth(true);
-    setUsername("");
-    setPassword("");
-    setAuthError("");
-  }
-
-  function handleAuthSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (username !== ADMIN_USERNAME) {
-      setAuthError("Username is incorrect.");
-    } else if (password !== ADMIN_PASSWORD) {
-      setAuthError("Password is incorrect.");
-    } else {
-      setShowAuth(false);
-      router.push("/admin/dashboard");
-    }
+    router.push("/admin/dashboard");
   }
 
   return (
@@ -112,69 +90,11 @@ export default function ProfileSelectionPage() {
       </div>
 
       <button
-        onClick={() => router.push("/admin/login")}
+        onClick={() => router.push("/admin/dashboard")}
         className="rounded-full border border-white/10 px-8 py-3 text-sm text-stone-300 transition hover:border-white/20 hover:text-white"
       >
-        Sign in with email
+        Continue to dashboard
       </button>
-
-      {/* Auth modal */}
-      {showAuth && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-[2rem] border border-white/10 bg-[#12100e] p-8 shadow-[0_30px_100px_rgba(0,0,0,0.6)]">
-            <div className="mb-6 text-center">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-200 text-xl font-bold text-stone-950">
-                ZM
-              </div>
-              <h2 className="mt-4 text-xl font-semibold text-white">Zola Mzozoyana</h2>
-              <p className="mt-1 text-sm text-stone-400">Enter credentials to continue</p>
-            </div>
-
-            <form className="space-y-4" onSubmit={handleAuthSubmit}>
-              <input
-                className="w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none placeholder:text-stone-500"
-                placeholder="Username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-              />
-              <input
-                className="w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none placeholder:text-stone-500"
-                placeholder="Password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-
-              {authError && (
-                <p className="text-sm text-rose-400">{authError}</p>
-              )}
-
-              <button
-                type="submit"
-                className="w-full rounded-full bg-amber-200 px-6 py-3 text-sm font-semibold text-stone-950 transition hover:bg-amber-100"
-              >
-                Sign in
-              </button>
-            </form>
-
-            <button
-              onClick={() => setShowAuth(false)}
-              className="mt-4 w-full text-center text-sm text-stone-500 transition hover:text-stone-300"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={() => router.push("/admin/login")}
-              className="mt-2 w-full text-center text-sm text-amber-300/70 transition hover:text-amber-200"
-            >
-              Reset password
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
