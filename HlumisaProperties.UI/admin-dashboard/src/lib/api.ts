@@ -28,16 +28,45 @@ export function formatDate(iso: string) {
   }).format(new Date(iso));
 }
 
-export type Lead = {
+export type Buyer = {
   id: number;
   firstName: string;
   lastName: string;
-  emailAddress: string;
   phoneNumber: string;
   location: string;
-  leadType: string;
+  budget: string;
+  propertyType: string;
   isContacted: boolean;
-  jsonCommunicationThread: string;
+  isDiscarded: boolean;
+  createdAt?: string;
+};
+
+export type Seller = {
+  id: number;
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+  location: string;
+  propertyType: string;
+  estimatedValue: string;
+  isContacted: boolean;
+  isDiscarded: boolean;
+  statusColor: string;
+  createdAt?: string;
+};
+
+export type Referral = {
+  id: number;
+  referrerName: string;
+  referrerPhone: string;
+  referrerAddress: string;
+  referredName: string;
+  referredPhone: string;
+  referredAddress: string;
+  intent: "buy" | "sell";
+  note: string;
+  date: string;
+  isDiscarded: boolean;
   createdAt?: string;
 };
 
@@ -53,14 +82,146 @@ export type PropertyListing = {
   bathrooms: number;
   sizeInSqm: number;
   isAvailable: boolean;
+  images: string[];
+  dateAdded: string;
+  status: string;
+  sellerName: string;
+  createdAt?: string;
 };
 
-export async function fetchLeads(): Promise<Lead[]> {
-  const response = await fetch(apiUrl("/api/leads"), { cache: "no-store" });
-  if (!response.ok) throw new Error(`Failed to load leads (${response.status})`);
+// Buyers
+export async function fetchBuyers(): Promise<Buyer[]> {
+  const response = await fetch(apiUrl("/api/buyers"), { cache: "no-store" });
+  if (!response.ok) throw new Error(`Failed to load buyers (${response.status})`);
   return response.json();
 }
 
+export async function createBuyer(data: Partial<Buyer>): Promise<Buyer> {
+  const response = await fetch(apiUrl("/api/buyers"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error(`Failed to create buyer (${response.status})`);
+  return response.json();
+}
+
+export async function updateBuyer(id: number, data: Partial<Buyer>): Promise<Buyer> {
+  const response = await fetch(apiUrl(`/api/buyers/${id}`), {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error(`Failed to update buyer (${response.status})`);
+  return response.json();
+}
+
+export async function deleteBuyer(id: number): Promise<void> {
+  const response = await fetch(apiUrl(`/api/buyers/${id}`), { method: "DELETE" });
+  if (!response.ok) throw new Error(`Failed to delete buyer (${response.status})`);
+}
+
+export async function toggleBuyerDiscarded(id: number): Promise<Buyer> {
+  const response = await fetch(apiUrl(`/api/buyers/${id}/discard`), { method: "PATCH" });
+  if (!response.ok) throw new Error(`Failed to toggle buyer discard (${response.status})`);
+  return response.json();
+}
+
+export async function markBuyerContacted(id: number): Promise<Buyer> {
+  const response = await fetch(apiUrl(`/api/buyers/${id}/mark-contacted`), { method: "PATCH" });
+  if (!response.ok) throw new Error(`Failed to mark buyer contacted (${response.status})`);
+  return response.json();
+}
+
+// Sellers
+export async function fetchSellers(): Promise<Seller[]> {
+  const response = await fetch(apiUrl("/api/sellers"), { cache: "no-store" });
+  if (!response.ok) throw new Error(`Failed to load sellers (${response.status})`);
+  return response.json();
+}
+
+export async function createSeller(data: Partial<Seller>): Promise<Seller> {
+  const response = await fetch(apiUrl("/api/sellers"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error(`Failed to create seller (${response.status})`);
+  return response.json();
+}
+
+export async function updateSeller(id: number, data: Partial<Seller>): Promise<Seller> {
+  const response = await fetch(apiUrl(`/api/sellers/${id}`), {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error(`Failed to update seller (${response.status})`);
+  return response.json();
+}
+
+export async function deleteSeller(id: number): Promise<void> {
+  const response = await fetch(apiUrl(`/api/sellers/${id}`), { method: "DELETE" });
+  if (!response.ok) throw new Error(`Failed to delete seller (${response.status})`);
+}
+
+export async function toggleSellerDiscarded(id: number): Promise<Seller> {
+  const response = await fetch(apiUrl(`/api/sellers/${id}/discard`), { method: "PATCH" });
+  if (!response.ok) throw new Error(`Failed to toggle seller discard (${response.status})`);
+  return response.json();
+}
+
+export async function markSellerContacted(id: number): Promise<Seller> {
+  const response = await fetch(apiUrl(`/api/sellers/${id}/mark-contacted`), { method: "PATCH" });
+  if (!response.ok) throw new Error(`Failed to mark seller contacted (${response.status})`);
+  return response.json();
+}
+
+export async function cycleSellerStatusColor(id: number): Promise<Seller> {
+  const response = await fetch(apiUrl(`/api/sellers/${id}/cycle-status`), { method: "PATCH" });
+  if (!response.ok) throw new Error(`Failed to cycle seller status (${response.status})`);
+  return response.json();
+}
+
+// Referrals
+export async function fetchReferrals(): Promise<Referral[]> {
+  const response = await fetch(apiUrl("/api/referrals"), { cache: "no-store" });
+  if (!response.ok) throw new Error(`Failed to load referrals (${response.status})`);
+  return response.json();
+}
+
+export async function createReferral(data: Partial<Referral>): Promise<Referral> {
+  const response = await fetch(apiUrl("/api/referrals"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error(`Failed to create referral (${response.status})`);
+  return response.json();
+}
+
+export async function updateReferral(id: number, data: Partial<Referral>): Promise<Referral> {
+  const response = await fetch(apiUrl(`/api/referrals/${id}`), {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error(`Failed to update referral (${response.status})`);
+  return response.json();
+}
+
+export async function deleteReferral(id: number): Promise<void> {
+  const response = await fetch(apiUrl(`/api/referrals/${id}`), { method: "DELETE" });
+  if (!response.ok) throw new Error(`Failed to delete referral (${response.status})`);
+}
+
+export async function toggleReferralDiscarded(id: number): Promise<Referral> {
+  const response = await fetch(apiUrl(`/api/referrals/${id}/discard`), { method: "PATCH" });
+  if (!response.ok) throw new Error(`Failed to toggle referral discard (${response.status})`);
+  return response.json();
+}
+
+// Properties
 export async function fetchProperties(): Promise<PropertyListing[]> {
   const response = await fetch(apiUrl("/api/property-listings"), { cache: "no-store" });
   if (!response.ok) throw new Error(`Failed to load properties (${response.status})`);
@@ -90,14 +251,4 @@ export async function updateProperty(id: number, data: Partial<PropertyListing>)
 export async function deleteProperty(id: number): Promise<void> {
   const response = await fetch(apiUrl(`/api/property-listings/${id}`), { method: "DELETE" });
   if (!response.ok) throw new Error(`Failed to delete property (${response.status})`);
-}
-
-export async function updateLeadContacted(id: number, isContacted: boolean): Promise<Lead> {
-  const response = await fetch(apiUrl(`/api/leads/${id}`), {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ isContacted }),
-  });
-  if (!response.ok) throw new Error(`Failed to update lead (${response.status})`);
-  return response.json();
 }

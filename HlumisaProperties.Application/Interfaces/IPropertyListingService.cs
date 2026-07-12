@@ -12,8 +12,6 @@ namespace HlumisaProperties.Application.Interfaces
         Task<PropertyListing> GetPropertyListingByIdAsync(int id);
         Task<IEnumerable<PropertyListing>> GetAllPropertyListingsAsync();
         Task<IEnumerable<PropertyListing>> GetAvailablePropertyListingsAsync();
-        Task<IEnumerable<PropertyListing>> GetPropertyListingsByAgentIdAsync(int agentId);
-        Task<IEnumerable<PropertyListing>> GetPropertyListingsByLeadIdAsync(int leadId);
         Task<IEnumerable<PropertyListing>> GetPropertyListingsByTypeAsync(string propertyType);
         Task<IEnumerable<PropertyListing>> GetPropertyListingsByListingTypeAsync(string listingType);
         Task<IEnumerable<PropertyListing>> GetPropertyListingsByLocationAsync(string location);

@@ -2,36 +2,45 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import {
-  getDemoHouses,
-  getBuyers,
-  getSellers,
-  getReferrals,
-  formatMoney,
-  type DemoHouse,
-  type Buyer,
-  type Seller,
-} from "@/lib/localData";
+import { fetchBuyers, fetchSellers, fetchReferrals, fetchProperties, formatMoney } from "@/lib/api";
 
 export default function DashboardPage() {
-  const [houses, setHouses] = useState<DemoHouse[]>([]);
-  const [buyers, setBuyers] = useState<Buyer[]>([]);
-  const [sellers, setSellers] = useState<Seller[]>([]);
-  const [referrals, setReferralsCount] = useState(0);
+  const [buyerCount, setBuyerCount] = useState(0);
+  const [sellerCount, setSellerCount] = useState(0);
+  const [referralCount, setReferralCount] = useState(0);
+  const [properties, setProperties] = useState<Awaited<ReturnType<typeof fetchProperties>>>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setHouses(getDemoHouses());
-    setBuyers(getBuyers());
-    setSellers(getSellers());
-    setReferralsCount(getReferrals().length);
+    let active = true;
+    async function load() {
+      try {
+        setLoading(true);
+        const [buyers, sellers, referrals, props] = await Promise.all([
+          fetchBuyers().catch(() => []),
+          fetchSellers().catch(() => []),
+          fetchReferrals().catch(() => []),
+          fetchProperties().catch(() => []),
+        ]);
+        if (!active) return;
+        setBuyerCount(buyers.filter((b: { isDiscarded: boolean }) => !b.isDiscarded).length);
+        setSellerCount(sellers.filter((s: { isDiscarded: boolean }) => !s.isDiscarded).length);
+        setReferralCount(referrals.filter((r: { isDiscarded: boolean }) => !r.isDiscarded).length);
+        setProperties(props);
+      } catch {
+        // ignore
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    void load();
+    return () => { active = false; };
   }, []);
 
-  const activeBuyers = buyers.filter((b) => !b.isDiscarded);
-  const activeSellers = sellers.filter((s) => !s.isDiscarded);
-  const totalLeads = activeBuyers.length + activeSellers.length + referrals;
-  const totalProperties = houses.length;
-  const onMarketProperties = houses.filter((h) => h.status === "on-market").length;
-  const totalValue = houses.reduce((sum, h) => sum + h.price, 0);
+  const totalLeads = buyerCount + sellerCount + referralCount;
+  const totalProperties = properties.length;
+  const onMarketProperties = properties.filter((h: { status: string }) => h.status === "on-market").length;
+  const totalValue = properties.reduce((sum: number, h: { price: number }) => sum + h.price, 0);
 
   return (
     <div className="space-y-8">
@@ -46,23 +55,23 @@ export default function DashboardPage() {
           href="/admin/buyers"
           className="flex flex-col items-center justify-center rounded-[2rem] border border-white/10 bg-gradient-to-br from-emerald-500/30 to-emerald-600/20 p-8 text-center backdrop-blur-md transition-all hover:scale-[1.02] hover:border-emerald-400/30 hover:shadow-lg hover:shadow-emerald-500/10"
         >
-          <span className="text-5xl font-bold text-white">{activeBuyers.length} Buyers</span>
+          <span className="text-5xl font-bold text-white">{loading ? "..." : buyerCount} Buyers</span>
           <p className="mt-3 text-base text-stone-400">All active buyer leads</p>
         </Link>
         <Link
           href="/admin/sellers"
           className="flex flex-col items-center justify-center rounded-[2rem] border border-white/10 bg-gradient-to-br from-sky-500/30 to-sky-600/20 p-8 text-center backdrop-blur-md transition-all hover:scale-[1.02] hover:border-sky-400/30 hover:shadow-lg hover:shadow-sky-500/10"
         >
-          <span className="text-5xl font-bold text-white">{activeSellers.length} Sellers</span>
+          <span className="text-5xl font-bold text-white">{loading ? "..." : sellerCount} Sellers</span>
           <p className="mt-3 text-base text-stone-400">All active seller leads</p>
         </Link>
       </div>
 
       {/* Stats grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
-        <StatCard label="Total leads" value={totalLeads} />
-        <StatCard label="Total properties" value={totalProperties} />
-        <StatCard label="Portfolio value" value={formatMoney(totalValue)} />
+        <StatCard label="Total leads" value={loading ? "..." : totalLeads} />
+        <StatCard label="Total properties" value={loading ? "..." : totalProperties} />
+        <StatCard label="Portfolio value" value={loading ? "..." : formatMoney(totalValue)} />
       </div>
 
       {/* Recent referrals */}
@@ -70,7 +79,7 @@ export default function DashboardPage() {
         <h2 className="text-lg font-semibold text-white">Recent referrals</h2>
         <p className="text-sm text-stone-400">Latest referrals captured.</p>
         <div className="mt-4 space-y-2">
-          {referrals === 0 && (
+          {!loading && referralCount === 0 && (
             <p className="text-sm text-stone-500">No referrals yet.</p>
           )}
         </div>
@@ -80,13 +89,13 @@ export default function DashboardPage() {
       <div className="backdrop-card rounded-[2rem] p-6">
         <h2 className="text-lg font-semibold text-white">Recent properties</h2>
         <p className="text-sm text-stone-400">
-          {onMarketProperties} on market &middot; {houses.length - onMarketProperties} under offer / sold
+          {loading ? "..." : onMarketProperties} on market &middot; {loading ? "..." : totalProperties - onMarketProperties} under offer / sold
         </p>
         <div className="mt-4 space-y-2">
-          {houses.length === 0 && (
+          {!loading && properties.length === 0 && (
             <p className="text-sm text-stone-500">No properties yet.</p>
           )}
-          {[...houses].reverse().slice(0, 5).map((property) => (
+          {[...properties].reverse().slice(0, 5).map((property: { id: number; title: string; status: string; price: number }) => (
             <div
               key={property.id}
               className="flex items-center justify-between rounded-2xl border border-white/10 bg-black/20 px-5 py-4"

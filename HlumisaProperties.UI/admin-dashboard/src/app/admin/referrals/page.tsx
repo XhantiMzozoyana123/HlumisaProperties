@@ -1,16 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  getReferrals,
-  addReferral,
-  deleteReferral,
-  toggleReferralDiscarded,
-  type Referral,
-} from "@/lib/localData";
+import { fetchReferrals, createReferral, deleteReferral, toggleReferralDiscarded } from "@/lib/api";
+
+type Referral = Awaited<ReturnType<typeof fetchReferrals>>[number];
 
 export default function ReferralsPage() {
   const [referrals, setReferrals] = useState<Referral[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     referrerName: "",
@@ -24,55 +22,84 @@ export default function ReferralsPage() {
   });
 
   useEffect(() => {
-    setReferrals(getReferrals());
+    let active = true;
+    async function load() {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await fetchReferrals();
+        if (active) setReferrals(data);
+      } catch (err) {
+        if (active) setError(err instanceof Error ? err.message : "Failed to load referrals.");
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    void load();
+    return () => { active = false; };
   }, []);
 
-  function refresh() {
-    setReferrals(getReferrals());
-  }
+  const activeReferrals = referrals.filter((r) => !r.isDiscarded);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const newRef: Referral = {
-      id: "r" + Date.now(),
-      ...form,
-      date: new Date().toISOString().split("T")[0],
-      isDiscarded: false,
-    };
-    addReferral(newRef);
-    setForm({
-      referrerName: "",
-      referrerPhone: "",
-      referrerAddress: "",
-      referredName: "",
-      referredPhone: "",
-      referredAddress: "",
-      intent: "buy",
-      note: "",
-    });
-    setShowForm(false);
-    refresh();
-  }
-
-  function handleDelete(id: string) {
-    if (!confirm("Delete this referral permanently?")) return;
-    deleteReferral(id);
-    refresh();
-  }
-
-  function handleDiscard(id: string) {
-    toggleReferralDiscarded(id);
-    refresh();
-  }
-
-  function handleDoubleClick(id: string, isDiscarded: boolean) {
-    if (isDiscarded) {
-      toggleReferralDiscarded(id);
-      refresh();
+    try {
+      const newRef = await createReferral({
+        ...form,
+        date: new Date().toISOString().split("T")[0],
+        isDiscarded: false,
+      });
+      setReferrals((current) => [newRef, ...current]);
+      setForm({
+        referrerName: "",
+        referrerPhone: "",
+        referrerAddress: "",
+        referredName: "",
+        referredPhone: "",
+        referredAddress: "",
+        intent: "buy",
+        note: "",
+      });
+      setShowForm(false);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to create referral.");
     }
   }
 
-  const activeReferrals = referrals.filter((r) => !r.isDiscarded);
+  async function handleDelete(id: number) {
+    if (!confirm("Delete this referral permanently?")) return;
+    try {
+      await deleteReferral(id);
+      setReferrals((current) => current.filter((r) => r.id !== id));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete referral.");
+    }
+  }
+
+  async function handleDiscard(id: number) {
+    try {
+      await toggleReferralDiscarded(id);
+      setReferrals((current) => current.map((r) => r.id === id ? { ...r, isDiscarded: !r.isDiscarded } : r));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to update referral.");
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+        <p className="text-sm text-stone-400">Loading referrals…</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-rose-300/20 bg-rose-500/10 p-6 text-sm text-rose-100">
+        {error}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -152,7 +179,9 @@ export default function ReferralsPage() {
               {referrals.map((r) => (
                 <tr
                   key={r.id}
-                  onDoubleClick={() => handleDoubleClick(r.id, r.isDiscarded)}
+                  onDoubleClick={() => {
+                    if (r.isDiscarded) handleDiscard(r.id);
+                  }}
                   className={`border-b border-white/5 last:border-0 ${
                     r.isDiscarded ? "opacity-40 bg-stone-900/20" : "hover:bg-white/[0.02]"
                   }`}

@@ -40,8 +40,6 @@ namespace HlumisaProperties.Infrastructure.Services
 
             return await _context.PropertyListings
                 .AsNoTracking()
-                .Include(p => p.Agent)
-                .Include(p => p.Lead)
                 .FirstOrDefaultAsync(p => p.Id == id);
         }
 
@@ -49,8 +47,6 @@ namespace HlumisaProperties.Infrastructure.Services
         {
             return await _context.PropertyListings
                 .AsNoTracking()
-                .Include(p => p.Agent)
-                .Include(p => p.Lead)
                 .OrderByDescending(p => p.CreatedAt)
                 .ToListAsync();
         }
@@ -59,37 +55,7 @@ namespace HlumisaProperties.Infrastructure.Services
         {
             return await _context.PropertyListings
                 .AsNoTracking()
-                .Include(p => p.Agent)
-                .Include(p => p.Lead)
                 .Where(p => p.IsAvailable)
-                .OrderByDescending(p => p.CreatedAt)
-                .ToListAsync();
-        }
-
-        public async Task<IEnumerable<PropertyListing>> GetPropertyListingsByAgentIdAsync(int agentId)
-        {
-            if (agentId <= 0)
-                throw new ArgumentException("Agent ID must be greater than 0", nameof(agentId));
-
-            return await _context.PropertyListings
-                .AsNoTracking()
-                .Include(p => p.Agent)
-                .Include(p => p.Lead)
-                .Where(p => p.AgentId == agentId)
-                .OrderByDescending(p => p.CreatedAt)
-                .ToListAsync();
-        }
-
-        public async Task<IEnumerable<PropertyListing>> GetPropertyListingsByLeadIdAsync(int leadId)
-        {
-            if (leadId <= 0)
-                throw new ArgumentException("Lead ID must be greater than 0", nameof(leadId));
-
-            return await _context.PropertyListings
-                .AsNoTracking()
-                .Include(p => p.Agent)
-                .Include(p => p.Lead)
-                .Where(p => p.LeadId == leadId)
                 .OrderByDescending(p => p.CreatedAt)
                 .ToListAsync();
         }
@@ -101,8 +67,6 @@ namespace HlumisaProperties.Infrastructure.Services
 
             return await _context.PropertyListings
                 .AsNoTracking()
-                .Include(p => p.Agent)
-                .Include(p => p.Lead)
                 .Where(p => p.PropertyType.ToLower() == propertyType.ToLower())
                 .OrderByDescending(p => p.CreatedAt)
                 .ToListAsync();
@@ -115,8 +79,6 @@ namespace HlumisaProperties.Infrastructure.Services
 
             return await _context.PropertyListings
                 .AsNoTracking()
-                .Include(p => p.Agent)
-                .Include(p => p.Lead)
                 .Where(p => p.ListingType.ToLower() == listingType.ToLower())
                 .OrderByDescending(p => p.CreatedAt)
                 .ToListAsync();
@@ -129,8 +91,6 @@ namespace HlumisaProperties.Infrastructure.Services
 
             return await _context.PropertyListings
                 .AsNoTracking()
-                .Include(p => p.Agent)
-                .Include(p => p.Lead)
                 .Where(p => p.Location.ToLower().Contains(location.ToLower()))
                 .OrderByDescending(p => p.CreatedAt)
                 .ToListAsync();
@@ -145,8 +105,6 @@ namespace HlumisaProperties.Infrastructure.Services
 
             return await _context.PropertyListings
                 .AsNoTracking()
-                .Include(p => p.Agent)
-                .Include(p => p.Lead)
                 .Where(p => p.Price >= minPrice && p.Price <= maxPrice)
                 .OrderBy(p => p.Price)
                 .ToListAsync();
@@ -175,8 +133,10 @@ namespace HlumisaProperties.Infrastructure.Services
             existingPropertyListing.Bathrooms = propertyListing.Bathrooms;
             existingPropertyListing.SizeInSqm = propertyListing.SizeInSqm;
             existingPropertyListing.IsAvailable = propertyListing.IsAvailable;
-            existingPropertyListing.AgentId = propertyListing.AgentId;
-            existingPropertyListing.LeadId = propertyListing.LeadId;
+            existingPropertyListing.Images = propertyListing.Images;
+            existingPropertyListing.DateAdded = propertyListing.DateAdded;
+            existingPropertyListing.Status = propertyListing.Status;
+            existingPropertyListing.SellerName = propertyListing.SellerName;
             existingPropertyListing.UpdatedAt = DateTime.UtcNow;
 
             _context.PropertyListings.Update(existingPropertyListing);

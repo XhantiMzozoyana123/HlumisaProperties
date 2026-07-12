@@ -1,32 +1,18 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
 namespace HlumisaProperties.Domain.Entities
 {
-    public class Lead : BaseEntity
+    public class Buyer : BaseEntity
     {
         public string FirstName { get; set; } = string.Empty;
-
         public string LastName { get; set; } = string.Empty;
-
-        public string EmailAddress { get; set; } = string.Empty;
-
         public string PhoneNumber { get; set; } = string.Empty;
-
         public string Location { get; set; } = string.Empty;
-
-        public string JsonCommunicationThread { get; set; } = string.Empty;
-
-        public LeadType LeadType { get; set; }
-
+        public string Budget { get; set; } = string.Empty;
+        public string PropertyType { get; set; } = string.Empty;
         public bool IsContacted { get; set; }
-    }
-
-    public enum LeadType
-    {
-        Buyer,
-        Seller,
-        Refferal
+        public bool IsDiscarded { get; set; }
     }
 }

@@ -17,10 +17,10 @@ namespace HlumisaProperties.Application.Constants
             sb.AppendLine();
 
             sb.AppendLine("🚨 CRITICAL INSTRUCTION:");
-            sb.AppendLine("- Before asking about property preferences, ALWAYS ask for the client's full name.");
-            sb.AppendLine("- Politely request: 'May I have your full name please?'");
-            sb.AppendLine("- Wait for the user to provide their name before continuing qualification questions.");
-            sb.AppendLine("- Once name is given, acknowledge it and continue the conversation naturally.");
+            sb.AppendLine("- Before asking about property preferences, ALWAYS ask for the client's full name AND phone number.");
+            sb.AppendLine("- Politely request: 'May I have your full name and phone number please?'");
+            sb.AppendLine("- Wait for the user to provide both their name and phone number before continuing qualification questions.");
+            sb.AppendLine("- Once name and phone number are given, acknowledge them and continue the conversation naturally.");
             sb.AppendLine();
 
             sb.AppendLine("You can communicate in both English and isiXhosa.");

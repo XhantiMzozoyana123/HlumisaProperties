@@ -28,14 +28,24 @@ namespace HlumisaProperties.Domain.Entities
 
         public bool IsAvailable { get; set; }
 
-        // Relationships
+        /// <summary>
+        /// JSON array of image URLs/data-URIs.
+        /// </summary>
+        public string Images { get; set; } = "[]";
 
-        public int AgentId { get; set; }
+        /// <summary>
+        /// Date the property was added (ISO format YYYY-MM-DD).
+        /// </summary>
+        public string DateAdded { get; set; } = string.Empty;
 
-        public Agent Agent { get; set; }
+        /// <summary>
+        /// Listing status: on-market, under-offer, sold.
+        /// </summary>
+        public string Status { get; set; } = "on-market";
 
-        public int? LeadId { get; set; }
-
-        public Lead Lead { get; set; }
+        /// <summary>
+        /// Name of the seller.
+        /// </summary>
+        public string SellerName { get; set; } = string.Empty;
     }
 }

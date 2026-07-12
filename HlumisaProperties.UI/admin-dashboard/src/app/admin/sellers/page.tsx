@@ -2,43 +2,78 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getSellers, deleteSeller, toggleSellerDiscarded, cycleSellerStatusColor, type Seller, type SellerStatusColor } from "@/lib/localData";
+import { fetchSellers, deleteSeller, toggleSellerDiscarded, cycleSellerStatusColor } from "@/lib/api";
+
+type Seller = Awaited<ReturnType<typeof fetchSellers>>[number];
 
 export default function SellersPage() {
   const [sellers, setSellers] = useState<Seller[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setSellers(getSellers());
+    let active = true;
+    async function load() {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await fetchSellers();
+        if (active) setSellers(data);
+      } catch (err) {
+        if (active) setError(err instanceof Error ? err.message : "Failed to load sellers.");
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    void load();
+    return () => { active = false; };
   }, []);
 
-  function refresh() {
-    setSellers(getSellers());
-  }
+  const activeSellers = sellers.filter((s) => !s.isDiscarded);
 
-  function handleDelete(id: string) {
+  async function handleDelete(id: number) {
     if (!confirm("Delete this seller permanently?")) return;
-    deleteSeller(id);
-    refresh();
-  }
-
-  function handleDiscard(id: string) {
-    toggleSellerDiscarded(id);
-    refresh();
-  }
-
-  function handleCycleColor(id: string) {
-    cycleSellerStatusColor(id);
-    refresh();
-  }
-
-  function handleDoubleClick(id: string, isDiscarded: boolean) {
-    if (isDiscarded) {
-      toggleSellerDiscarded(id);
-      refresh();
+    try {
+      await deleteSeller(id);
+      setSellers((current) => current.filter((s) => s.id !== id));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete seller.");
     }
   }
 
-  const activeSellers = sellers.filter((s) => !s.isDiscarded);
+  async function handleDiscard(id: number) {
+    try {
+      await toggleSellerDiscarded(id);
+      setSellers((current) => current.map((s) => s.id === id ? { ...s, isDiscarded: !s.isDiscarded } : s));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to update seller.");
+    }
+  }
+
+  async function handleCycleColor(id: number) {
+    try {
+      const updated = await cycleSellerStatusColor(id);
+      setSellers((current) => current.map((s) => s.id === id ? { ...s, statusColor: updated.statusColor } : s));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to update seller status.");
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+        <p className="text-sm text-stone-400">Loading sellers…</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-rose-300/20 bg-rose-500/10 p-6 text-sm text-rose-100">
+        {error}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -64,8 +99,7 @@ export default function SellersPage() {
         {sellers.map((seller) => (
           <div
             key={seller.id}
-            onDoubleClick={() => handleDoubleClick(seller.id, seller.isDiscarded)}
-            className={`rounded-[1.5rem] border p-5 transition cursor-default ${
+            className={`rounded-[1.5rem] border p-5 transition ${
               seller.isDiscarded
                 ? "border-stone-800 bg-stone-900/30 opacity-50"
                 : "border-white/10 bg-black/20"
@@ -91,7 +125,7 @@ export default function SellersPage() {
                   {seller.phoneNumber}
                 </p>
                 <p className="text-sm text-stone-400">{seller.location}</p>
-                <p className="mt-1 text-xs text-stone-500">House</p>
+                <p className="mt-1 text-xs text-stone-500">{seller.propertyType}</p>
               </div>
 
               <div className="flex flex-col items-end gap-2">

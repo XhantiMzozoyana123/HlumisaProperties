@@ -1,7 +1,6 @@
 using Hangfire;
-using Hangfire.SqlServer;
+using Hangfire.InMemory;
 using HlumisaProperties.Application.Interfaces;
-using HlumisaProperties.Application.Services;
 using HlumisaProperties.Infrastructure.Services;
 
 using HlumisaProperties.Domain;
@@ -25,7 +24,6 @@ builder.Services.AddCors(options =>
 // ======================================================
 // YOUR APPLICATION SERVICES
 // ======================================================
-builder.Services.AddScoped<IExtractService, ExtractService>();
 // Database (MySQL via Pomelo)
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -37,39 +35,28 @@ builder.Services.AddHttpClient<IFacebookMessengerService, FacebookMessengerServi
 builder.Services.AddHttpClient<ILLMService, LLMService>();
 
 builder.Services.AddScoped<IFacebookMessengerService, FacebookMessengerService>();
+builder.Services.AddScoped<IWhatsAppService, WhatsAppService>();
 builder.Services.AddScoped<ILLMService, LLMService>();
+builder.Services.AddScoped<ILeadExtractionService, LeadExtractionService>();
 
 // CRUD domain services
-builder.Services.AddScoped<IAgentService, AgentService>();
-builder.Services.AddScoped<IAgentBankAccountService, AgentBankAccountService>();
-builder.Services.AddScoped<IAssignmentService, AssignmentService>();
-builder.Services.AddScoped<IContactBookService, ContactBookService>();
-builder.Services.AddScoped<IContactService, ContactService>();
-builder.Services.AddScoped<ILeadService, LeadService>();
-builder.Services.AddScoped<IMeetingService, MeetingService>();
 builder.Services.AddScoped<IPropertyListingService, PropertyListingService>();
-
+builder.Services.AddScoped<ITransactionLedgerService, TransactionLedgerService>();
+builder.Services.AddScoped<IReferralService, ReferralService>();
+builder.Services.AddScoped<IBuyerService, BuyerService>();
+builder.Services.AddScoped<ISellerService, SellerService>();
 
 // ======================================================
 // HANGFIRE CONFIGURATION
 // ======================================================
-//builder.Services.AddHangfire(config =>
-//{
-//    config.UseSimpleAssemblyNameTypeSerializer()
-//          .UseRecommendedSerializerSettings()
-//          .UseSqlServerStorage(
-//              builder.Configuration.GetConnectionString("DefaultConnection"),
-//              new SqlServerStorageOptions
-//              {
-//                  CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
-//                  SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
-//                  QueuePollInterval = TimeSpan.FromSeconds(15),
-//                  UseRecommendedIsolationLevel = true,
-//                  DisableGlobalLocks = true
-//              });
-//});
+builder.Services.AddHangfire(config =>
+{
+    config.UseSimpleAssemblyNameTypeSerializer()
+          .UseRecommendedSerializerSettings()
+          .UseInMemoryStorage();
+});
 
-//builder.Services.AddHangfireServer();
+builder.Services.AddHangfireServer();
 
 var app = builder.Build();
 
@@ -91,17 +78,15 @@ app.UseAuthorization();
 // ======================================================
 // HANGFIRE DASHBOARD (IMPORTANT FOR MONITORING)
 // ======================================================
-//app.UseHangfireDashboard("/hangfire");
+app.UseHangfireDashboard("/hangfire");
 
 // ======================================================
 // SCHEDULED JOB (EVERY 24 HOURS)
 // ======================================================
-//RecurringJob.AddOrUpdate<IExtractService>(
-//    "extract-leads-daily-job",
-//    service => service.ExtractLeadsFromMessengerThreadsAsync(
-//        app.Configuration["Facebook:PageId"]
-//    ),
-//    Cron.Daily);
+RecurringJob.AddOrUpdate<ILeadExtractionService>(
+    "extract-leads-daily-job",
+    service => service.ExtractLeadsFromTodayMessagesAsync(),
+    Cron.Daily);
 
 // ======================================================
 // CONTROLLERS

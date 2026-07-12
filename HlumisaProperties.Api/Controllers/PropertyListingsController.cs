@@ -23,12 +23,9 @@ namespace HlumisaProperties.Api.Controllers
     ///   - Bathrooms (int)      : Number of bathrooms.
     ///   - SizeInSqm (double)   : Floor/land area in square metres.
     ///   - IsAvailable (bool)   : Whether the property is still available.
-    ///   - AgentId (int)        : Foreign key to the listing Agent.
-    ///   - Agent (Agent)        : Navigation to the agent.
-    ///   - LeadId (int?)        : Optional foreign key to an associated Lead.
-    ///   - Lead (Lead)          : Navigation to the associated lead.
+    ///   - SellerName (string)  : Name of the seller.
     ///
-    /// Responsibility: exposes CRUD plus availability-, agent-, lead-, type-, location- and
+    /// Responsibility: exposes CRUD plus availability-, type-, location- and
     /// price-range queries for property listings via <see cref="IPropertyListingService"/>.
     /// </summary>
     [ApiController]
@@ -93,23 +90,14 @@ namespace HlumisaProperties.Api.Controllers
         }
 
         /// <summary>
-        /// Retrieves all listings belonging to a given agent (filtered by AgentId).
+        /// Retrieves listings filtered by status (on-market, under-offer, sold).
         /// </summary>
-        [HttpGet("by-agent/{agentId:int}")]
-        public async Task<IActionResult> GetByAgentId(int agentId)
+        [HttpGet("by-status/{status}")]
+        public async Task<IActionResult> GetByStatus(string status)
         {
-            var listings = await _propertyListingService.GetPropertyListingsByAgentIdAsync(agentId);
-            return Ok(listings);
-        }
-
-        /// <summary>
-        /// Retrieves all listings associated with a given lead (filtered by LeadId).
-        /// </summary>
-        [HttpGet("by-lead/{leadId:int}")]
-        public async Task<IActionResult> GetByLeadId(int leadId)
-        {
-            var listings = await _propertyListingService.GetPropertyListingsByLeadIdAsync(leadId);
-            return Ok(listings);
+            var allListings = await _propertyListingService.GetAllPropertyListingsAsync();
+            var filtered = allListings.Where(p => p.Status.Equals(status, StringComparison.OrdinalIgnoreCase));
+            return Ok(filtered);
         }
 
         /// <summary>

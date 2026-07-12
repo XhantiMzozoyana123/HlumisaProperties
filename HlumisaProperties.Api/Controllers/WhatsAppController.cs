@@ -2,33 +2,34 @@ using HlumisaProperties.Application.Constants;
 using HlumisaProperties.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Twilio;
 using Twilio.Security;
 
 namespace HlumisaProperties.Api.Controllers
 {
     [ApiController]
-    [Route("api/messenger")]
-    public class MessengerController : ControllerBase
+    [Route("api/whatsapp")]
+    public class WhatsAppController : ControllerBase
     {
-        private readonly IFacebookMessengerService _messengerService;
+        private readonly IWhatsAppService _whatsAppService;
         private readonly ILLMService _llmService;
         private readonly IConfiguration _configuration;
-        private readonly ILogger<MessengerController> _logger;
+        private readonly ILogger<WhatsAppController> _logger;
 
-        public MessengerController(
-            IFacebookMessengerService messengerService,
+        public WhatsAppController(
+            IWhatsAppService whatsAppService,
             ILLMService llmService,
             IConfiguration configuration,
-            ILogger<MessengerController> logger)
+            ILogger<WhatsAppController> logger)
         {
-            _messengerService = messengerService;
+            _whatsAppService = whatsAppService;
             _llmService = llmService;
             _configuration = configuration;
             _logger = logger;
         }
 
         // ======================================================
-        // TWILIO WEBHOOK FOR INCOMING FACEBOOK MESSENGER MESSAGES
+        // TWILIO WEBHOOK FOR INCOMING WHATSAPP MESSAGES
         // ======================================================
         [HttpPost("webhook")]
         public async Task<IActionResult> Receive()
@@ -36,27 +37,40 @@ namespace HlumisaProperties.Api.Controllers
             // Validate Twilio webhook signature
             if (!IsValidTwilioRequest())
             {
-                _logger.LogWarning("Invalid Twilio webhook signature rejected for Messenger");
+                _logger.LogWarning("Invalid Twilio webhook signature rejected for WhatsApp");
                 return Unauthorized("Invalid request signature.");
             }
 
-            // Twilio sends data as form fields
+            // Twilio sends incoming WhatsApp data as form fields
             var body = Request.Form["Body"].ToString();
-            var from = Request.Form["From"].ToString(); // Format: messenger:PSID
+            var from = Request.Form["From"].ToString(); // Format: whatsapp:+27612345678
 
             if (string.IsNullOrWhiteSpace(body) || string.IsNullOrWhiteSpace(from))
             {
-                _logger.LogWarning("Messenger webhook received empty body or from");
+                _logger.LogWarning("WhatsApp webhook received empty body or from");
                 return Ok();
             }
 
-            // Extract sender ID from Twilio format "messenger:PSID"
-            var senderId = from.Replace("messenger:", "");
+            // Extract phone number from Twilio format "whatsapp:+27612345678"
+            var fromPhone = from.Replace("whatsapp:", "");
+            var whatsappFromNumber = _configuration["Twilio:WhatsAppFromNumber"] ?? "";
 
-            _logger.LogInformation("Messenger webhook received from sender {SenderId}", senderId);
+            _logger.LogInformation("WhatsApp webhook received from {PhoneNumber}", fromPhone);
 
             // ======================================================
-            // 1. BUILD AI PROMPT (AUTO RESPONDER)
+            // 0. SAVE INCOMING MESSAGE TO DATABASE
+            // ======================================================
+            var rawPayload = $"{Request.Form.Keys}";
+
+            await _whatsAppService.SaveIncomingMessageAsync(
+                fromPhone,
+                whatsappFromNumber,
+                body,
+                Request.Form["MediaUrl0"].ToString(),
+                rawPayload);
+
+            // ======================================================
+            // 1. BUILD AI PROMPT (AUTO RESPONDER) — uses shared prompt
             // ======================================================
             var prompt = AiConstant.GetAutoResponderInstructions(body);
 
@@ -65,25 +79,48 @@ namespace HlumisaProperties.Api.Controllers
             if (!string.IsNullOrWhiteSpace(aiResponse))
             {
                 // ======================================================
-                // 2. SEND MESSAGE BACK VIA TWILIO
+                // 2. SEND WHATSAPP REPLY VIA TWILIO
                 // ======================================================
-                await _messengerService.SendMessageAsync(senderId, aiResponse);
-                _logger.LogInformation("Messenger auto-reply sent to {SenderId}", senderId);
+                await _whatsAppService.SendMessageAsync(fromPhone, aiResponse);
+                _logger.LogInformation("WhatsApp auto-reply sent to {PhoneNumber}", fromPhone);
             }
 
-            // Return empty response to Twilio
+            // Return empty TwiML response to acknowledge receipt
             return Content("<?xml version=\"1.0\" encoding=\"UTF-8\"?>", "text/xml");
         }
 
         // ======================================================
-        // OPTIONAL: MANUAL TEST ENDPOINT
+        // SEND A WHATSAPP MESSAGE (MANUAL / PROGRAMMATIC)
         // ======================================================
         [HttpPost("send")]
-        public async Task<IActionResult> Send([FromQuery] string recipientId, [FromQuery] string message)
+        public async Task<IActionResult> Send([FromQuery] string to, [FromQuery] string message)
         {
-            await _messengerService.SendMessageAsync(recipientId, message);
-            _logger.LogInformation("Messenger message sent to {RecipientId}", recipientId);
-            return Ok("Message sent");
+            if (string.IsNullOrWhiteSpace(to) || string.IsNullOrWhiteSpace(message))
+                return BadRequest("Both 'to' and 'message' query parameters are required.");
+
+            await _whatsAppService.SendMessageAsync(to, message);
+            _logger.LogInformation("WhatsApp message sent to {PhoneNumber}", to);
+            return Ok("WhatsApp message sent");
+        }
+
+        // ======================================================
+        // SEND A WHATSAPP MESSAGE WITH MEDIA ATTACHMENT
+        // ======================================================
+        [HttpPost("send-media")]
+        public async Task<IActionResult> SendMedia(
+            [FromQuery] string to,
+            [FromQuery] string message,
+            [FromQuery] string mediaUrl)
+        {
+            if (string.IsNullOrWhiteSpace(to))
+                return BadRequest("'to' query parameter is required.");
+
+            if (string.IsNullOrWhiteSpace(mediaUrl))
+                return BadRequest("'mediaUrl' query parameter is required.");
+
+            await _whatsAppService.SendMediaMessageAsync(to, message ?? "", mediaUrl);
+            _logger.LogInformation("WhatsApp media message sent to {PhoneNumber}", to);
+            return Ok("WhatsApp media message sent");
         }
 
         // ======================================================
@@ -91,6 +128,7 @@ namespace HlumisaProperties.Api.Controllers
         // ======================================================
         private bool IsValidTwilioRequest()
         {
+            var accountSid = _configuration["Twilio:AccountSid"];
             var authToken = _configuration["Twilio:AuthToken"];
 
             if (string.IsNullOrEmpty(authToken) || authToken == "YOUR_TWILIO_AUTH_TOKEN")

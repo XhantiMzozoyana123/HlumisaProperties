@@ -87,28 +87,24 @@ export function ReferralForm() {
     setSuccessMessage(null);
     setErrorMessage(null);
 
-    const { firstName, lastName } = splitFullName(referrer.fullName);
     const { firstName: refFirstName, lastName: refLastName } = splitFullName(referral.fullName);
+    const { firstName: referrerFirstName, lastName: referrerLastName } = splitFullName(referrer.fullName);
 
     try {
-      const response = await fetch(apiUrl("/api/leads"), {
+      const response = await fetch(apiUrl("/api/referrals"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          FirstName: refFirstName,
-          LastName: refLastName,
-          EmailAddress: "",
-          PhoneNumber: referral.phoneNumber,
-          Location: referral.address,
-          JsonCommunicationThread: JSON.stringify([
-            {
-              source: "referral-capture",
-              note: `Referral commission lead captured from landing page. Referred by ${referrer.fullName} (${referrer.phoneNumber}, ${referrer.address})`,
-              submittedAt: new Date().toISOString(),
-            },
-          ]),
-          LeadType: "Refferal",
-          IsContacted: false,
+          referrerName: `${referrerFirstName} ${referrerLastName}`.trim(),
+          referrerPhone: referrer.phoneNumber,
+          referrerAddress: referrer.address,
+          referredName: `${refFirstName} ${refLastName}`.trim(),
+          referredPhone: referral.phoneNumber,
+          referredAddress: referral.address,
+          intent: "buy",
+          note: `Referral captured from landing page.`,
+          date: new Date().toISOString().split("T")[0],
+          isDiscarded: false,
         }),
       });
 
