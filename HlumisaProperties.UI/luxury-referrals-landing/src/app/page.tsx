@@ -1,4 +1,4 @@
-veo"use client";
+"use client";
 
 import { ReferralForm } from "./referral-form";
 import { useEffect } from "react";
