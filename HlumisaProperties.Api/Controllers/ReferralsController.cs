@@ -28,7 +28,6 @@ namespace HlumisaProperties.Api.Controllers
     /// Responsibility: exposes CRUD plus toggle-discard for referrals
     /// via <see cref="IReferralService"/>.
     /// </summary>
-    [Authorize]
     [ApiController]
     [Route("api/referrals")]
     public class ReferralsController : ControllerBase
@@ -40,11 +39,12 @@ namespace HlumisaProperties.Api.Controllers
             _referralService = referralService;
         }
 
-        // ====== CREATE ======
+        // ====== CREATE (PUBLIC - for landing page) ======
 
         /// <summary>
-        /// Creates a new referral and returns it with a 201 Created location.
+        /// Public endpoint to create a new referral from the landing page. No authentication required.
         /// </summary>
+        [AllowAnonymous]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] Referral referral)
         {
@@ -55,11 +55,12 @@ namespace HlumisaProperties.Api.Controllers
             return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
 
-        // ====== READ ======
+        // ====== READ (AUTHENTICATED) ======
 
         /// <summary>
         /// Retrieves a single referral by its primary key (Id). Returns 404 if not found.
         /// </summary>
+        [Authorize]
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById(int id)
         {
@@ -73,6 +74,7 @@ namespace HlumisaProperties.Api.Controllers
         /// <summary>
         /// Retrieves every referral in the system.
         /// </summary>
+        [Authorize]
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -83,6 +85,7 @@ namespace HlumisaProperties.Api.Controllers
         /// <summary>
         /// Retrieves only active (non-discarded) referrals.
         /// </summary>
+        [Authorize]
         [HttpGet("active")]
         public async Task<IActionResult> GetActive()
         {
@@ -90,12 +93,13 @@ namespace HlumisaProperties.Api.Controllers
             return Ok(referrals);
         }
 
-        // ====== UPDATE ======
+        // ====== UPDATE (AUTHENTICATED) ======
 
         /// <summary>
         /// Updates an existing referral. The route Id is applied to the body before saving.
         /// Returns 404 if the referral does not exist.
         /// </summary>
+        [Authorize]
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] Referral referral)
         {
@@ -113,6 +117,7 @@ namespace HlumisaProperties.Api.Controllers
         /// <summary>
         /// Toggles the IsDiscarded flag on a referral (grey out / un-grey).
         /// </summary>
+        [Authorize]
         [HttpPatch("{id:int}/toggle-discard")]
         public async Task<IActionResult> ToggleDiscard(int id)
         {
@@ -123,11 +128,12 @@ namespace HlumisaProperties.Api.Controllers
             return Ok(updated);
         }
 
-        // ====== DELETE ======
+        // ====== DELETE (AUTHENTICATED) ======
 
         /// <summary>
         /// Deletes a referral by its primary key (Id). Returns 404 if not found.
         /// </summary>
+        [Authorize]
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
