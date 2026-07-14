@@ -40,21 +40,21 @@ function PersonCard({ title, subtitle, form, onChange }: PersonCardProps) {
 
       <div className="mt-5 space-y-4">
         <input
-          className="w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none placeholder:text-stone-500"
+          className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none placeholder:text-stone-500"
           placeholder="Full name"
           value={form.fullName}
           onChange={(e) => onChange({ ...form, fullName: e.target.value })}
           required
         />
         <input
-          className="w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none placeholder:text-stone-500"
+          className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none placeholder:text-stone-500"
           placeholder="Phone number"
           value={form.phoneNumber}
           onChange={(e) => onChange({ ...form, phoneNumber: e.target.value })}
           required
         />
         <textarea
-          className="w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none placeholder:text-stone-500 resize-none"
+          className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none placeholder:text-stone-500 resize-none"
           placeholder="Home Address"
           rows={2}
           value={form.address}
