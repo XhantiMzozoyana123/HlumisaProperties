@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #12100e;
-  --foreground: #f5f5f0;
+  --background: #2c3444;
+  --foreground: #ffffff;
 }
 
 @theme inline {
@@ -37,12 +37,12 @@
 
 /* Sidebar – use a solid dark background instead of backdrop-blur */
 .sidebar-bg {
-  background: #0a0a08;
+  background: #1d2736;
 }
 
 /* Main background – flat gradient, less GPU work */
 .main-bg {
-  background: linear-gradient(180deg, #12100e 0%, #0a0a08 48%, #050505 100%);
+  background: linear-gradient(180deg, #2c3444 0%, #1d2736 48%, #16202b 100%);
 }
 
 body {
