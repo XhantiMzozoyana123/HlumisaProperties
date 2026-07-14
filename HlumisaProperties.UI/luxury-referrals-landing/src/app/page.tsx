@@ -1,13 +1,13 @@
-import type { Metadata } from "next";
-import { ReferralForm } from "./referral-form";
+veo"use client";
 
-export const metadata: Metadata = {
-  title: "Hlumisa Properties | Referral Commission Landing Page",
-  description:
-    "Send us property referrals. We contact them, you earn commission. Quick and simple.",
-};
+import { ReferralForm } from "./referral-form";
+import { useEffect } from "react";
 
 export default function Home() {
+  useEffect(() => {
+    document.title = "Hlumisa Properties | Referral Commission Landing Page";
+  }, []);
+
   return (
     <main className="main-bg gpu-layer min-h-screen px-6 py-10 text-white sm:px-8 lg:px-12">
       <section className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-6xl flex-col justify-center gap-10">

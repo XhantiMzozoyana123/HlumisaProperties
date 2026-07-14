@@ -4,6 +4,17 @@ export function apiUrl(path: string) {
   return `${apiBaseUrl}${path}`;
 }
 
+function authHeaders(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  const token = localStorage.getItem("hlumisa_auth_token");
+  if (!token) return {};
+  return { Authorization: `Bearer ${token}` };
+}
+
+function mergeHeaders(extra?: Record<string, string>): Record<string, string> {
+  return { ...authHeaders(), ...extra };
+}
+
 export function formatMoney(amount: number) {
   return new Intl.NumberFormat("en-ZA", {
     style: "currency",
@@ -91,7 +102,7 @@ export type PropertyListing = {
 
 // Buyers
 export async function fetchBuyers(): Promise<Buyer[]> {
-  const response = await fetch(apiUrl("/api/buyers"), { cache: "no-store" });
+  const response = await fetch(apiUrl("/api/buyers"), { cache: "no-store", headers: authHeaders() });
   if (!response.ok) throw new Error(`Failed to load buyers (${response.status})`);
   return response.json();
 }
@@ -99,7 +110,7 @@ export async function fetchBuyers(): Promise<Buyer[]> {
 export async function createBuyer(data: Partial<Buyer>): Promise<Buyer> {
   const response = await fetch(apiUrl("/api/buyers"), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: mergeHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error(`Failed to create buyer (${response.status})`);
@@ -109,7 +120,7 @@ export async function createBuyer(data: Partial<Buyer>): Promise<Buyer> {
 export async function updateBuyer(id: number, data: Partial<Buyer>): Promise<Buyer> {
   const response = await fetch(apiUrl(`/api/buyers/${id}`), {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: mergeHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error(`Failed to update buyer (${response.status})`);
@@ -117,25 +128,25 @@ export async function updateBuyer(id: number, data: Partial<Buyer>): Promise<Buy
 }
 
 export async function deleteBuyer(id: number): Promise<void> {
-  const response = await fetch(apiUrl(`/api/buyers/${id}`), { method: "DELETE" });
+  const response = await fetch(apiUrl(`/api/buyers/${id}`), { method: "DELETE", headers: authHeaders() });
   if (!response.ok) throw new Error(`Failed to delete buyer (${response.status})`);
 }
 
 export async function toggleBuyerDiscarded(id: number): Promise<Buyer> {
-  const response = await fetch(apiUrl(`/api/buyers/${id}/discard`), { method: "PATCH" });
+  const response = await fetch(apiUrl(`/api/buyers/${id}/discard`), { method: "PATCH", headers: authHeaders() });
   if (!response.ok) throw new Error(`Failed to toggle buyer discard (${response.status})`);
   return response.json();
 }
 
 export async function markBuyerContacted(id: number): Promise<Buyer> {
-  const response = await fetch(apiUrl(`/api/buyers/${id}/mark-contacted`), { method: "PATCH" });
+  const response = await fetch(apiUrl(`/api/buyers/${id}/mark-contacted`), { method: "PATCH", headers: authHeaders() });
   if (!response.ok) throw new Error(`Failed to mark buyer contacted (${response.status})`);
   return response.json();
 }
 
 // Sellers
 export async function fetchSellers(): Promise<Seller[]> {
-  const response = await fetch(apiUrl("/api/sellers"), { cache: "no-store" });
+  const response = await fetch(apiUrl("/api/sellers"), { cache: "no-store", headers: authHeaders() });
   if (!response.ok) throw new Error(`Failed to load sellers (${response.status})`);
   return response.json();
 }
@@ -143,7 +154,7 @@ export async function fetchSellers(): Promise<Seller[]> {
 export async function createSeller(data: Partial<Seller>): Promise<Seller> {
   const response = await fetch(apiUrl("/api/sellers"), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: mergeHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error(`Failed to create seller (${response.status})`);
@@ -153,7 +164,7 @@ export async function createSeller(data: Partial<Seller>): Promise<Seller> {
 export async function updateSeller(id: number, data: Partial<Seller>): Promise<Seller> {
   const response = await fetch(apiUrl(`/api/sellers/${id}`), {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: mergeHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error(`Failed to update seller (${response.status})`);
@@ -161,31 +172,31 @@ export async function updateSeller(id: number, data: Partial<Seller>): Promise<S
 }
 
 export async function deleteSeller(id: number): Promise<void> {
-  const response = await fetch(apiUrl(`/api/sellers/${id}`), { method: "DELETE" });
+  const response = await fetch(apiUrl(`/api/sellers/${id}`), { method: "DELETE", headers: authHeaders() });
   if (!response.ok) throw new Error(`Failed to delete seller (${response.status})`);
 }
 
 export async function toggleSellerDiscarded(id: number): Promise<Seller> {
-  const response = await fetch(apiUrl(`/api/sellers/${id}/discard`), { method: "PATCH" });
+  const response = await fetch(apiUrl(`/api/sellers/${id}/discard`), { method: "PATCH", headers: authHeaders() });
   if (!response.ok) throw new Error(`Failed to toggle seller discard (${response.status})`);
   return response.json();
 }
 
 export async function markSellerContacted(id: number): Promise<Seller> {
-  const response = await fetch(apiUrl(`/api/sellers/${id}/mark-contacted`), { method: "PATCH" });
+  const response = await fetch(apiUrl(`/api/sellers/${id}/mark-contacted`), { method: "PATCH", headers: authHeaders() });
   if (!response.ok) throw new Error(`Failed to mark seller contacted (${response.status})`);
   return response.json();
 }
 
 export async function cycleSellerStatusColor(id: number): Promise<Seller> {
-  const response = await fetch(apiUrl(`/api/sellers/${id}/cycle-status`), { method: "PATCH" });
+  const response = await fetch(apiUrl(`/api/sellers/${id}/cycle-status`), { method: "PATCH", headers: authHeaders() });
   if (!response.ok) throw new Error(`Failed to cycle seller status (${response.status})`);
   return response.json();
 }
 
 // Referrals
 export async function fetchReferrals(): Promise<Referral[]> {
-  const response = await fetch(apiUrl("/api/referrals"), { cache: "no-store" });
+  const response = await fetch(apiUrl("/api/referrals"), { cache: "no-store", headers: authHeaders() });
   if (!response.ok) throw new Error(`Failed to load referrals (${response.status})`);
   return response.json();
 }
@@ -193,7 +204,7 @@ export async function fetchReferrals(): Promise<Referral[]> {
 export async function createReferral(data: Partial<Referral>): Promise<Referral> {
   const response = await fetch(apiUrl("/api/referrals"), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: mergeHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error(`Failed to create referral (${response.status})`);
@@ -203,7 +214,7 @@ export async function createReferral(data: Partial<Referral>): Promise<Referral>
 export async function updateReferral(id: number, data: Partial<Referral>): Promise<Referral> {
   const response = await fetch(apiUrl(`/api/referrals/${id}`), {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: mergeHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error(`Failed to update referral (${response.status})`);
@@ -211,19 +222,19 @@ export async function updateReferral(id: number, data: Partial<Referral>): Promi
 }
 
 export async function deleteReferral(id: number): Promise<void> {
-  const response = await fetch(apiUrl(`/api/referrals/${id}`), { method: "DELETE" });
+  const response = await fetch(apiUrl(`/api/referrals/${id}`), { method: "DELETE", headers: authHeaders() });
   if (!response.ok) throw new Error(`Failed to delete referral (${response.status})`);
 }
 
 export async function toggleReferralDiscarded(id: number): Promise<Referral> {
-  const response = await fetch(apiUrl(`/api/referrals/${id}/discard`), { method: "PATCH" });
+  const response = await fetch(apiUrl(`/api/referrals/${id}/discard`), { method: "PATCH", headers: authHeaders() });
   if (!response.ok) throw new Error(`Failed to toggle referral discard (${response.status})`);
   return response.json();
 }
 
 // Properties
 export async function fetchProperties(): Promise<PropertyListing[]> {
-  const response = await fetch(apiUrl("/api/property-listings"), { cache: "no-store" });
+  const response = await fetch(apiUrl("/api/property-listings"), { cache: "no-store", headers: authHeaders() });
   if (!response.ok) throw new Error(`Failed to load properties (${response.status})`);
   return response.json();
 }
@@ -231,7 +242,7 @@ export async function fetchProperties(): Promise<PropertyListing[]> {
 export async function createProperty(data: Partial<PropertyListing>): Promise<PropertyListing> {
   const response = await fetch(apiUrl("/api/property-listings"), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: mergeHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error(`Failed to create property (${response.status})`);
@@ -241,7 +252,7 @@ export async function createProperty(data: Partial<PropertyListing>): Promise<Pr
 export async function updateProperty(id: number, data: Partial<PropertyListing>): Promise<PropertyListing> {
   const response = await fetch(apiUrl(`/api/property-listings/${id}`), {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: mergeHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error(`Failed to update property (${response.status})`);
@@ -249,6 +260,6 @@ export async function updateProperty(id: number, data: Partial<PropertyListing>)
 }
 
 export async function deleteProperty(id: number): Promise<void> {
-  const response = await fetch(apiUrl(`/api/property-listings/${id}`), { method: "DELETE" });
+  const response = await fetch(apiUrl(`/api/property-listings/${id}`), { method: "DELETE", headers: authHeaders() });
   if (!response.ok) throw new Error(`Failed to delete property (${response.status})`);
 }

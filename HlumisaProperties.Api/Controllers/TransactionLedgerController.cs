@@ -1,5 +1,6 @@
 using HlumisaProperties.Application.Interfaces;
 using HlumisaProperties.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HlumisaProperties.Api.Controllers
@@ -37,6 +38,7 @@ namespace HlumisaProperties.Api.Controllers
     /// Responsibility: exposes CRUD plus month-filter queries for the transaction ledger
     /// via <see cref="ITransactionLedgerService"/>.
     /// </summary>
+    [Authorize]
     [ApiController]
     [Route("api/transaction-ledger")]
     public class TransactionLedgerController : ControllerBase

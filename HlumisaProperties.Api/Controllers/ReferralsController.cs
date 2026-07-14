@@ -1,5 +1,6 @@
 using HlumisaProperties.Application.Interfaces;
 using HlumisaProperties.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HlumisaProperties.Api.Controllers
@@ -27,6 +28,7 @@ namespace HlumisaProperties.Api.Controllers
     /// Responsibility: exposes CRUD plus toggle-discard for referrals
     /// via <see cref="IReferralService"/>.
     /// </summary>
+    [Authorize]
     [ApiController]
     [Route("api/referrals")]
     public class ReferralsController : ControllerBase

@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getProfilePicture } from "@/lib/localData";
+import { useAuth } from "@/lib/AuthContext";
 
 const navItems = [
   { label: "Dashboard", href: "/admin/dashboard", icon: "◉" },
@@ -15,6 +16,8 @@ const navItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, logout } = useAuth();
   const [profilePic, setProfilePic] = useState<string | null>(null);
 
   useEffect(() => {
@@ -77,13 +80,18 @@ export default function Sidebar() {
           <span className="text-lg">◀</span>
           Back to profile
         </Link>
-        <Link
-          href="/admin/login"
-          className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm text-stone-500 transition hover:text-white hover:bg-white/5"
+        {user && (
+          <p className="px-4 pt-2 text-xs text-stone-500">
+            Signed in as {user.firstName ?? user.email}
+          </p>
+        )}
+        <button
+          onClick={() => { logout(); router.push("/admin"); }}
+          className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm text-stone-500 transition hover:text-white hover:bg-white/5"
         >
-          <span className="text-lg">↩</span>
-          Sign out
-        </Link>
+          <span className="text-lg">✕</span>
+          Logout
+        </button>
       </div>
     </aside>
   );

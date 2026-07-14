@@ -1,5 +1,6 @@
 using HlumisaProperties.Application.Interfaces;
 using HlumisaProperties.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HlumisaProperties.Api.Controllers
@@ -24,6 +25,7 @@ namespace HlumisaProperties.Api.Controllers
     ///
     /// Responsibility: exposes CRUD plus contact/discard actions via <see cref="IBuyerService"/>.
     /// </summary>
+    [Authorize]
     [ApiController]
     [Route("api/buyers")]
     public class BuyersController : ControllerBase

@@ -1,5 +1,6 @@
 using HlumisaProperties.Application.Interfaces;
 using HlumisaProperties.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HlumisaProperties.Api.Controllers
@@ -28,6 +29,7 @@ namespace HlumisaProperties.Api.Controllers
     /// Responsibility: exposes CRUD plus availability-, type-, location- and
     /// price-range queries for property listings via <see cref="IPropertyListingService"/>.
     /// </summary>
+    [Authorize]
     [ApiController]
     [Route("api/property-listings")]
     public class PropertyListingsController : ControllerBase
