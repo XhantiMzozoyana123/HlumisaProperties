@@ -133,6 +133,7 @@ namespace HlumisaProperties.Infrastructure.Services
             existingPropertyListing.Bathrooms = propertyListing.Bathrooms;
             existingPropertyListing.SizeInSqm = propertyListing.SizeInSqm;
             existingPropertyListing.IsAvailable = propertyListing.IsAvailable;
+            existingPropertyListing.ImageBase64 = propertyListing.ImageBase64;
             existingPropertyListing.Images = propertyListing.Images;
             existingPropertyListing.DateAdded = propertyListing.DateAdded;
             existingPropertyListing.Status = propertyListing.Status;

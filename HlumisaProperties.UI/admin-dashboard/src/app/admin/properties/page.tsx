@@ -9,6 +9,16 @@ import {
 } from "@/lib/api";
 import Link from "next/link";
 
+/** Convert a File to a base64 data URI (e.g. data:image/png;base64,...) */
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function PropertiesPage() {
   const [properties, setProperties] = useState<Awaited<ReturnType<typeof fetchProperties>>>([]);
   const [loading, setLoading] = useState(true);
@@ -26,6 +36,8 @@ export default function PropertiesPage() {
     bedrooms: 0,
     bathrooms: 0,
   });
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -47,10 +59,17 @@ export default function PropertiesPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    let imageBase64 = "";
+    if (selectedImage) {
+      imageBase64 = await fileToBase64(selectedImage);
+    }
+
     try {
       const newProp = await createProperty({
         ...form,
         price: Number(form.price),
+        imageBase64,
         images: ["[]"],
         dateAdded: new Date().toISOString().split("T")[0],
         status: "on-market",
@@ -65,9 +84,23 @@ export default function PropertiesPage() {
         propertyType: "House", listingType: "Sale", location: "",
         bedrooms: 0, bathrooms: 0,
       });
+      setSelectedImage(null);
+      setImagePreview(null);
       setShowForm(false);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to create property.");
+    }
+  }
+
+  function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    setSelectedImage(file);
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => setImagePreview(reader.result as string);
+      reader.readAsDataURL(file);
+    } else {
+      setImagePreview(null);
     }
   }
 
@@ -155,6 +188,23 @@ export default function PropertiesPage() {
               <input className="w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none placeholder:text-stone-500" placeholder="Bedrooms" type="number" value={form.bedrooms} onChange={(e) => setForm((f) => ({ ...f, bedrooms: Number(e.target.value) }))} />
               <input className="w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none placeholder:text-stone-500" placeholder="Bathrooms" type="number" value={form.bathrooms} onChange={(e) => setForm((f) => ({ ...f, bathrooms: Number(e.target.value) }))} />
             </div>
+
+            {/* Image upload */}
+            <div>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-stone-400">Property Image</label>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                onChange={handleImageSelect}
+                className="w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-stone-300 file:mr-3 file:rounded-full file:border-0 file:bg-amber-200 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-stone-950 hover:file:bg-amber-100"
+              />
+              {imagePreview && (
+                <div className="mt-3 overflow-hidden rounded-2xl border border-white/10">
+                  <img src={imagePreview} alt="Preview" className="max-h-48 w-full object-cover" />
+                </div>
+              )}
+            </div>
+
             <div className="flex items-center gap-3">
               <button type="submit" className="rounded-full bg-amber-200 px-6 py-3 text-sm font-semibold text-stone-950 transition hover:bg-amber-100">
                 Create listing
@@ -175,28 +225,48 @@ export default function PropertiesPage() {
       ) : (
         <div className="space-y-3">
           {filteredProperties.map((property) => (
-            <div
+            <Link
               key={property.id}
-              className="rounded-[1.5rem] border border-white/10 bg-black/20 p-5 flex items-center justify-between"
+              href={`/admin/properties/${property.id}`}
+              className="rounded-[1.5rem] border border-white/10 bg-black/20 p-5 flex items-center justify-between hover:bg-white/[0.02] transition"
             >
-              <div>
-                <p className="text-sm font-medium text-white">{property.title}</p>
-                <p className="text-xs text-stone-400">
-                  {property.status === "on-market" ? "On Market" : property.status === "under-offer" ? "Under Offer" : "Sold"}
-                  {property.sellerName && ` · ${property.sellerName}`}
-                </p>
-                <p className="text-xs text-stone-500">{property.location}</p>
+              <div className="flex items-center gap-4">
+                {/* Image thumbnail */}
+                {property.imageBase64 ? (
+                  <div className="h-14 w-20 flex-shrink-0 overflow-hidden rounded-xl border border-white/10">
+                    <img
+                      src={property.imageBase64}
+                      alt={property.title}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="h-14 w-20 flex-shrink-0 rounded-xl border border-white/10 bg-[#2a241a] flex items-center justify-center text-xs text-stone-500">
+                    No img
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm font-medium text-white">{property.title}</p>
+                  <p className="text-xs text-stone-400">
+                    {property.status === "on-market" ? "On Market" : property.status === "under-offer" ? "Under Offer" : "Sold"}
+                    {property.sellerName && ` · ${property.sellerName}`}
+                  </p>
+                  <p className="text-xs text-stone-500">{property.location}</p>
+                </div>
               </div>
               <div className="flex items-center gap-3">
                 <p className="text-sm font-semibold text-amber-200">{formatMoney(property.price)}</p>
                 <button
-                  onClick={() => handleDelete(property.id)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleDelete(property.id);
+                  }}
                   className="rounded-full border border-rose-300/20 px-4 py-1.5 text-xs text-rose-200 transition hover:bg-rose-500/10"
                 >
                   Delete
                 </button>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       )}

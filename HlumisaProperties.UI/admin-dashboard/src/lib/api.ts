@@ -93,6 +93,7 @@ export type PropertyListing = {
   bathrooms: number;
   sizeInSqm: number;
   isAvailable: boolean;
+  imageBase64: string;
   images: string[];
   dateAdded: string;
   status: string;

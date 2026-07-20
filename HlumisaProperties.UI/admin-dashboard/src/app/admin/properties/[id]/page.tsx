@@ -18,6 +18,16 @@ const STATUS_OPTIONS: { value: string; label: string; color: string }[] = [
   { value: "sold", label: "Sold", color: "bg-rose-500/20 text-rose-400 border-rose-500/30" },
 ];
 
+/** Convert a File to a base64 data URI (e.g. data:image/png;base64,...) */
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function PropertyDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -30,6 +40,8 @@ export default function PropertyDetailPage() {
   const [editDescription, setEditDescription] = useState("");
   const [editPrice, setEditPrice] = useState("");
   const [editSellerName, setEditSellerName] = useState("");
+  const [editImageFile, setEditImageFile] = useState<File | null>(null);
+  const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -55,11 +67,27 @@ export default function PropertyDetailPage() {
     setEditDescription(property.description);
     setEditPrice(String(property.price));
     setEditSellerName(property.sellerName ?? "");
+    setEditImageFile(null);
+    setEditImagePreview(null);
     setEditing(true);
   }
 
   function cancelEditing() {
     setEditing(false);
+    setEditImageFile(null);
+    setEditImagePreview(null);
+  }
+
+  function handleEditImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    setEditImageFile(file);
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => setEditImagePreview(reader.result as string);
+      reader.readAsDataURL(file);
+    } else {
+      setEditImagePreview(null);
+    }
   }
 
   async function handleSaveEdit() {
@@ -67,15 +95,23 @@ export default function PropertyDetailPage() {
     const newPrice = Number(editPrice);
     if (!editTitle.trim() || isNaN(newPrice) || newPrice <= 0) return;
 
+    let imageBase64 = property.imageBase64;
+    if (editImageFile) {
+      imageBase64 = await fileToBase64(editImageFile);
+    }
+
     try {
       const updated = await updateProperty(property.id, {
         title: editTitle.trim(),
         description: editDescription.trim(),
         price: newPrice,
         sellerName: editSellerName.trim(),
+        imageBase64,
       });
       setProperty(updated);
       setEditing(false);
+      setEditImageFile(null);
+      setEditImagePreview(null);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to update property.");
     }
@@ -138,8 +174,8 @@ export default function PropertyDetailPage() {
 
       <div className="space-y-4">
         <div className="relative aspect-[16/9] overflow-hidden rounded-[2rem] border border-white/10 bg-[#2a241a]">
-          {property.images && property.images.length > 0 ? (
-            <img src={property.images[0]} alt={property.title} className="h-full w-full object-cover" />
+          {property.imageBase64 ? (
+            <img src={property.imageBase64} alt={property.title} className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full items-center justify-center text-stone-500 text-sm">No image</div>
           )}
@@ -174,6 +210,25 @@ export default function PropertyDetailPage() {
           <div>
             <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-stone-400">Price (ZAR)</label>
             <input className="w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none placeholder:text-stone-500 font-mono" type="number" value={editPrice} onChange={(e) => setEditPrice(e.target.value)} />
+          </div>
+
+          {/* Image upload in edit */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-stone-400">Property Image</label>
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              onChange={handleEditImageSelect}
+              className="w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-stone-300 file:mr-3 file:rounded-full file:border-0 file:bg-amber-200 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-stone-950 hover:file:bg-amber-100"
+            />
+            {editImagePreview && (
+              <div className="mt-3 overflow-hidden rounded-2xl border border-white/10">
+                <img src={editImagePreview} alt="New image preview" className="max-h-48 w-full object-cover" />
+              </div>
+            )}
+            {!editImagePreview && property.imageBase64 && (
+              <p className="mt-2 text-xs text-stone-500">Current image will be kept if no new file is selected.</p>
+            )}
           </div>
 
           <div className="flex items-center gap-3 pt-2">

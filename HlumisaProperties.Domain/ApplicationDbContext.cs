@@ -119,6 +119,10 @@ namespace HlumisaProperties.Domain
                 eb.Property(pl => pl.IsAvailable)
                     .HasDefaultValue(true);
 
+                eb.Property(pl => pl.ImageBase64)
+                    .HasColumnType("longtext")
+                    .HasDefaultValue("");
+
                 eb.Property(pl => pl.Images)
                     .HasColumnType("longtext")
                     .HasDefaultValue("[]");

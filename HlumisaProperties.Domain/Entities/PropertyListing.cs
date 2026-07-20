@@ -29,7 +29,13 @@ namespace HlumisaProperties.Domain.Entities
         public bool IsAvailable { get; set; }
 
         /// <summary>
-        /// JSON array of image URLs/data-URIs.
+        /// Primary property image stored as base64 string with data URI prefix.
+        /// Format: data:image/png;base64,... or data:image/jpeg;base64,...
+        /// </summary>
+        public string ImageBase64 { get; set; } = string.Empty;
+
+        /// <summary>
+        /// JSON array of additional image URLs/data-URIs.
         /// </summary>
         public string Images { get; set; } = "[]";
 
