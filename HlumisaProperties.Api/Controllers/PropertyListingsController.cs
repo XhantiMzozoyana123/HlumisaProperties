@@ -29,7 +29,6 @@ namespace HlumisaProperties.Api.Controllers
     /// Responsibility: exposes CRUD plus availability-, type-, location- and
     /// price-range queries for property listings via <see cref="IPropertyListingService"/>.
     /// </summary>
-    [Authorize]
     [ApiController]
     [Route("api/property-listings")]
     public class PropertyListingsController : ControllerBase
@@ -46,6 +45,7 @@ namespace HlumisaProperties.Api.Controllers
         /// <summary>
         /// Creates a new property listing and returns it with a 201 Created location.
         /// </summary>
+        [Authorize]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] PropertyListing propertyListing)
         {
@@ -61,6 +61,7 @@ namespace HlumisaProperties.Api.Controllers
         /// <summary>
         /// Retrieves a single property listing by its primary key (Id). Returns 404 if not found.
         /// </summary>
+        [AllowAnonymous]
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById(int id)
         {
@@ -74,6 +75,7 @@ namespace HlumisaProperties.Api.Controllers
         /// <summary>
         /// Retrieves every property listing in the system.
         /// </summary>
+        [AllowAnonymous]
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -84,6 +86,7 @@ namespace HlumisaProperties.Api.Controllers
         /// <summary>
         /// Retrieves only listings whose IsAvailable column is true.
         /// </summary>
+        [AllowAnonymous]
         [HttpGet("available")]
         public async Task<IActionResult> GetAvailable()
         {
@@ -94,6 +97,7 @@ namespace HlumisaProperties.Api.Controllers
         /// <summary>
         /// Retrieves listings filtered by status (on-market, under-offer, sold).
         /// </summary>
+        [AllowAnonymous]
         [HttpGet("by-status/{status}")]
         public async Task<IActionResult> GetByStatus(string status)
         {
@@ -105,6 +109,7 @@ namespace HlumisaProperties.Api.Controllers
         /// <summary>
         /// Retrieves listings filtered by the PropertyType column (House, Apartment, etc.).
         /// </summary>
+        [AllowAnonymous]
         [HttpGet("by-type/{propertyType}")]
         public async Task<IActionResult> GetByType(string propertyType)
         {
@@ -115,6 +120,7 @@ namespace HlumisaProperties.Api.Controllers
         /// <summary>
         /// Retrieves listings filtered by the ListingType column (Sale / Rent).
         /// </summary>
+        [AllowAnonymous]
         [HttpGet("by-listing-type/{listingType}")]
         public async Task<IActionResult> GetByListingType(string listingType)
         {
@@ -125,6 +131,7 @@ namespace HlumisaProperties.Api.Controllers
         /// <summary>
         /// Retrieves listings filtered by the Location column.
         /// </summary>
+        [AllowAnonymous]
         [HttpGet("by-location/{location}")]
         public async Task<IActionResult> GetByLocation(string location)
         {
@@ -135,6 +142,7 @@ namespace HlumisaProperties.Api.Controllers
         /// <summary>
         /// Retrieves listings whose Price column falls between the supplied minimum and maximum.
         /// </summary>
+        [AllowAnonymous]
         [HttpGet("by-price-range")]
         public async Task<IActionResult> GetByPriceRange([FromQuery] decimal minPrice, [FromQuery] decimal maxPrice)
         {
@@ -148,6 +156,7 @@ namespace HlumisaProperties.Api.Controllers
         /// Updates an existing property listing. The route Id is applied to the body before saving.
         /// Returns 404 if the listing does not exist.
         /// </summary>
+        [Authorize]
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] PropertyListing propertyListing)
         {
@@ -167,6 +176,7 @@ namespace HlumisaProperties.Api.Controllers
         /// <summary>
         /// Deletes a property listing by its primary key (Id). Returns 404 if not found.
         /// </summary>
+        [Authorize]
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
