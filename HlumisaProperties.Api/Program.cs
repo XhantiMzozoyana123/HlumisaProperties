@@ -111,6 +111,16 @@ builder.Services.AddHangfireServer();
 var app = builder.Build();
 
 // ======================================================
+// AUTO-APPLY DATABASE MIGRATIONS ON STARTUP
+// ======================================================
+using (var migrationScope = app.Services.CreateScope())
+{
+    var dbContext = migrationScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    dbContext.Database.Migrate();
+    Console.WriteLine("Database migrations applied successfully.");
+}
+
+// ======================================================
 // AUTO-SEED ADMIN USER ON STARTUP
 // ======================================================
 using (var scope = app.Services.CreateScope())
