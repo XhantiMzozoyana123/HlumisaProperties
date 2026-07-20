@@ -145,6 +145,29 @@ using (var scope = app.Services.CreateScope())
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.UseDeveloperExceptionPage();
+}
+else
+{
+    app.UseExceptionHandler(errorApp =>
+    {
+        errorApp.Run(async context =>
+        {
+            context.Response.StatusCode = 500;
+            context.Response.ContentType = "application/json";
+            var exceptionHandler = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>();
+            if (exceptionHandler?.Error != null)
+            {
+                var problemDetails = new
+                {
+                    status = 500,
+                    title = "Internal Server Error",
+                    detail = exceptionHandler.Error.Message
+                };
+                await context.Response.WriteAsJsonAsync(problemDetails);
+            }
+        });
+    });
 }
 
 // ======================================================
