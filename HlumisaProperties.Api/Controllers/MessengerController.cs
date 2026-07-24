@@ -2,7 +2,9 @@ using HlumisaProperties.Application.Constants;
 using HlumisaProperties.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using Twilio.Security;
+using System;
+using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace HlumisaProperties.Api.Controllers
 {
@@ -28,99 +30,106 @@ namespace HlumisaProperties.Api.Controllers
         }
 
         // ======================================================
-        // TWILIO WEBHOOK FOR INCOMING FACEBOOK MESSENGER MESSAGES
+        // META WEBHOOK VERIFICATION (THE HANDSHAKE)
         // ======================================================
-        [HttpPost("webhook")]
-        public async Task<IActionResult> Receive()
+        [HttpGet("webhook")]
+        public IActionResult Verify([FromQuery(Name = "hub.mode")] string mode,
+                                    [FromQuery(Name = "hub.challenge")] string challenge,
+                                    [FromQuery(Name = "hub.verify_token")] string token)
         {
-            // Validate Twilio webhook signature
-            if (!IsValidTwilioRequest())
+            var verifyToken = _configuration["Facebook:VerifyToken"];
+
+            if (mode == "subscribe" && token == verifyToken)
             {
-                _logger.LogWarning("Invalid Twilio webhook signature rejected for Messenger");
-                return Unauthorized("Invalid request signature.");
+                _logger.LogInformation("Facebook webhook verified successfully.");
+                return Ok(challenge);
             }
 
-            // Twilio sends data as form fields
-            var body = Request.Form["Body"].ToString();
-            var from = Request.Form["From"].ToString(); // Format: messenger:PSID
-
-            if (string.IsNullOrWhiteSpace(body) || string.IsNullOrWhiteSpace(from))
-            {
-                _logger.LogWarning("Messenger webhook received empty body or from");
-                return Ok();
-            }
-
-            // Extract sender ID from Twilio format "messenger:PSID"
-            var senderId = from.Replace("messenger:", "");
-
-            _logger.LogInformation("Messenger webhook received from sender {SenderId}", senderId);
-
-            // ======================================================
-            // 1. BUILD AI PROMPT (AUTO RESPONDER)
-            // ======================================================
-            var prompt = AiConstant.GetAutoResponderInstructions(body);
-
-            var aiResponse = await _llmService.GenerateTextAsync(prompt);
-
-            if (!string.IsNullOrWhiteSpace(aiResponse))
-            {
-                // ======================================================
-                // 2. SEND MESSAGE BACK VIA TWILIO
-                // ======================================================
-                await _messengerService.SendMessageAsync(senderId, aiResponse);
-                _logger.LogInformation("Messenger auto-reply sent to {SenderId}", senderId);
-            }
-
-            // Return empty response to Twilio
-            return Content("<?xml version=\"1.0\" encoding=\"UTF-8\"?>", "text/xml");
+            return Forbid();
         }
 
         // ======================================================
-        // OPTIONAL: MANUAL TEST ENDPOINT
+        // DIRECT META WEBHOOK FOR INCOMING FACEBOOK MESSAGES
+        // ======================================================
+        [HttpPost("webhook")]
+        public async Task<IActionResult> Receive([FromBody] JsonElement payload)
+        {
+            try
+            {
+                if (payload.TryGetProperty("object", out var obj) && obj.GetString() == "page")
+                {
+                    if (payload.TryGetProperty("entry", out var entryArray) && entryArray.GetArrayLength() > 0)
+                    {
+                        var entry = entryArray[0];
+                        if (entry.TryGetProperty("messaging", out var messagingArray) && messagingArray.GetArrayLength() > 0)
+                        {
+                            var messagingEvent = messagingArray[0];
+
+                            if (messagingEvent.TryGetProperty("message", out var messageObj) && 
+                                messageObj.TryGetProperty("text", out var textObj))
+                            {
+                                // =======================================================================
+                                // 🔍 USER PSID EXTRACTION:
+                                // Meta sends the user's Page-Scoped ID inside the 'sender.id' path.
+                                // 'senderId' right here IS the exact User PSID of the person chatting.
+                                // =======================================================================
+                                string senderId = messagingEvent.GetProperty("sender").GetProperty("id").GetString();
+                                
+                                string pageId = messagingEvent.GetProperty("recipient").GetProperty("id").GetString();
+                                string body = textObj.GetString();
+                                string rawPayloadString = payload.GetRawText();
+
+                                if (string.IsNullOrWhiteSpace(body)) return Ok();
+
+                                _logger.LogInformation("Direct Messenger webhook received from PSID: {SenderId}", senderId);
+
+                                // =======================================================================
+                                // 💾 USING THE USER PSID FOR LOCAL LOGGING:
+                                // We pass the 'senderId' (User PSID) into our service layer so our database 
+                                // correctly registers who sent this incoming ("IN") message.
+                                // =======================================================================
+                                await _messengerService.SaveLocalMessageAsync(senderId, pageId, body, "IN", rawPayloadString);
+
+                                // Build AI Prompt
+                                var prompt = AiConstant.GetAutoResponderInstructions(body);
+                                var aiResponse = await _llmService.GenerateTextAsync(prompt);
+
+                                if (!string.IsNullOrWhiteSpace(aiResponse))
+                                {
+                                    // =======================================================================
+                                    // 🚀 USING THE USER PSID TO ROUTE THE AI REPLY:
+                                    // We pass the exact same 'senderId' (User PSID) down to the send method.
+                                    // This ensures the Graph API delivers the AI's reply back to this specific person.
+                                    // =======================================================================
+                                    await _messengerService.SendMessageAsync(senderId, aiResponse);
+                                    _logger.LogInformation("Messenger direct auto-reply sent to PSID: {SenderId}", senderId);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                return Ok(); 
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing direct Facebook Graph API webhook payload.");
+                return Ok(); 
+            }
+        }
+
+        // ======================================================
+        // MANUAL TEST ENDPOINT
         // ======================================================
         [HttpPost("send")]
         public async Task<IActionResult> Send([FromQuery] string recipientId, [FromQuery] string message)
         {
+            // =======================================================================
+            // ✉️ MANUAL TEST PSID ROUTING:
+            // When triggering manually, the 'recipientId' parameter you input is the User PSID.
+            // =======================================================================
             await _messengerService.SendMessageAsync(recipientId, message);
-            _logger.LogInformation("Messenger message sent to {RecipientId}", recipientId);
-            return Ok("Message sent");
-        }
-
-        // ======================================================
-        // PRIVATE: TWILIO REQUEST VALIDATION
-        // ======================================================
-        private bool IsValidTwilioRequest()
-        {
-            var authToken = _configuration["Twilio:AuthToken"];
-
-            if (string.IsNullOrEmpty(authToken) || authToken == "YOUR_TWILIO_AUTH_TOKEN")
-            {
-                _logger.LogWarning("Twilio auth token not configured — skipping webhook validation");
-                return true; // Allow in dev if not configured
-            }
-
-            // Build the full URL Twilio would have used
-            var requestUrl = $"{Request.Scheme}://{Request.Host}{Request.Path}{Request.QueryString}";
-
-            var validator = new RequestValidator(authToken);
-
-            // Get the Twilio signature header
-            var twilioSignature = Request.Headers["X-Twilio-Signature"].FirstOrDefault();
-
-            if (string.IsNullOrEmpty(twilioSignature))
-            {
-                _logger.LogWarning("Missing X-Twilio-Signature header");
-                return false;
-            }
-
-            // Collect form parameters (Twilio sends form-encoded POST data)
-            var parameters = new Dictionary<string, string>();
-            foreach (var key in Request.Form.Keys)
-            {
-                parameters[key] = Request.Form[key].ToString();
-            }
-
-            return validator.Validate(requestUrl, parameters, twilioSignature);
+            return Ok("Message dispatched via Graph API.");
         }
     }
 }
