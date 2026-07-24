@@ -9,4 +9,19 @@ services:
       - .env
     environment:
       - ASPNETCORE_URLS=http://0.0.0.0:5000
+      - Twilio__AccountSid=${TWILIO_ACCOUNT_SID}
+      - Twilio__AuthToken=${TWILIO_AUTH_TOKEN}
+      - Twilio__MessagingSenderId=${TWILIO_MESSAGING_SENDER_ID}
+      - Twilio__WhatsAppFromNumber=${TWILIO_WHATSAPP_FROM_NUMBER}
+      - Facebook__VerifyToken=${FACEBOOK_VERIFY_TOKEN}
+      - Facebook__PageAccessToken=${FACEBOOK_PAGE_ACCESS_TOKEN}
+      - Facebook__PageId=${FACEBOOK_PAGE_ID}
+      - ConnectionStrings__DefaultConnection=${CONNECTION_STRING}
+      - Jwt__Secret=${JWT_SECRET}
+      - Jwt__Issuer=${JWT_ISSUER}
+      - Jwt__Audience=${JWT_AUDIENCE}
+      - AdminUser__Email=${ADMIN_EMAIL}
+      - AdminUser__Password=${ADMIN_PASSWORD}
+      - AdminUser__FirstName=${ADMIN_FIRST_NAME}
+      - AdminUser__LastName=${ADMIN_LAST_NAME}
     restart: always
