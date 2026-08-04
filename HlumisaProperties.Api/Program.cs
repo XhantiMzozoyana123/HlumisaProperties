@@ -84,6 +84,7 @@ builder.Services.AddHttpClient(); // default
 builder.Services.AddHttpClient<IFacebookMessengerService, FacebookMessengerService>();
 builder.Services.AddHttpClient<ILLMService, LLMService>();
 
+// Messenger Service - Graph API (Primary)
 builder.Services.AddScoped<IFacebookMessengerService, FacebookMessengerService>();
 builder.Services.AddScoped<IWhatsAppService, WhatsAppService>();
 builder.Services.AddScoped<ILLMService, LLMService>();
