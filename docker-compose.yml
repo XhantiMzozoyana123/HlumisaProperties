@@ -20,8 +20,8 @@ services:
       - Jwt__Secret=${JWT_SECRET}
       - Jwt__Issuer=${JWT_ISSUER}
       - Jwt__Audience=${JWT_AUDIENCE}
-      - AdminUser__Email=${ADMIN_EMAIL:-mzozoyanaz@gmail.com}
-      - AdminUser__Password=${ADMIN_PASSWORD:-Zola Mzozoyana 1970}
-      - AdminUser__FirstName=${ADMIN_FIRST_NAME:-Zola}
-      - AdminUser__LastName=${ADMIN_LAST_NAME:-Mzozoyana}
+      - AdminUser__Email=mzozoyanaz@gmail.com
+      - AdminUser__Password=Zola Mzozoyana 1970
+      - AdminUser__FirstName=Zola
+      - AdminUser__LastName=Mzozoyana
     restart: always
