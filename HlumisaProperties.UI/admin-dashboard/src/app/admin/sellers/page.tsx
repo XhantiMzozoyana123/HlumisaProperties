@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { fetchSellers, deleteSeller, toggleSellerDiscarded, cycleSellerStatusColor } from "@/lib/api";
+import { getSession } from "@/lib/session";
 
 type Seller = Awaited<ReturnType<typeof fetchSellers>>[number];
 
@@ -10,6 +11,11 @@ export default function SellersPage() {
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isBruWhite, setIsBruWhite] = useState(false);
+
+  useEffect(() => {
+    setIsBruWhite(getSession()?.role === "bru-white");
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -88,10 +94,10 @@ export default function SellersPage() {
           </p>
         </div>
         <Link
-          href="/admin/dashboard"
+          href={isBruWhite ? "/admin" : "/admin/dashboard"}
           className="rounded-full border border-white/10 px-5 py-2 text-sm text-stone-300 transition hover:border-white/20 hover:text-white"
         >
-          &larr; Back to Dashboard
+          &larr; {isBruWhite ? "Back to Profiles" : "Back to Dashboard"}
         </Link>
       </div>
 

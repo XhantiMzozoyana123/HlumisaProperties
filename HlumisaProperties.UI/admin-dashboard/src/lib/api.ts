@@ -66,6 +66,16 @@ export type Seller = {
   createdAt?: string;
 };
 
+export type Lead = {
+  id: number;
+  firstName: string;
+  lastName: string;
+  emailAddress: string;
+  phoneNumber: string;
+  isContacted: boolean;
+  createdAt?: string;
+};
+
 export type Referral = {
   id: number;
   referrerName: string;
@@ -100,6 +110,23 @@ export type PropertyListing = {
   sellerName: string;
   createdAt?: string;
 };
+
+// Leads
+export async function fetchLeads(): Promise<Lead[]> {
+  const response = await fetch(apiUrl("/api/leads"), { cache: "no-store", headers: authHeaders() });
+  if (!response.ok) throw new Error(`Failed to load leads (${response.status})`);
+  return response.json();
+}
+
+export async function updateLeadContacted(id: number, isContacted: boolean): Promise<Lead> {
+  const response = await fetch(apiUrl(`/api/leads/${id}/mark-contacted`), {
+    method: "PATCH",
+    headers: mergeHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ isContacted }),
+  });
+  if (!response.ok) throw new Error(`Failed to update lead (${response.status})`);
+  return response.json();
+}
 
 // Buyers
 export async function fetchBuyers(): Promise<Buyer[]> {

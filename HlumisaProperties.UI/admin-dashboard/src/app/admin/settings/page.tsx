@@ -2,8 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { getProfilePicture, saveProfilePicture, type ProfilePicture } from "@/lib/localData";
+import RequireZola from "@/components/RequireZola";
 
 export default function SettingsPage() {
+  return (
+    <RequireZola>
+      <SettingsContent />
+    </RequireZola>
+  );
+}
+
+function SettingsContent() {
   const [profilePic, setProfilePic] = useState<ProfilePicture | null>(null);
   const [saving, setSaving] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -111,9 +120,9 @@ export default function SettingsPage() {
       <section className="rounded-[2rem] border border-white/10 bg-black/20 p-8">
         <h2 className="text-lg font-semibold text-white">Account</h2>
         <p className="mt-1 text-sm text-stone-400">
-          Signed in as <strong className="text-stone-200">Zola Mzozoyana</strong>
+          Signed in as <strong className="text-stone-200">Zola</strong>
         </p>
-        <p className="mt-1 text-sm text-stone-500">Username: ZolaMzozoyana1970</p>
+        <p className="mt-1 text-sm text-stone-500">Email: mzozoyanaz@gmail.com</p>
       </section>
     </div>
   );

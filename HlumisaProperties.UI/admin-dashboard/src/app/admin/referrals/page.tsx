@@ -2,10 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { fetchReferrals, createReferral, deleteReferral, toggleReferralDiscarded } from "@/lib/api";
+import RequireZola from "@/components/RequireZola";
 
 type Referral = Awaited<ReturnType<typeof fetchReferrals>>[number];
 
 export default function ReferralsPage() {
+  return (
+    <RequireZola>
+      <ReferralsContent />
+    </RequireZola>
+  );
+}
+
+function ReferralsContent() {
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

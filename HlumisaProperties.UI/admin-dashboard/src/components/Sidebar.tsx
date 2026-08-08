@@ -4,14 +4,20 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getProfilePicture } from "@/lib/localData";
+import { getSession, clearSession } from "@/lib/session";
 import { useAuth } from "@/lib/AuthContext";
 
-const navItems = [
+const fullNavItems = [
   { label: "Dashboard", href: "/admin/dashboard", icon: "◉" },
   { label: "Referrals", href: "/admin/referrals", icon: "◎" },
   { label: "Properties", href: "/admin/properties", icon: "◆" },
   { label: "Books", href: "/admin/books", icon: "📓" },
   { label: "Books Understanding", href: "/admin/books/understanding", icon: "📖" },
+];
+
+const bruWhiteNavItems = [
+  { label: "Buyers", href: "/admin/buyers", icon: "◉" },
+  { label: "Sellers", href: "/admin/sellers", icon: "◎" },
 ];
 
 export default function Sidebar() {
@@ -20,16 +26,22 @@ export default function Sidebar() {
   const { user, logout } = useAuth();
   const [profilePic, setProfilePic] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isBruWhite, setIsBruWhite] = useState(false);
 
   useEffect(() => {
     const pic = getProfilePicture();
     if (pic) setProfilePic(pic.dataUrl);
+    setIsBruWhite(getSession()?.role === "bru-white");
   }, []);
 
   // Close drawer when navigating
   useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
+
+  const navItems = isBruWhite ? bruWhiteNavItems : fullNavItems;
+  const profileName = isBruWhite ? "Agent Manager" : user?.firstName ?? "Zola";
+  const profileRole = isBruWhite ? "Manager" : "Admin Dashboard";
 
   const sidebarContent = (
     <div className="flex h-full flex-col">
@@ -48,7 +60,7 @@ export default function Sidebar() {
           )}
           <div>
             <p className="text-sm font-semibold text-white">Hlumisa Properties</p>
-            <p className="text-xs text-stone-400">Admin Dashboard</p>
+            <p className="text-xs text-stone-400">{profileName} &middot; {profileRole}</p>
           </div>
         </div>
         <button
@@ -83,13 +95,15 @@ export default function Sidebar() {
       </nav>
 
       <div className="space-y-1 border-t border-white/10 px-6 py-4">
-        <Link
-          href="/admin/settings"
-          className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm text-stone-400 transition hover:text-white hover:bg-white/5"
-        >
-          <span className="text-lg">⚙</span>
-          Settings
-        </Link>
+        {!isBruWhite && (
+          <Link
+            href="/admin/settings"
+            className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm text-stone-400 transition hover:text-white hover:bg-white/5"
+          >
+            <span className="text-lg">⚙</span>
+            Settings
+          </Link>
+        )}
         <Link
           href="/admin"
           className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm text-stone-400 transition hover:text-white hover:bg-white/5"
@@ -97,20 +111,16 @@ export default function Sidebar() {
           <span className="text-lg">◀</span>
           Back to profile
         </Link>
-        {user && (
-          <p className="px-4 pt-2 text-xs text-stone-500">
-            Signed in as {user.firstName ?? user.email}
-          </p>
-        )}
         <button
           onClick={() => {
+            clearSession();
             logout();
             router.push("/admin");
           }}
           className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm text-stone-500 transition hover:text-white hover:bg-white/5"
         >
-          <span className="text-lg">✕</span>
-          Logout
+          <span className="text-lg">↩</span>
+          Sign out
         </button>
       </div>
     </div>

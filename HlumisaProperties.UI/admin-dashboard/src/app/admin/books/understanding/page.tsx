@@ -1,8 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import RequireZola from "@/components/RequireZola";
 
 export default function BooksUnderstandingPage() {
+  return (
+    <RequireZola>
+      <BooksUnderstandingContent />
+    </RequireZola>
+  );
+}
+
+function BooksUnderstandingContent() {
   return (
     <div className="space-y-8 max-w-4xl">
       {/* Header */}

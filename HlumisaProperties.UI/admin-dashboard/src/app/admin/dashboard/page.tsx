@@ -3,8 +3,17 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { fetchBuyers, fetchSellers, fetchReferrals, fetchProperties, formatMoney } from "@/lib/api";
+import RequireZola from "@/components/RequireZola";
 
 export default function DashboardPage() {
+  return (
+    <RequireZola>
+      <DashboardContent />
+    </RequireZola>
+  );
+}
+
+function DashboardContent() {
   const [buyerCount, setBuyerCount] = useState(0);
   const [sellerCount, setSellerCount] = useState(0);
   const [referralCount, setReferralCount] = useState(0);
