@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { getProfilePicture } from "@/lib/localData";
 import { setSession } from "@/lib/session";
 import { useAuth } from "@/lib/AuthContext";
+import { getStoredUser } from "@/lib/auth";
 
 const profiles = [
   {
@@ -36,6 +37,13 @@ export default function ProfileSelectionPage() {
   const [profilePic, setProfilePic] = useState<string | null>(null);
 
   useEffect(() => {
+    // First try from API-backed stored user
+    const storedUser = getStoredUser();
+    if (storedUser?.profilePictureBase64) {
+      setProfilePic(storedUser.profilePictureBase64);
+      return;
+    }
+
     const pic = getProfilePicture();
     if (pic?.dataUrl) setProfilePic(pic.dataUrl);
   }, []);

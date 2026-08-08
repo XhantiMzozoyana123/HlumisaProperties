@@ -141,11 +141,47 @@ using (var scope = app.Services.CreateScope())
                 UserName = adminEmail,
                 Email = adminEmail,
                 EmailConfirmed = true,
-                FirstName = adminConfig["FirstName"] ?? "Admin",
-                LastName = adminConfig["LastName"] ?? "User"
+                FirstName = adminConfig["FirstName"] ?? "Zola",
+                LastName = adminConfig["LastName"] ?? "Mzozoyana"
             };
             await userManager.CreateAsync(adminUser, adminPassword);
             Console.WriteLine($"Admin user created: {adminEmail}");
+        }
+        else
+        {
+            // Update existing user's credentials and name if configured
+            var needsUpdate = false;
+
+            if (!string.IsNullOrWhiteSpace(adminConfig["FirstName"]) &&
+                existingUser.FirstName != adminConfig["FirstName"])
+            {
+                existingUser.FirstName = adminConfig["FirstName"];
+                needsUpdate = true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(adminConfig["LastName"]) &&
+                existingUser.LastName != adminConfig["LastName"])
+            {
+                existingUser.LastName = adminConfig["LastName"];
+                needsUpdate = true;
+            }
+
+            if (needsUpdate)
+            {
+                await userManager.UpdateAsync(existingUser);
+            }
+
+            // Always reset password to configured value to ensure login works
+            var passwordResetToken = await userManager.GeneratePasswordResetTokenAsync(existingUser);
+            var passwordResult = await userManager.ResetPasswordAsync(existingUser, passwordResetToken, adminPassword);
+            if (!passwordResult.Succeeded)
+            {
+                Console.WriteLine($"Failed to reset password for {adminEmail}: {string.Join(", ", passwordResult.Errors.Select(e => e.Description))}");
+            }
+            else
+            {
+                Console.WriteLine($"Admin user password updated: {adminEmail}");
+            }
         }
     }
 }

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { getProfilePicture } from "@/lib/localData";
 import { getSession, clearSession } from "@/lib/session";
 import { useAuth } from "@/lib/AuthContext";
+import { getStoredUser } from "@/lib/auth";
 
 const fullNavItems = [
   { label: "Dashboard", href: "/admin/dashboard", icon: "◉" },
@@ -29,10 +30,26 @@ export default function Sidebar() {
   const [isBruWhite, setIsBruWhite] = useState(false);
 
   useEffect(() => {
+    // First try from API-backed stored user
+    const storedUser = getStoredUser();
+    if (storedUser?.profilePictureBase64) {
+      setProfilePic(storedUser.profilePictureBase64);
+    }
+
     const pic = getProfilePicture();
-    if (pic) setProfilePic(pic.dataUrl);
+    if (pic?.dataUrl && !storedUser?.profilePictureBase64) {
+      setProfilePic(pic.dataUrl);
+    }
+
     setIsBruWhite(getSession()?.role === "bru-white");
   }, []);
+
+  // Re-sync when user changes (after login or profile picture upload)
+  useEffect(() => {
+    if (user?.profilePictureBase64) {
+      setProfilePic(user.profilePictureBase64);
+    }
+  }, [user]);
 
   // Close drawer when navigating
   useEffect(() => {

@@ -20,6 +20,7 @@ namespace HlumisaProperties.Application.Dtos
         public string Email { get; set; } = string.Empty;
         public string? FirstName { get; set; }
         public string? LastName { get; set; }
+        public string? ProfilePictureBase64 { get; set; }
         public DateTime ExpiresAt { get; set; }
     }
 
@@ -29,5 +30,11 @@ namespace HlumisaProperties.Application.Dtos
         public string Email { get; set; } = string.Empty;
         public string? FirstName { get; set; }
         public string? LastName { get; set; }
+        public string? ProfilePictureBase64 { get; set; }
+    }
+
+    public class UpdateProfilePictureRequest
+    {
+        public string ProfilePictureBase64 { get; set; } = string.Empty;
     }
 }

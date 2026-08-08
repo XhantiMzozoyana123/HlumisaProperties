@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getProfilePicture, saveProfilePicture, type ProfilePicture } from "@/lib/localData";
+import { updateProfilePictureApi, getStoredUser, getStoredToken, storeAuth } from "@/lib/auth";
 import RequireZola from "@/components/RequireZola";
 
 export default function SettingsPage() {
@@ -16,10 +17,21 @@ function SettingsContent() {
   const [profilePic, setProfilePic] = useState<ProfilePicture | null>(null);
   const [saving, setSaving] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   useEffect(() => {
+    // First try from stored user (API-backed)
+    const storedUser = getStoredUser();
+    if (storedUser?.profilePictureBase64) {
+      setProfilePic({ dataUrl: storedUser.profilePictureBase64, name: "uploaded" });
+      setPreviewUrl(storedUser.profilePictureBase64);
+      return;
+    }
+
+    // Fall back to localData
     const existing = getProfilePicture();
-    if (existing) {
+    if (existing?.dataUrl) {
       setProfilePic(existing);
       setPreviewUrl(existing.dataUrl);
     }
@@ -33,19 +45,37 @@ function SettingsContent() {
     reader.onload = (event) => {
       const dataUrl = event.target?.result as string;
       setPreviewUrl(dataUrl);
+      setError(null);
+      setSaveSuccess(false);
     };
     reader.readAsDataURL(file);
   }
 
-  function handleUpload() {
+  async function handleUpload() {
     if (!previewUrl) return;
     setSaving(true);
-    // Simulate a brief save
-    setTimeout(() => {
+    setError(null);
+    setSaveSuccess(false);
+
+    try {
+      // Save to the database via API (persists across browsers/devices)
+      await updateProfilePictureApi(previewUrl);
+
+      // Update stored user info
+      const currentUser = getStoredUser();
+      if (currentUser) {
+        storeAuth(getStoredToken() ?? "", { ...currentUser, profilePictureBase64: previewUrl });
+      }
+
+      // Also save to localData for backward compatibility
       saveProfilePicture({ dataUrl: previewUrl, name: "uploaded" });
       setProfilePic({ dataUrl: previewUrl, name: "uploaded" });
+      setSaveSuccess(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to upload profile picture.");
+    } finally {
       setSaving(false);
-    }, 300);
+    }
   }
 
   function handleRemove() {
@@ -66,6 +96,7 @@ function SettingsContent() {
         <h2 className="text-lg font-semibold text-white">Profile Picture</h2>
         <p className="mt-1 text-sm text-stone-400">
           Upload a photo that will appear at the top of the sidebar and on your profile card.
+          Your photo is saved permanently to your account.
         </p>
 
         <div className="mt-6 flex flex-col items-center gap-6 sm:flex-row">
@@ -109,9 +140,19 @@ function SettingsContent() {
           </div>
         </div>
 
-        {profilePic && (
+        {error && (
+          <p className="mt-4 text-sm text-rose-400">{error}</p>
+        )}
+
+        {profilePic && saveSuccess && (
           <p className="mt-4 text-xs text-emerald-300">
-            ✓ Profile picture uploaded
+            ✓ Profile picture uploaded and saved permanently
+          </p>
+        )}
+
+        {profilePic && !saveSuccess && !error && (
+          <p className="mt-4 text-xs text-emerald-300">
+            ✓ Profile picture set
           </p>
         )}
       </section>

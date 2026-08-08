@@ -33,6 +33,14 @@ namespace HlumisaProperties.Domain
         {
             base.OnModelCreating(modelBuilder);
 
+            // ApplicationUser ProfilePicture configuration
+            modelBuilder.Entity<ApplicationUser>(eb =>
+            {
+                eb.Property(u => u.ProfilePictureBase64)
+                    .HasColumnType("longtext")
+                    .IsRequired(false);
+            });
+
             // PropertyListing Indexes
             modelBuilder.Entity<PropertyListing>()
                 .HasIndex(pl => pl.Location)

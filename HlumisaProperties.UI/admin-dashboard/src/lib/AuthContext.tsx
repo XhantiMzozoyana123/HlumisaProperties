@@ -18,6 +18,7 @@ import {
   type UserInfo,
   type LoginCredentials,
 } from "./auth";
+import { saveProfilePicture } from "./localData";
 
 type AuthContextType = {
   user: UserInfo | null;
@@ -46,6 +47,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const storedUser = getStoredUser();
       if (storedUser) {
         setUser(storedUser);
+        // Sync profile picture to localData for backward compatibility
+        if (storedUser.profilePictureBase64) {
+          saveProfilePicture({ dataUrl: storedUser.profilePictureBase64, name: "uploaded" });
+        }
       }
 
       // Validate token by fetching /me
@@ -53,6 +58,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const freshUser = await fetchMe(token);
         setUser(freshUser);
         storeAuth(token, freshUser);
+        // Sync profile picture to localData for backward compatibility
+        if (freshUser.profilePictureBase64) {
+          saveProfilePicture({ dataUrl: freshUser.profilePictureBase64, name: "uploaded" });
+        }
       } catch {
         // Token is invalid/expired, clear auth
         clearAuth();
@@ -72,16 +81,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email: result.email,
       firstName: result.firstName,
       lastName: result.lastName,
+      profilePictureBase64: result.profilePictureBase64,
     };
 
     // Store token immediately
     storeAuth(result.token, userInfo);
+
+    // Sync profile picture to localData for backward compatibility
+    if (result.profilePictureBase64) {
+      saveProfilePicture({ dataUrl: result.profilePictureBase64, name: "uploaded" });
+    }
 
     // Fetch full user info to get the ID
     try {
       const freshUser = await fetchMe(result.token);
       setUser(freshUser);
       storeAuth(result.token, freshUser);
+      // Sync profile picture to localData for backward compatibility
+      if (freshUser.profilePictureBase64) {
+        saveProfilePicture({ dataUrl: freshUser.profilePictureBase64, name: "uploaded" });
+      }
     } catch {
       // If /me fails, still set user from login response
       setUser(userInfo);

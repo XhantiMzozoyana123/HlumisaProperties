@@ -9,5 +9,6 @@ namespace HlumisaProperties.Domain
     {
         public string? FirstName { get; set; }
         public string? LastName { get; set; }
+        public string? ProfilePictureBase64 { get; set; }
     }
 }

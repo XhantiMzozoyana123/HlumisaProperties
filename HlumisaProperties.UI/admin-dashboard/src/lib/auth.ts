@@ -7,6 +7,7 @@ export type UserInfo = {
   email: string;
   firstName: string | null;
   lastName: string | null;
+  profilePictureBase64?: string | null;
 };
 
 export type LoginCredentials = {
@@ -19,6 +20,7 @@ export type AuthResult = {
   email: string;
   firstName: string | null;
   lastName: string | null;
+  profilePictureBase64?: string | null;
   expiresAt: string;
 };
 
@@ -83,6 +85,27 @@ export async function fetchMe(token: string): Promise<UserInfo> {
 
   if (!response.ok) {
     throw new Error(`Failed to fetch user info (${response.status})`);
+  }
+
+  return response.json();
+}
+
+export async function updateProfilePictureApi(profilePictureBase64: string): Promise<UserInfo> {
+  const token = getStoredToken();
+  if (!token) throw new Error("Not authenticated");
+
+  const response = await fetch(apiUrl("/api/auth/profile-picture"), {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ profilePictureBase64 }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: "Failed to update profile picture" }));
+    throw new Error(error.message || `Failed to update profile picture (${response.status})`);
   }
 
   return response.json();

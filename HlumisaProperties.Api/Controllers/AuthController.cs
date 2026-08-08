@@ -55,6 +55,7 @@ public class AuthController : ControllerBase
             Email = user.Email!,
             FirstName = user.FirstName,
             LastName = user.LastName,
+            ProfilePictureBase64 = user.ProfilePictureBase64,
             ExpiresAt = DateTime.UtcNow.AddDays(7)
         });
     }
@@ -100,6 +101,7 @@ public class AuthController : ControllerBase
             Email = user.Email!,
             FirstName = user.FirstName,
             LastName = user.LastName,
+            ProfilePictureBase64 = user.ProfilePictureBase64,
             ExpiresAt = DateTime.UtcNow.AddDays(7)
         });
     }
@@ -124,7 +126,44 @@ public class AuthController : ControllerBase
             Id = user.Id,
             Email = user.Email!,
             FirstName = user.FirstName,
-            LastName = user.LastName
+            LastName = user.LastName,
+            ProfilePictureBase64 = user.ProfilePictureBase64
+        });
+    }
+
+    /// <summary>
+    /// PUT /api/auth/profile-picture — Update the authenticated user's profile picture.
+    /// </summary>
+    [Authorize]
+    [HttpPut("profile-picture")]
+    public async Task<ActionResult<UserInfoResponse>> UpdateProfilePicture([FromBody] UpdateProfilePictureRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.ProfilePictureBase64))
+            return BadRequest(new { message = "Profile picture data is required." });
+
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
+
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+            return NotFound(new { message = "User not found." });
+
+        user.ProfilePictureBase64 = request.ProfilePictureBase64;
+        var result = await _userManager.UpdateAsync(user);
+        if (!result.Succeeded)
+        {
+            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+            return BadRequest(new { message = $"Failed to update profile picture: {errors}" });
+        }
+
+        return Ok(new UserInfoResponse
+        {
+            Id = user.Id,
+            Email = user.Email!,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            ProfilePictureBase64 = user.ProfilePictureBase64
         });
     }
 
