@@ -90,6 +90,18 @@ export async function fetchMe(token: string): Promise<UserInfo> {
   return response.json();
 }
 
+export async function fetchPublicProfilePicture(): Promise<{ email: string; profilePictureBase64: string | null }> {
+  const response = await fetch(apiUrl("/api/auth/public-profile-picture"), {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    return { email: "", profilePictureBase64: null };
+  }
+
+  return response.json();
+}
+
 export async function updateProfilePictureApi(profilePictureBase64: string): Promise<UserInfo> {
   const token = getStoredToken();
   if (!token) throw new Error("Not authenticated");

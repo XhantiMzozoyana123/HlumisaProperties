@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { getProfilePicture } from "@/lib/localData";
 import { getSession, clearSession } from "@/lib/session";
 import { useAuth } from "@/lib/AuthContext";
-import { getStoredUser } from "@/lib/auth";
+import { getStoredUser, fetchPublicProfilePicture } from "@/lib/auth";
 
 const fullNavItems = [
   { label: "Dashboard", href: "/admin/dashboard", icon: "◉" },
@@ -39,6 +39,19 @@ export default function Sidebar() {
     const pic = getProfilePicture();
     if (pic?.dataUrl && !storedUser?.profilePictureBase64) {
       setProfilePic(pic.dataUrl);
+    }
+
+    // If no local profile picture, fetch from the public API
+    if (!storedUser?.profilePictureBase64 && !pic?.dataUrl) {
+      fetchPublicProfilePicture()
+        .then((data) => {
+          if (data.profilePictureBase64) {
+            setProfilePic(data.profilePictureBase64);
+          }
+        })
+        .catch(() => {
+          // Silently fail - just show default initials
+        });
     }
 
     setIsBruWhite(getSession()?.role === "bru-white");

@@ -18,15 +18,18 @@ public class AuthController : ControllerBase
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly JwtSettings _jwtSettings;
+    private readonly IConfiguration _configuration;
 
     public AuthController(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
-        IOptions<JwtSettings> jwtSettings)
+        IOptions<JwtSettings> jwtSettings,
+        IConfiguration configuration)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _jwtSettings = jwtSettings.Value;
+        _configuration = configuration;
     }
 
     /// <summary>
@@ -128,6 +131,30 @@ public class AuthController : ControllerBase
             FirstName = user.FirstName,
             LastName = user.LastName,
             ProfilePictureBase64 = user.ProfilePictureBase64
+        });
+    }
+
+    /// <summary>
+    /// GET /api/auth/public-profile-picture — Public endpoint to fetch the admin's profile picture without authentication.
+    /// Used by the profile selection page to display the saved profile picture before login.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpGet("public-profile-picture")]
+    public async Task<ActionResult<object>> GetPublicProfilePicture([FromQuery] string? email = null)
+    {
+        // If no email provided, use the configured admin email
+        var adminEmail = email ?? _configuration["AdminUser:Email"];
+        if (string.IsNullOrWhiteSpace(adminEmail))
+            return NotFound(new { message = "No admin user configured." });
+
+        var user = await _userManager.FindByEmailAsync(adminEmail.Trim());
+        if (user == null)
+            return NotFound(new { message = "User not found." });
+
+        return Ok(new
+        {
+            email = user.Email,
+            profilePictureBase64 = user.ProfilePictureBase64
         });
     }
 

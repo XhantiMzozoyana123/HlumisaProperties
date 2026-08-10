@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { getProfilePicture } from "@/lib/localData";
 import { setSession } from "@/lib/session";
 import { useAuth } from "@/lib/AuthContext";
-import { getStoredUser } from "@/lib/auth";
+import { getStoredUser, fetchPublicProfilePicture } from "@/lib/auth";
 
 const profiles = [
   {
@@ -45,7 +45,21 @@ export default function ProfileSelectionPage() {
     }
 
     const pic = getProfilePicture();
-    if (pic?.dataUrl) setProfilePic(pic.dataUrl);
+    if (pic?.dataUrl) {
+      setProfilePic(pic.dataUrl);
+      return;
+    }
+
+    // Fetch from the public API so the profile picture shows even in a new browser
+    fetchPublicProfilePicture()
+      .then((data) => {
+        if (data.profilePictureBase64) {
+          setProfilePic(data.profilePictureBase64);
+        }
+      })
+      .catch(() => {
+        // Silently fail - just show default initials
+      });
   }, []);
 
   // If already authenticated, redirect to dashboard
