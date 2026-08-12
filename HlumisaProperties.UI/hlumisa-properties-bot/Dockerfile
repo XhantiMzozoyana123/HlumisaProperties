@@ -31,8 +31,9 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install dependencies (including devDeps: tsc + ts-node are required by
+# `npm run build` and `npm start` at runtime)
+RUN npm ci
 
 # Copy source code
 COPY . .
