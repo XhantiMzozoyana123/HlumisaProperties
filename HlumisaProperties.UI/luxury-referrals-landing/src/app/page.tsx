@@ -21,8 +21,8 @@ export default function Home() {
               <span className="text-amber-200 drop-shadow-[0_0_15px_rgba(253,230,138,0.5)]">commission</span>.
             </h1>
             <p className="max-w-2xl text-base leading-7 text-stone-300 sm:text-lg sm:leading-8 lg:text-xl">
-              Fill in your details and the person you are referring. We only need their name,
-              phone, and home address so we can contact them about the property.
+              Fill in your details and the person you are referring. We only need their name
+              and phone number so we can contact them about the property.
             </p>
           </div>
 

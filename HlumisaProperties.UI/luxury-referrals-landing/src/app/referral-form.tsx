@@ -5,7 +5,6 @@ import { FormEvent, useState } from "react";
 type PersonForm = {
   fullName: string;
   phoneNumber: string;
-  address: string;
 };
 
 const apiBaseUrl = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://api.hlumisaproperties.online").replace(/\/$/, "");
@@ -53,14 +52,6 @@ function PersonCard({ title, form, onChange }: PersonCardProps) {
           onChange={(e) => onChange({ ...form, phoneNumber: e.target.value })}
           required
         />
-        <textarea
-          className="w-full rounded-xl border border-white/10 bg-black/40 px-3.5 py-3 text-sm text-white outline-none placeholder:text-stone-500 focus:border-amber-200/30 resize-none sm:rounded-2xl sm:px-4"
-          placeholder="Home Address"
-          rows={2}
-          value={form.address}
-          onChange={(e) => onChange({ ...form, address: e.target.value })}
-          required
-        />
       </div>
     </div>
   );
@@ -70,12 +61,10 @@ export function ReferralForm() {
   const [referrer, setReferrer] = useState<PersonForm>({
     fullName: "",
     phoneNumber: "",
-    address: "",
   });
   const [referral, setReferral] = useState<PersonForm>({
     fullName: "",
     phoneNumber: "",
-    address: "",
   });
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -97,10 +86,8 @@ export function ReferralForm() {
         body: JSON.stringify({
           referrerName: `${referrerFirstName} ${referrerLastName}`.trim(),
           referrerPhone: referrer.phoneNumber,
-          referrerAddress: referrer.address,
           referredName: `${refFirstName} ${refLastName}`.trim(),
           referredPhone: referral.phoneNumber,
-          referredAddress: referral.address,
           intent: "buy",
           note: `Referral captured from landing page.`,
           date: new Date().toISOString().split("T")[0],
@@ -113,8 +100,8 @@ export function ReferralForm() {
         throw new Error(body || `Failed to submit referral (${response.status})`);
       }
 
-      setReferrer({ fullName: "", phoneNumber: "", address: "" });
-      setReferral({ fullName: "", phoneNumber: "", address: "" });
+      setReferrer({ fullName: "", phoneNumber: "" });
+      setReferral({ fullName: "", phoneNumber: "" });
       setSuccessMessage("Referral saved. We will contact them about the house and your commission will be handled.");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Unable to submit referral.");
