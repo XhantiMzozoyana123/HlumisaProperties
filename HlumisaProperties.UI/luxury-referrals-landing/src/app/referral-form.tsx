@@ -34,27 +34,31 @@ type PersonCardProps = {
 
 function PersonCard({ title, subtitle, form, onChange }: PersonCardProps) {
   return (
-    <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-5">
-      <p className="text-xs uppercase tracking-[0.3em] text-amber-100/70">{title}</p>
-      <h3 className="mt-2 text-xl font-semibold text-white">{subtitle}</h3>
+    <div className="rounded-[1.25rem] border border-white/10 bg-black/20 p-4 sm:rounded-[1.5rem] sm:p-5">
+      <p className="text-[10px] uppercase tracking-[0.25em] text-amber-100/70 sm:text-xs sm:tracking-[0.3em]">
+        {title}
+      </p>
+      <h3 className="mt-1.5 text-lg font-semibold text-white sm:mt-2 sm:text-xl">{subtitle}</h3>
 
-      <div className="mt-5 space-y-4">
+      <div className="mt-4 space-y-3 sm:mt-5 sm:space-y-4">
         <input
-          className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none placeholder:text-stone-500"
+          className="w-full rounded-xl border border-white/10 bg-black/40 px-3.5 py-3 text-sm text-white outline-none placeholder:text-stone-500 focus:border-amber-200/30 sm:rounded-2xl sm:px-4"
           placeholder="Full name"
           value={form.fullName}
           onChange={(e) => onChange({ ...form, fullName: e.target.value })}
           required
         />
         <input
-          className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none placeholder:text-stone-500"
+          className="w-full rounded-xl border border-white/10 bg-black/40 px-3.5 py-3 text-sm text-white outline-none placeholder:text-stone-500 focus:border-amber-200/30 sm:rounded-2xl sm:px-4"
           placeholder="Phone number"
+          type="tel"
+          inputMode="tel"
           value={form.phoneNumber}
           onChange={(e) => onChange({ ...form, phoneNumber: e.target.value })}
           required
         />
         <textarea
-          className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none placeholder:text-stone-500 resize-none"
+          className="w-full rounded-xl border border-white/10 bg-black/40 px-3.5 py-3 text-sm text-white outline-none placeholder:text-stone-500 focus:border-amber-200/30 resize-none sm:rounded-2xl sm:px-4"
           placeholder="Home Address"
           rows={2}
           value={form.address}
@@ -124,16 +128,18 @@ export function ReferralForm() {
   }
 
   return (
-    <div className="backdrop-card rounded-[2rem] p-6 shadow-[0_30px_100px_rgba(0,0,0,0.45)]">
-      <div className="rounded-[1.5rem] border border-amber-200/15 bg-[linear-gradient(180deg,rgba(255,234,188,0.12),rgba(255,255,255,0.03))] p-5">
-        <p className="text-xs uppercase tracking-[0.4em] text-amber-100/80">Referral capture</p>
-        <h2 className="mt-3 text-2xl font-semibold text-white">Send us the referral</h2>
-        <p className="mt-2 text-sm leading-6 text-stone-300">
+    <div className="backdrop-card rounded-[1.5rem] p-4 shadow-[0_30px_100px_rgba(0,0,0,0.45)] sm:rounded-[2rem] sm:p-6">
+      <div className="rounded-[1.25rem] border border-amber-200/15 bg-[linear-gradient(180deg,rgba(255,234,188,0.12),rgba(255,255,255,0.03))] p-4 sm:rounded-[1.5rem] sm:p-5">
+        <p className="text-[10px] uppercase tracking-[0.3em] text-amber-100/80 sm:text-xs sm:tracking-[0.4em]">
+          Referral capture
+        </p>
+        <h2 className="mt-2 text-xl font-semibold text-white sm:mt-3 sm:text-2xl">Send us the referral</h2>
+        <p className="mt-1.5 text-sm leading-6 text-stone-300 sm:mt-2">
           Your details and the person you are referring — both needed so we can process your commission.
         </p>
 
-        <form className="mt-6 space-y-6" onSubmit={handleSubmit}>
-          <div className="grid gap-5 md:grid-cols-2">
+        <form className="mt-5 space-y-5 sm:mt-6 sm:space-y-6" onSubmit={handleSubmit}>
+          <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
             <PersonCard
               title="Your details"
               subtitle="The person referring"
@@ -149,7 +155,7 @@ export function ReferralForm() {
           </div>
 
           <button
-            className="w-full rounded-full bg-amber-200 px-6 py-4 text-sm font-semibold text-stone-950 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-full bg-amber-200 px-6 py-3.5 text-sm font-semibold text-stone-950 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60 sm:py-4"
             disabled={saving}
             type="submit"
           >

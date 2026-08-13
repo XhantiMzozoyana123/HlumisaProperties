@@ -5,6 +5,9 @@ body {
   color: #ffffff;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  overflow-x: hidden;
 }
 
 /* Performance optimisations */
@@ -20,4 +23,22 @@ body {
 
 .main-bg {
   background: linear-gradient(180deg, #2c3444 0%, #1d2736 48%, #16202b 100%);
+}
+
+/* Mobile-friendly touch targets */
+@media (max-width: 640px) {
+  input,
+  textarea,
+  button {
+    font-size: 16px; /* Prevents iOS zoom on focus */
+  }
+
+  input,
+  textarea {
+    min-height: 44px; /* Minimum touch target size */
+  }
+
+  button {
+    min-height: 48px;
+  }
 }
