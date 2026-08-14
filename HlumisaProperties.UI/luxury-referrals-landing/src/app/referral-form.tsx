@@ -64,10 +64,6 @@ export function ReferralForm() {
     fullName: "",
     phoneNumber: "",
   });
-  const [referred, setReferred] = useState<PersonForm>({
-    fullName: "",
-    phoneNumber: "",
-  });
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -79,7 +75,6 @@ export function ReferralForm() {
     setErrorMessage(null);
 
     const { firstName: referrerFirstName, lastName: referrerLastName } = splitFullName(referrer.fullName);
-    const { firstName: referredFirstName, lastName: referredLastName } = splitFullName(referred.fullName);
 
     try {
       const response = await fetch(apiUrl("/api/referrals"), {
@@ -88,8 +83,6 @@ export function ReferralForm() {
         body: JSON.stringify({
           referrerName: `${referrerFirstName} ${referrerLastName}`.trim(),
           referrerPhone: referrer.phoneNumber,
-          referredName: `${referredFirstName} ${referredLastName}`.trim(),
-          referredPhone: referred.phoneNumber,
           intent: "sell",
           note: `Referral captured from landing page.`,
           date: new Date().toISOString().split("T")[0],
@@ -103,8 +96,7 @@ export function ReferralForm() {
       }
 
       setReferrer({ fullName: "", phoneNumber: "" });
-      setReferred({ fullName: "", phoneNumber: "" });
-      setSuccessMessage("Thank you! We got your details. We will call the person you told us about. When the house is sold, we will pay you your commission. You can send us another person anytime!");
+      setSuccessMessage("Thank you! We got your details. We will WhatsApp you. Our team will message you as soon as possible.");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Unable to submit referral.");
     } finally {
@@ -130,13 +122,6 @@ export function ReferralForm() {
             onChange={setReferrer}
           />
 
-          <PersonCard
-            title="The person you are referring"
-            subtitle="Just their name and phone number. We will call them. You do not have to do anything else."
-            form={referred}
-            onChange={setReferred}
-          />
-
           <button
             className="w-full rounded-full bg-amber-200 px-6 py-3.5 text-sm font-semibold text-stone-950 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60 sm:py-4"
             disabled={saving}
@@ -145,6 +130,10 @@ export function ReferralForm() {
             {saving ? "Sending..." : "Send my referral"}
           </button>
         </form>
+
+        <p className="mt-4 text-sm text-stone-300">
+          We will WhatsApp you. Our team will message you as soon as possible.
+        </p>
 
         {successMessage && <p className="mt-4 text-sm text-emerald-200">{successMessage}</p>}
         {errorMessage && <p className="mt-4 text-sm text-rose-200">{errorMessage}</p>}
