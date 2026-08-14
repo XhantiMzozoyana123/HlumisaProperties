@@ -80,10 +80,6 @@ export type Referral = {
   id: number;
   referrerName: string;
   referrerPhone: string;
-  referrerAddress: string;
-  referredName: string;
-  referredPhone: string;
-  referredAddress: string;
   intent: "buy" | "sell";
   note: string;
   date: string;

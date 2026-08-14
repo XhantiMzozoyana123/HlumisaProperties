@@ -22,10 +22,6 @@ function ReferralsContent() {
   const [form, setForm] = useState({
     referrerName: "",
     referrerPhone: "",
-    referrerAddress: "",
-    referredName: "",
-    referredPhone: "",
-    referredAddress: "",
     intent: "buy" as "buy" | "sell",
     note: "",
   });
@@ -62,10 +58,6 @@ function ReferralsContent() {
       setForm({
         referrerName: "",
         referrerPhone: "",
-        referrerAddress: "",
-        referredName: "",
-        referredPhone: "",
-        referredAddress: "",
         intent: "buy",
         note: "",
       });
@@ -140,14 +132,6 @@ function ReferralsContent() {
             </div>
             <input className="w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none placeholder:text-stone-500" placeholder="Full name" value={form.referrerName} onChange={(e) => setForm((f) => ({ ...f, referrerName: e.target.value }))} required />
             <input className="w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none placeholder:text-stone-500" placeholder="Phone number" value={form.referrerPhone} onChange={(e) => setForm((f) => ({ ...f, referrerPhone: e.target.value }))} required />
-            <input className="w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none placeholder:text-stone-500 sm:col-span-2" placeholder="Address" value={form.referrerAddress} onChange={(e) => setForm((f) => ({ ...f, referrerAddress: e.target.value }))} required />
-
-            <div className="sm:col-span-2 mt-2">
-              <p className="mb-2 text-xs font-medium uppercase tracking-wider text-stone-400">Referred Person</p>
-            </div>
-            <input className="w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none placeholder:text-stone-500" placeholder="Full name" value={form.referredName} onChange={(e) => setForm((f) => ({ ...f, referredName: e.target.value }))} required />
-            <input className="w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none placeholder:text-stone-500" placeholder="Phone number" value={form.referredPhone} onChange={(e) => setForm((f) => ({ ...f, referredPhone: e.target.value }))} required />
-            <input className="w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none placeholder:text-stone-500 sm:col-span-2" placeholder="Address" value={form.referredAddress} onChange={(e) => setForm((f) => ({ ...f, referredAddress: e.target.value }))} required />
 
             <select className="w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none" value={form.intent} onChange={(e) => setForm((f) => ({ ...f, intent: e.target.value as "buy" | "sell" }))}>
               <option value="buy">Looking to Buy</option>
@@ -202,7 +186,6 @@ function ReferralsContent() {
                       <p className="text-xs text-stone-400">{r.referrerPhone}</p>
                       <span className="rounded-full bg-stone-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-stone-700">In Process</span>
                     </div>
-                    <p className="text-xs text-stone-500 truncate max-w-[180px]">{r.referrerAddress}</p>
                   </td>
                   <td className="px-5 py-4">
                     {r.isDiscarded ? "Discarded" : "In Process"}
