@@ -26,14 +26,16 @@ function splitFullName(fullName: string) {
 
 type PersonCardProps = {
   title: string;
+  subtitle?: string;
   form: PersonForm;
   onChange: (updated: PersonForm) => void;
 };
 
-function PersonCard({ title, form, onChange }: PersonCardProps) {
+function PersonCard({ title, subtitle, form, onChange }: PersonCardProps) {
   return (
     <div className="rounded-[1.25rem] border border-white/10 bg-black/20 p-4 sm:rounded-[1.5rem] sm:p-5">
       <h3 className="text-lg font-semibold text-white sm:text-xl">{title}</h3>
+      {subtitle && <p className="mt-1 text-sm text-stone-400">{subtitle}</p>}
 
       <div className="mt-4 space-y-3 sm:mt-5 sm:space-y-4">
         <input
@@ -62,7 +64,7 @@ export function ReferralForm() {
     fullName: "",
     phoneNumber: "",
   });
-  const [referral, setReferral] = useState<PersonForm>({
+  const [referred, setReferred] = useState<PersonForm>({
     fullName: "",
     phoneNumber: "",
   });
@@ -76,8 +78,8 @@ export function ReferralForm() {
     setSuccessMessage(null);
     setErrorMessage(null);
 
-    const { firstName: refFirstName, lastName: refLastName } = splitFullName(referral.fullName);
     const { firstName: referrerFirstName, lastName: referrerLastName } = splitFullName(referrer.fullName);
+    const { firstName: referredFirstName, lastName: referredLastName } = splitFullName(referred.fullName);
 
     try {
       const response = await fetch(apiUrl("/api/referrals"), {
@@ -86,9 +88,9 @@ export function ReferralForm() {
         body: JSON.stringify({
           referrerName: `${referrerFirstName} ${referrerLastName}`.trim(),
           referrerPhone: referrer.phoneNumber,
-          referredName: `${refFirstName} ${refLastName}`.trim(),
-          referredPhone: referral.phoneNumber,
-          intent: "buy",
+          referredName: `${referredFirstName} ${referredLastName}`.trim(),
+          referredPhone: referred.phoneNumber,
+          intent: "sell",
           note: `Referral captured from landing page.`,
           date: new Date().toISOString().split("T")[0],
           isDiscarded: false,
@@ -101,8 +103,8 @@ export function ReferralForm() {
       }
 
       setReferrer({ fullName: "", phoneNumber: "" });
-      setReferral({ fullName: "", phoneNumber: "" });
-      setSuccessMessage("Referral saved. We will contact them about the house and your commission will be handled.");
+      setReferred({ fullName: "", phoneNumber: "" });
+      setSuccessMessage("Thank you! We got your details. We will call the person you told us about. When the house is sold, we will pay you your commission. You can send us another person anytime!");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Unable to submit referral.");
     } finally {
@@ -114,29 +116,33 @@ export function ReferralForm() {
     <div className="backdrop-card rounded-[1.5rem] p-4 shadow-[0_0_40px_rgba(255,255,255,0.2),0_30px_100px_rgba(0,0,0,0.45)] sm:rounded-[2rem] sm:p-6">
       <div className="rounded-[1.25rem] border border-amber-200/15 bg-[linear-gradient(180deg,rgba(255,234,188,0.12),rgba(255,255,255,0.03))] p-4 sm:rounded-[1.5rem] sm:p-5">
         <h2 className="text-2xl font-bold text-white sm:text-3xl">
-          Start by filling in
+          Fill in your details
         </h2>
+        <p className="mt-2 text-sm text-stone-300 sm:text-base">
+          Keep sending us people who are selling their houses and we will keep paying you. You do not have to work. Just give us their name and number, then your part is finished.
+        </p>
 
         <form className="mt-5 space-y-5 sm:mt-6 sm:space-y-6" onSubmit={handleSubmit}>
-          <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
-            <PersonCard
-              title="Your details"
-              form={referrer}
-              onChange={setReferrer}
-            />
-            <PersonCard
-              title="Their details"
-              form={referral}
-              onChange={setReferral}
-            />
-          </div>
+          <PersonCard
+            title="Your details"
+            subtitle="So we know who to pay."
+            form={referrer}
+            onChange={setReferrer}
+          />
+
+          <PersonCard
+            title="The person you are referring"
+            subtitle="Just their name and phone number. We will call them. You do not have to do anything else."
+            form={referred}
+            onChange={setReferred}
+          />
 
           <button
             className="w-full rounded-full bg-amber-200 px-6 py-3.5 text-sm font-semibold text-stone-950 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60 sm:py-4"
             disabled={saving}
             type="submit"
           >
-            {saving ? "Submitting to API..." : "Submit referral"}
+            {saving ? "Sending..." : "Send my referral"}
           </button>
         </form>
 

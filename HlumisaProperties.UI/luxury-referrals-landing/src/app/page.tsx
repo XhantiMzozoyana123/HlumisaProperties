@@ -17,12 +17,14 @@ export default function Home() {
               Hlumisa Properties
             </p>
             <h1 className="max-w-3xl text-[2rem] font-bold leading-[1.1] tracking-[-0.02em] drop-shadow-[0_0_25px_rgba(255,255,255,0.3)] sm:text-5xl sm:leading-[0.98] sm:tracking-[-0.05em] sm:drop-shadow-[0_0_35px_rgba(255,255,255,0.35)] lg:text-6xl xl:text-7xl">
-              Refer someone. We handle the rest. You get paid{" "}
-              <span className="text-amber-200 drop-shadow-[0_0_15px_rgba(253,230,138,0.5)]">commission</span>.
+              Know someone selling their house?{" "}
+              <span className="text-amber-200 drop-shadow-[0_0_15px_rgba(253,230,138,0.5)]">Tell us and get paid.</span>
             </h1>
             <p className="max-w-2xl text-base leading-7 text-stone-300 sm:text-lg sm:leading-8 lg:text-xl">
-              Fill in your details and the person you are referring. We only need their name
-              and phone number so we can contact them about the property.
+              Keep giving us people who are selling their houses and we will keep giving you money. You do not have to work. Just give us their name and phone number, then your part is finished. We do the rest.
+            </p>
+            <p className="max-w-2xl text-base leading-7 text-stone-300 sm:text-lg sm:leading-8 lg:text-xl">
+              You can do this over and over again. Every person you send us who sells their house means more commission for you. You get paid just for knowing them.
             </p>
           </div>
 
