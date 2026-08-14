@@ -110,9 +110,6 @@ export function ReferralForm() {
         <h2 className="text-2xl font-bold text-white sm:text-3xl">
           Fill in your details
         </h2>
-        <p className="mt-2 text-sm text-stone-300 sm:text-base">
-          Keep sending us people who are selling their houses and we will keep paying you. You do not have to work. Just give us their name and number, then your part is finished.
-        </p>
 
         <form className="mt-5 space-y-5 sm:mt-6 sm:space-y-6" onSubmit={handleSubmit}>
           <PersonCard
