@@ -177,8 +177,7 @@ function ReferralsContent() {
             <thead>
               <tr className="border-b border-white/10 text-xs uppercase tracking-[0.2em] text-stone-500">
                 <th className="px-5 py-4 font-medium">Referrer</th>
-                <th className="px-5 py-4 font-medium">Referred</th>
-                <th className="px-5 py-4 font-medium">Intent</th>
+                <th className="px-5 py-4 font-medium">Status</th>
                 <th className="px-5 py-4 font-medium">Date</th>
                 <th className="px-5 py-4 font-medium">Notes</th>
                 <th className="px-5 py-4 font-medium">Actions</th>
@@ -196,29 +195,17 @@ function ReferralsContent() {
                   }`}
                 >
                   <td className="px-5 py-4">
-                    <p className={`font-medium ${r.isDiscarded ? "text-stone-500 line-through" : "text-white"}`}>
-                      {r.referrerName}
-                    </p>
-                    <p className="text-xs text-stone-400">{r.referrerPhone}</p>
+                    <div className="flex items-center gap-2">
+                      <p className={`font-medium ${r.isDiscarded ? "text-stone-500 line-through" : "text-white"}`}>
+                        {r.referrerName}
+                      </p>
+                      <p className="text-xs text-stone-400">{r.referrerPhone}</p>
+                      <span className="rounded-full bg-stone-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-stone-700">In Process</span>
+                    </div>
                     <p className="text-xs text-stone-500 truncate max-w-[180px]">{r.referrerAddress}</p>
                   </td>
                   <td className="px-5 py-4">
-                    <p className={`${r.isDiscarded ? "text-stone-500 line-through" : "text-stone-200"}`}>
-                      {r.referredName}
-                    </p>
-                    <p className="text-xs text-stone-400">{r.referredPhone}</p>
-                    <p className="text-xs text-stone-500 truncate max-w-[180px]">{r.referredAddress}</p>
-                  </td>
-                  <td className="px-5 py-4">
-                    <span className={`rounded-full px-3 py-1 text-xs font-medium ${
-                      r.isDiscarded
-                        ? "bg-stone-500/10 text-stone-400"
-                        : r.intent === "buy"
-                          ? "bg-emerald-500/10 text-emerald-200"
-                          : "bg-amber-500/10 text-amber-200"
-                    }`}>
-                      {r.isDiscarded ? "Discarded" : r.intent === "buy" ? "Buying" : "Selling"}
-                    </span>
+                    {r.isDiscarded ? "Discarded" : "In Process"}
                   </td>
                   <td className={`px-5 py-4 ${r.isDiscarded ? "text-stone-500" : "text-stone-400"}`}>{r.date}</td>
                   <td className={`px-5 py-4 max-w-[200px] truncate ${r.isDiscarded ? "text-stone-500" : "text-stone-400"}`}>{r.note || "—"}</td>
@@ -229,7 +216,7 @@ function ReferralsContent() {
                           onClick={() => handleDiscard(r.id)}
                           className="rounded-full border border-stone-400/20 px-3 py-1 text-xs text-stone-400 transition hover:bg-stone-500/10"
                         >
-                          Grey out
+                          Discard
                         </button>
                       )}
                       <button
