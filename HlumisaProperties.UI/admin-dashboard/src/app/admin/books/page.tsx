@@ -37,6 +37,18 @@ function getTodaySA(): string {
   return sa.toISOString().split("T")[0];
 }
 
+/** Get the current month name based on today's date */
+function getCurrentMonthName(): string {
+  const now = new Date();
+  const sa = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+  const monthIndex = sa.getMonth();
+  const monthNames = [
+    "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE",
+    "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER",
+  ];
+  return monthNames[monthIndex];
+}
+
 const initialData: BookEntry[] = [
   { id: "jan1", date: "", month: "JANUARY", buyer: "MASOKA", seller: "E/L MANCATA", originalAmount: 0, amountPaid: 140000, deposit: 0, lostDeed: 0, commission: 30000, transferCosts: 15000, masterFees: 10520, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "1588", area: "WELLS ESTATE", outstandingBalance: 0, statusColor: "white" },
   { id: "jan2", date: "", month: "JANUARY", buyer: "SWELINDAWO", seller: "SMILO", originalAmount: 0, amountPaid: 150000, deposit: 0, lostDeed: 0, commission: 15000, transferCosts: 15000, masterFees: 10520, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "IBHAYI", outstandingBalance: 0, statusColor: "white" },
@@ -246,6 +258,7 @@ function BooksContent() {
   });
 
   const [colorPickerCell, setColorPickerCell] = useState<{ row: string; field: string } | null>(null);
+  const [colorPickerPos, setColorPickerPos] = useState<{ x: number; y: number } | null>(null);
 
   function cycleBookStatusColor(rowId: string) {
     setData((prev) =>
@@ -270,10 +283,18 @@ function BooksContent() {
     monthlyTotals[d.month].transferCosts += d.transferCosts;
   });
 
-  const handleCellClick = (row: BookEntry, field: string) => {
+  const handleCellClick = (row: BookEntry, field: string, e?: React.MouseEvent) => {
     const fType = fieldConfig[field] || "readonly";
     if (fType === "readonly") return;
     setColorPickerCell({ row: row.id, field });
+    if (e && e.currentTarget) {
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      const x = Math.min(rect.left, window.innerWidth - 220);
+      const y = Math.min(rect.bottom + 8, window.innerHeight - 180);
+      setColorPickerPos({ x, y });
+    } else {
+      setColorPickerPos({ x: window.innerWidth / 2 - 100, y: window.innerHeight / 2 - 80 });
+    }
   };
 
   const handleColorSelected = (color: BookStatusColor) => {
@@ -345,7 +366,7 @@ function BooksContent() {
 
       const newEntries: BookEntry[] = parsed.map((row, idx) => {
         const rawMonth = (row.month || "").trim().toUpperCase();
-        const normalizedMonth = monthMap[rawMonth] || monthMap[rawMonth.replace(/\.$/, "")] || rawMonth || (selectedMonth === "ALL" ? "JULY" : selectedMonth);
+        const normalizedMonth = monthMap[rawMonth] || monthMap[rawMonth.replace(/\.$/, "")] || rawMonth || (selectedMonth === "ALL" ? getCurrentMonthName() : selectedMonth);
         const id = `excel-${Date.now()}-${idx}`;
         return {
           id,
@@ -385,7 +406,7 @@ function BooksContent() {
     const newId = `new-${Date.now()}`;
     const newEntry: BookEntry = {
       id: newId, date: getTodaySA(),
-      month: selectedMonth === "ALL" ? "JULY" : selectedMonth,
+      month: selectedMonth === "ALL" ? getCurrentMonthName() : selectedMonth,
       buyer: "", seller: "", originalAmount: 0, amountPaid: 0,
       deposit: 0, lostDeed: 0, commission: 0, transferCosts: 0,
       masterFees: 0, balance: 0, electricalCertificate: 0,
@@ -468,7 +489,7 @@ function BooksContent() {
     }
 
     return (
-      <span onClick={() => handleCellClick(row, field)}
+      <span onClick={(e) => handleCellClick(row, field, e)}
         className={`cursor-pointer rounded px-1 py-0.5 transition hover:bg-amber-200/15 ${colorClass} ${bgClass} ${isOutstanding || isLostDeedRed ? "font-semibold" : ""} ${isCommissionHighlight ? "font-semibold" : ""}`}>
         {display}
         <span className="ml-1 opacity-0 group-hover:opacity-100 text-stone-500 text-xs">✎</span>
@@ -605,8 +626,11 @@ function BooksContent() {
         </table>
       </div>
 
-      {colorPickerCell && (
-        <div className="fixed left-4 top-4 z-50 rounded-[2rem] border border-white/10 bg-[#12100e] p-5 shadow-[0_30px_100px_rgba(0,0,0,0.6)]">
+      {colorPickerCell && colorPickerPos && (
+        <div
+          className="fixed z-50 rounded-[2rem] border border-white/10 bg-[#12100e] p-5 shadow-[0_30px_100px_rgba(0,0,0,0.6)]"
+          style={{ left: colorPickerPos.x, top: colorPickerPos.y }}
+        >
           <div className="text-center">
             <p className="mb-3 text-sm text-stone-400">Color for <span className="text-amber-200 font-medium">{fieldLabels[colorPickerCell.field]}</span></p>
             <div className="flex justify-center gap-3">
