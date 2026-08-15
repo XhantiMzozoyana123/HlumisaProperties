@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { fetchBuyers, deleteBuyer, toggleBuyerDiscarded, markBuyerContacted } from "@/lib/api";
+import { fetchBuyers, deleteBuyer, toggleBuyerDiscarded, markBuyerContacted, createBuyer } from "@/lib/api";
 import { getSession } from "@/lib/session";
 
 type Buyer = Awaited<ReturnType<typeof fetchBuyers>>[number];
@@ -12,6 +12,16 @@ export default function BuyersPage() {
   const [buyers, setBuyers] = useState<Buyer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    firstName: "",
+    lastName: "",
+    phoneNumber: "",
+    location: "",
+    budget: "",
+    propertyType: "",
+  });
 
   useEffect(() => {
     setIsBruWhite(getSession()?.role === "bru-white");
@@ -65,6 +75,30 @@ export default function BuyersPage() {
     }
   }
 
+  async function handleAddBuyer(event: React.FormEvent) {
+    event.preventDefault();
+    setSaving(true);
+    try {
+      const newBuyer = await createBuyer({
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        phoneNumber: form.phoneNumber.trim(),
+        location: form.location.trim(),
+        budget: form.budget.trim(),
+        propertyType: form.propertyType.trim(),
+        isContacted: false,
+        isDiscarded: false,
+      });
+      setBuyers((current) => [newBuyer, ...current]);
+      setShowAddModal(false);
+      setForm({ firstName: "", lastName: "", phoneNumber: "", location: "", budget: "", propertyType: "" });
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to add buyer.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
@@ -93,12 +127,20 @@ export default function BuyersPage() {
             )}
           </p>
         </div>
-        <Link
-          href={isBruWhite ? "/admin" : "/admin/dashboard"}
-          className="rounded-full border border-white/10 px-5 py-2 text-sm text-stone-300 transition hover:border-white/20 hover:text-white"
-        >
-          &larr; {isBruWhite ? "Back to Profiles" : "Back to Dashboard"}
-        </Link>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="rounded-full bg-amber-200 px-5 py-2 text-sm font-semibold text-stone-950 transition hover:bg-amber-100"
+          >
+            + Add Buyer
+          </button>
+          <Link
+            href={isBruWhite ? "/admin" : "/admin/dashboard"}
+            className="rounded-full border border-white/10 px-5 py-2 text-sm text-stone-300 transition hover:border-white/20 hover:text-white"
+          >
+            &larr; {isBruWhite ? "Back to Profiles" : "Back to Dashboard"}
+          </Link>
+        </div>
       </div>
 
       <div className="space-y-3">
@@ -162,6 +204,103 @@ export default function BuyersPage() {
           </div>
         ))}
       </div>
+
+      {/* Add Buyer Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-md rounded-[1.5rem] border border-white/10 bg-[#1d2736] p-6 shadow-[0_0_60px_rgba(0,0,0,0.6)]">
+            <div className="mb-5 flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-white">Add Buyer</h2>
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="rounded-full border border-white/10 px-3 py-1 text-sm text-stone-400 transition hover:bg-white/5 hover:text-white"
+              >
+                Close
+              </button>
+            </div>
+
+            <form className="space-y-4" onSubmit={handleAddBuyer}>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-400">First Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={form.firstName}
+                    onChange={(e) => setForm({ ...form, firstName: e.target.value })}
+                    className="w-full rounded-xl border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white outline-none placeholder:text-stone-500 focus:border-amber-200/30"
+                    placeholder="Jane"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-400">Last Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={form.lastName}
+                    onChange={(e) => setForm({ ...form, lastName: e.target.value })}
+                    className="w-full rounded-xl border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white outline-none placeholder:text-stone-500 focus:border-amber-200/30"
+                    placeholder="Smith"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-400">Phone Number</label>
+                <input
+                  type="tel"
+                  required
+                  value={form.phoneNumber}
+                  onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })}
+                  className="w-full rounded-xl border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white outline-none placeholder:text-stone-500 focus:border-amber-200/30"
+                  placeholder="+27 82 555 0000"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-400">Location</label>
+                <input
+                  type="text"
+                  value={form.location}
+                  onChange={(e) => setForm({ ...form, location: e.target.value })}
+                  className="w-full rounded-xl border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white outline-none placeholder:text-stone-500 focus:border-amber-200/30"
+                  placeholder="Johannesburg"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-400">Budget</label>
+                <input
+                  type="text"
+                  value={form.budget}
+                  onChange={(e) => setForm({ ...form, budget: e.target.value })}
+                  className="w-full rounded-xl border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white outline-none placeholder:text-stone-500 focus:border-amber-200/30"
+                  placeholder="R3,000,000"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-400">Property Type</label>
+                <input
+                  type="text"
+                  value={form.propertyType}
+                  onChange={(e) => setForm({ ...form, propertyType: e.target.value })}
+                  className="w-full rounded-xl border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white outline-none placeholder:text-stone-500 focus:border-amber-200/30"
+                  placeholder="House, Flat, etc."
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={saving}
+                className="w-full rounded-full bg-amber-200 px-6 py-3 text-sm font-semibold text-stone-950 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {saving ? "Adding..." : "Add Buyer"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
