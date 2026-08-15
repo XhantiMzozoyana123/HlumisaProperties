@@ -110,7 +110,7 @@ function ReferralsContent() {
           <p className="mt-1 text-sm text-stone-400">
             {activeReferrals.length} active referral{activeReferrals.length !== 1 ? "s" : ""}
             {referrals.length - activeReferrals.length > 0 && (
-              <span className="text-stone-500"> &middot; {referrals.length - activeReferrals.length} discarded</span>
+              <span className="text-stone-500"> &middot; {referrals.length - activeReferrals.length} greyed out</span>
             )}
           </p>
         </div>
@@ -188,18 +188,25 @@ function ReferralsContent() {
                     </div>
                   </td>
                   <td className="px-5 py-4">
-                    {r.isDiscarded ? "Discarded" : "In Process"}
+                    {r.isDiscarded ? "Greyed out" : "In Process"}
                   </td>
                   <td className={`px-5 py-4 ${r.isDiscarded ? "text-stone-500" : "text-stone-400"}`}>{r.date}</td>
                   <td className={`px-5 py-4 max-w-[200px] truncate ${r.isDiscarded ? "text-stone-500" : "text-stone-400"}`}>{r.note || "—"}</td>
                   <td className="px-5 py-4">
                     <div className="flex gap-2">
-                      {!r.isDiscarded && (
+                      {!r.isDiscarded ? (
                         <button
                           onClick={() => handleDiscard(r.id)}
                           className="rounded-full border border-stone-400/20 px-3 py-1 text-xs text-stone-400 transition hover:bg-stone-500/10"
                         >
-                          Discard
+                          Grey out
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleDiscard(r.id)}
+                          className="rounded-full border border-emerald-400/20 px-3 py-1 text-xs text-emerald-200 transition hover:bg-emerald-500/10"
+                        >
+                          Ungrey
                         </button>
                       )}
                       <button

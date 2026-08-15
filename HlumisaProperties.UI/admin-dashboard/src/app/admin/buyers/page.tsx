@@ -173,20 +173,27 @@ export default function BuyersPage() {
                 </span>
                 <div className="flex gap-2">
                   {!buyer.isDiscarded && (
-                    <>
-                      <button
-                        onClick={() => handleContact(buyer.id)}
-                        className="rounded-full border border-emerald-400/20 px-4 py-1.5 text-xs text-emerald-200 transition hover:bg-emerald-500/10"
-                      >
-                        {buyer.isContacted ? "Mark new" : "Mark contacted"}
-                      </button>
-                      <button
-                        onClick={() => handleDiscard(buyer.id)}
-                        className="rounded-full border border-stone-400/20 px-4 py-1.5 text-xs text-stone-400 transition hover:bg-stone-500/10"
-                      >
-                        Grey out
-                      </button>
-                    </>
+                    <button
+                      onClick={() => handleContact(buyer.id)}
+                      className="rounded-full border border-emerald-400/20 px-4 py-1.5 text-xs text-emerald-200 transition hover:bg-emerald-500/10"
+                    >
+                      {buyer.isContacted ? "Mark new" : "Mark contacted"}
+                    </button>
+                  )}
+                  {!buyer.isDiscarded ? (
+                    <button
+                      onClick={() => handleDiscard(buyer.id)}
+                      className="rounded-full border border-stone-400/20 px-4 py-1.5 text-xs text-stone-400 transition hover:bg-stone-500/10"
+                    >
+                      Grey out
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleDiscard(buyer.id)}
+                      className="rounded-full border border-emerald-400/20 px-4 py-1.5 text-xs text-emerald-200 transition hover:bg-emerald-500/10"
+                    >
+                      Ungrey
+                    </button>
                   )}
                   <button
                     onClick={() => handleDelete(buyer.id)}
