@@ -31,6 +31,21 @@ namespace HlumisaProperties.Infrastructure.Services
             return referral;
         }
 
+        public async Task<bool> ExistsAsync(string referrerName, string referrerPhone)
+        {
+            if (string.IsNullOrWhiteSpace(referrerName) || string.IsNullOrWhiteSpace(referrerPhone))
+                return false;
+
+            var normalizedName = referrerName.Trim().ToLowerInvariant();
+            var normalizedPhone = referrerPhone.Trim();
+
+            return await _context.Set<Referral>()
+                .AsNoTracking()
+                .AnyAsync(e =>
+                    e.ReferrerName.Trim().ToLower() == normalizedName &&
+                    e.ReferrerPhone.Trim() == normalizedPhone);
+        }
+
         public async Task<Referral> GetByIdAsync(int id)
         {
             if (id <= 0)

@@ -51,6 +51,11 @@ namespace HlumisaProperties.Api.Controllers
             if (referral == null)
                 return BadRequest("Referral payload is required.");
 
+            // Check for duplicate submission (same name + phone already in the system)
+            var isDuplicate = await _referralService.ExistsAsync(referral.ReferrerName, referral.ReferrerPhone);
+            if (isDuplicate)
+                return Conflict(new { message = "DUPLICATE_REFERRAL" });
+
             var created = await _referralService.CreateAsync(referral);
             return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }

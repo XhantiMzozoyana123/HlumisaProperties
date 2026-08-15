@@ -67,12 +67,14 @@ export function ReferralForm() {
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isDuplicate, setIsDuplicate] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
     setSuccessMessage(null);
     setErrorMessage(null);
+    setIsDuplicate(false);
 
     const { firstName: referrerFirstName, lastName: referrerLastName } = splitFullName(referrer.fullName);
 
@@ -90,13 +92,20 @@ export function ReferralForm() {
         }),
       });
 
+      if (response.status === 409) {
+        // Duplicate referral - show the big reassuring message
+        setIsDuplicate(true);
+        setReferrer({ fullName: "", phoneNumber: "" });
+        return;
+      }
+
       if (!response.ok) {
         const body = await response.text();
         throw new Error(body || `Failed to submit referral (${response.status})`);
       }
 
       setReferrer({ fullName: "", phoneNumber: "" });
-      setSuccessMessage("Thank you! We got your details. We will WhatsApp you. Our team will message you as soon as possible.");
+      setSuccessMessage("Thank you! We got your message. We will get back to you in WhatsApp.");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Unable to submit referral.");
     } finally {
@@ -132,7 +141,46 @@ export function ReferralForm() {
           We will WhatsApp you. Our team will message you as soon as possible.
         </p>
 
-        {successMessage && <p className="mt-4 text-sm text-emerald-200">{successMessage}</p>}
+        {/* DUPLICATE MESSAGE - Big, prominent, reassuring */}
+        {isDuplicate && (
+          <div className="mt-6 rounded-2xl border-2 border-emerald-300/40 bg-emerald-500/10 p-6 text-center shadow-[0_0_50px_rgba(52,211,153,0.25)] sm:p-8">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-400/20 sm:h-20 sm:w-20">
+              <svg className="h-8 w-8 text-emerald-300 sm:h-10 sm:w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-bold leading-tight text-emerald-200 sm:text-3xl">
+              We got your message!
+            </h3>
+            <p className="mt-3 text-lg font-medium text-emerald-100 sm:text-xl">
+              Don't worry, relax.
+            </p>
+            <p className="mt-4 text-base leading-relaxed text-emerald-100/90 sm:text-lg">
+              We will get back to you as soon as possible.
+            </p>
+          </div>
+        )}
+
+        {/* SUCCESS MESSAGE - Big, nice, its own table box */}
+        {successMessage && (
+          <div className="mt-6 rounded-2xl border-2 border-amber-200/40 bg-amber-400/10 p-6 text-center shadow-[0_0_50px_rgba(253,230,138,0.25)] sm:p-8">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-300/20 sm:h-20 sm:w-20">
+              <svg className="h-8 w-8 text-amber-200 sm:h-10 sm:w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-bold leading-tight text-amber-100 sm:text-3xl">
+              Thank you! We got your message.
+            </h3>
+            <p className="mt-3 text-lg font-medium text-amber-100 sm:text-xl">
+              We will get back to you in WhatsApp.
+            </p>
+            <p className="mt-4 text-base leading-relaxed text-amber-100/90 sm:text-lg">
+              We will get back to you as soon as possible. Don't panic.
+            </p>
+          </div>
+        )}
+
         {errorMessage && <p className="mt-4 text-sm text-rose-200">{errorMessage}</p>}
       </div>
     </div>

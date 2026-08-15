@@ -14,5 +14,6 @@ namespace HlumisaProperties.Application.Interfaces
         Task<Referral> UpdateAsync(Referral referral);
         Task<bool> DeleteAsync(int id);
         Task<Referral> ToggleDiscardedAsync(int id);
+        Task<bool> ExistsAsync(string referrerName, string referrerPhone);
     }
 }
