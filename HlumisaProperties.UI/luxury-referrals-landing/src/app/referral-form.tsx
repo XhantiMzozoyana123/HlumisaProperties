@@ -93,21 +93,23 @@ export function ReferralForm() {
       });
 
       if (response.status === 409) {
-        // Duplicate referral - show the big reassuring message
+        // Duplicate referral - show the big reassuring plain English message
         setIsDuplicate(true);
         setReferrer({ fullName: "", phoneNumber: "" });
         return;
       }
 
       if (!response.ok) {
-        const body = await response.text();
-        throw new Error(body || `Failed to submit referral (${response.status})`);
+        // Never show raw API text to users - always show friendly message
+        throw new Error("Something went wrong. Please try again.");
       }
 
       setReferrer({ fullName: "", phoneNumber: "" });
       setSuccessMessage("Thank you! We got your message. We will get back to you in WhatsApp.");
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Unable to submit referral.");
+      if (!isDuplicate) {
+        setErrorMessage("Something went wrong. Please try again.");
+      }
     } finally {
       setSaving(false);
     }
@@ -141,7 +143,7 @@ export function ReferralForm() {
           We will WhatsApp you. Our team will message you as soon as possible.
         </p>
 
-        {/* DUPLICATE MESSAGE - Big, prominent, reassuring */}
+        {/* DUPLICATE MESSAGE - Big, prominent, plain English, same size as "Fill in your details" */}
         {isDuplicate && (
           <div className="mt-6 rounded-2xl border-2 border-emerald-300/40 bg-emerald-500/10 p-6 text-center shadow-[0_0_50px_rgba(52,211,153,0.25)] sm:p-8">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-400/20 sm:h-20 sm:w-20">
@@ -149,14 +151,14 @@ export function ReferralForm() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h3 className="text-2xl font-bold leading-tight text-emerald-200 sm:text-3xl">
-              We got your message!
+            <h3 className="text-2xl font-bold leading-tight text-white sm:text-3xl">
+              Thank you! We have already got you in our system.
             </h3>
-            <p className="mt-3 text-lg font-medium text-emerald-100 sm:text-xl">
-              Don't worry, relax.
+            <p className="mt-4 text-lg font-medium text-emerald-100 sm:text-xl">
+              We will WhatsApp you as soon as possible.
             </p>
-            <p className="mt-4 text-base leading-relaxed text-emerald-100/90 sm:text-lg">
-              We will get back to you as soon as possible.
+            <p className="mt-3 text-lg font-medium text-emerald-100 sm:text-xl">
+              Don't panic, please. We will get back to you.
             </p>
           </div>
         )}
