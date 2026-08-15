@@ -19,8 +19,6 @@ export default function BuyersPage() {
     lastName: "",
     phoneNumber: "",
     location: "",
-    budget: "",
-    propertyType: "",
   });
 
   useEffect(() => {
@@ -84,14 +82,12 @@ export default function BuyersPage() {
         lastName: form.lastName.trim(),
         phoneNumber: form.phoneNumber.trim(),
         location: form.location.trim(),
-        budget: form.budget.trim(),
-        propertyType: form.propertyType.trim(),
         isContacted: false,
         isDiscarded: false,
       });
       setBuyers((current) => [newBuyer, ...current]);
       setShowAddModal(false);
-      setForm({ firstName: "", lastName: "", phoneNumber: "", location: "", budget: "", propertyType: "" });
+      setForm({ firstName: "", lastName: "", phoneNumber: "", location: "" });
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to add buyer.");
     } finally {
@@ -265,28 +261,6 @@ export default function BuyersPage() {
                   onChange={(e) => setForm({ ...form, location: e.target.value })}
                   className="w-full rounded-xl border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white outline-none placeholder:text-stone-500 focus:border-amber-200/30"
                   placeholder="Johannesburg"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-400">Budget</label>
-                <input
-                  type="text"
-                  value={form.budget}
-                  onChange={(e) => setForm({ ...form, budget: e.target.value })}
-                  className="w-full rounded-xl border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white outline-none placeholder:text-stone-500 focus:border-amber-200/30"
-                  placeholder="R3,000,000"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-400">Property Type</label>
-                <input
-                  type="text"
-                  value={form.propertyType}
-                  onChange={(e) => setForm({ ...form, propertyType: e.target.value })}
-                  className="w-full rounded-xl border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white outline-none placeholder:text-stone-500 focus:border-amber-200/30"
-                  placeholder="House, Flat, etc."
                 />
               </div>
 

@@ -19,8 +19,6 @@ export default function SellersPage() {
     lastName: "",
     phoneNumber: "",
     location: "",
-    propertyType: "",
-    estimatedValue: "",
   });
 
   useEffect(() => {
@@ -84,15 +82,13 @@ export default function SellersPage() {
         lastName: form.lastName.trim(),
         phoneNumber: form.phoneNumber.trim(),
         location: form.location.trim(),
-        propertyType: form.propertyType.trim(),
-        estimatedValue: form.estimatedValue.trim(),
         isContacted: false,
         isDiscarded: false,
         statusColor: "gray",
       });
       setSellers((current) => [newSeller, ...current]);
       setShowAddModal(false);
-      setForm({ firstName: "", lastName: "", phoneNumber: "", location: "", propertyType: "", estimatedValue: "" });
+      setForm({ firstName: "", lastName: "", phoneNumber: "", location: "" });
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to add seller.");
     } finally {
@@ -280,28 +276,6 @@ export default function SellersPage() {
                   onChange={(e) => setForm({ ...form, location: e.target.value })}
                   className="w-full rounded-xl border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white outline-none placeholder:text-stone-500 focus:border-amber-200/30"
                   placeholder="Cape Town"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-400">Property Type</label>
-                <input
-                  type="text"
-                  value={form.propertyType}
-                  onChange={(e) => setForm({ ...form, propertyType: e.target.value })}
-                  className="w-full rounded-xl border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white outline-none placeholder:text-stone-500 focus:border-amber-200/30"
-                  placeholder="House, Flat, etc."
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-400">Estimated Value</label>
-                <input
-                  type="text"
-                  value={form.estimatedValue}
-                  onChange={(e) => setForm({ ...form, estimatedValue: e.target.value })}
-                  className="w-full rounded-xl border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white outline-none placeholder:text-stone-500 focus:border-amber-200/30"
-                  placeholder="R2,500,000"
                 />
               </div>
 
