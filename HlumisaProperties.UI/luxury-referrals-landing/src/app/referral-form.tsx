@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 
 type PersonForm = {
   fullName: string;
@@ -68,6 +68,28 @@ export function ReferralForm() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isDuplicate, setIsDuplicate] = useState(false);
+  const duplicateMessageRef = useRef<HTMLDivElement>(null);
+  const successMessageRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to the duplicate message when it appears
+  useEffect(() => {
+    if (isDuplicate && duplicateMessageRef.current) {
+      duplicateMessageRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  }, [isDuplicate]);
+
+  // Auto-scroll to the success message when it appears
+  useEffect(() => {
+    if (successMessage && successMessageRef.current) {
+      successMessageRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  }, [successMessage]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -145,7 +167,7 @@ export function ReferralForm() {
 
         {/* DUPLICATE MESSAGE - Big, prominent, plain English, same size as "Fill in your details" */}
         {isDuplicate && (
-          <div className="mt-6 rounded-2xl border-2 border-emerald-300/40 bg-emerald-500/10 p-6 text-center shadow-[0_0_50px_rgba(52,211,153,0.25)] sm:p-8">
+          <div ref={duplicateMessageRef} className="mt-6 rounded-2xl border-2 border-emerald-300/40 bg-emerald-500/10 p-6 text-center shadow-[0_0_50px_rgba(52,211,153,0.25)] sm:p-8">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-400/20 sm:h-20 sm:w-20">
               <svg className="h-8 w-8 text-emerald-300 sm:h-10 sm:w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -165,7 +187,7 @@ export function ReferralForm() {
 
         {/* SUCCESS MESSAGE - Big, nice, its own table box */}
         {successMessage && (
-          <div className="mt-6 rounded-2xl border-2 border-amber-200/40 bg-amber-400/10 p-6 text-center shadow-[0_0_50px_rgba(253,230,138,0.25)] sm:p-8">
+          <div ref={successMessageRef} className="mt-6 rounded-2xl border-2 border-amber-200/40 bg-amber-400/10 p-6 text-center shadow-[0_0_50px_rgba(253,230,138,0.25)] sm:p-8">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-300/20 sm:h-20 sm:w-20">
               <svg className="h-8 w-8 text-amber-200 sm:h-10 sm:w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
