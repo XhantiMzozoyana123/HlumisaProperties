@@ -37,16 +37,18 @@ function getTodaySA(): string {
   return sa.toISOString().split("T")[0];
 }
 
-/** Get the current month name based on today's date */
+/** Get the current month name in South African timezone */
 function getCurrentMonthName(): string {
   const now = new Date();
-  const sa = new Date(now.getTime() + 2 * 60 * 60 * 1000);
-  const monthIndex = sa.getMonth();
   const monthNames = [
     "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE",
     "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER",
   ];
-  return monthNames[monthIndex];
+  const saMonthIndex = new Intl.DateTimeFormat("en-US", {
+    month: "numeric",
+    timeZone: "Africa/Johannesburg",
+  }).format(now);
+  return monthNames[parseInt(saMonthIndex, 10) - 1];
 }
 
 const initialData: BookEntry[] = [
@@ -287,14 +289,8 @@ function BooksContent() {
     const fType = fieldConfig[field] || "readonly";
     if (fType === "readonly") return;
     setColorPickerCell({ row: row.id, field });
-    if (e && e.currentTarget) {
-      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-      const x = Math.min(rect.left, window.innerWidth - 220);
-      const y = Math.min(rect.bottom + 8, window.innerHeight - 180);
-      setColorPickerPos({ x, y });
-    } else {
-      setColorPickerPos({ x: window.innerWidth / 2 - 100, y: window.innerHeight / 2 - 80 });
-    }
+    // Always show the color picker next to the "Add new entry" button (bottom-left area)
+    setColorPickerPos({ x: 20, y: window.innerHeight - 230 });
   };
 
   const handleColorSelected = (color: BookStatusColor) => {
