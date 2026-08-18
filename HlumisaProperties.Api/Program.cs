@@ -70,7 +70,19 @@ builder.Services.AddAuthentication(options =>
 // Database (MySQL via Pomelo)
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+{
+    try
+    {
+        // Try to auto-detect the MySQL server version (requires a live connection)
+        options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+    }
+    catch
+    {
+        // If the DB is temporarily unreachable, fall back to a known version so the app can start.
+        // The app will retry DB operations when the database comes back online.
+        options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 37)));
+    }
+});
 
 // ASP.NET Core Identity
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
@@ -117,76 +129,93 @@ var app = builder.Build();
 // ======================================================
 // AUTO-APPLY DATABASE MIGRATIONS ON STARTUP
 // ======================================================
-using (var migrationScope = app.Services.CreateScope())
+try
 {
-    var dbContext = migrationScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    dbContext.Database.Migrate();
-    Console.WriteLine("Database migrations applied successfully.");
+    using (var migrationScope = app.Services.CreateScope())
+    {
+        var dbContext = migrationScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        dbContext.Database.Migrate();
+        Console.WriteLine("Database migrations applied successfully.");
+    }
+}
+catch (Exception ex)
+{
+    // Don't crash the API if the DB is temporarily unreachable.
+    // Endpoints will return proper 500s until the DB comes back online.
+    Console.WriteLine($"WARNING: Could not apply database migrations (continuing anyway): {ex.Message}");
 }
 
 // ======================================================
 // AUTO-SEED ADMIN USER ON STARTUP
 // ======================================================
-using (var scope = app.Services.CreateScope())
+try
 {
-    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-    var adminConfig = builder.Configuration.GetSection("AdminUser");
-    var adminEmail = adminConfig["Email"];
-    var adminPassword = adminConfig["Password"];
-
-    if (!string.IsNullOrWhiteSpace(adminEmail) && !string.IsNullOrWhiteSpace(adminPassword))
+    using (var scope = app.Services.CreateScope())
     {
-        var existingUser = await userManager.FindByEmailAsync(adminEmail);
-        if (existingUser == null)
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var adminConfig = builder.Configuration.GetSection("AdminUser");
+        var adminEmail = adminConfig["Email"];
+        var adminPassword = adminConfig["Password"];
+
+        if (!string.IsNullOrWhiteSpace(adminEmail) && !string.IsNullOrWhiteSpace(adminPassword))
         {
-            var adminUser = new ApplicationUser
+            var existingUser = await userManager.FindByEmailAsync(adminEmail);
+            if (existingUser == null)
             {
-                UserName = adminEmail,
-                Email = adminEmail,
-                EmailConfirmed = true,
-                FirstName = adminConfig["FirstName"] ?? "Zola",
-                LastName = adminConfig["LastName"] ?? "Mzozoyana"
-            };
-            await userManager.CreateAsync(adminUser, adminPassword);
-            Console.WriteLine($"Admin user created: {adminEmail}");
-        }
-        else
-        {
-            // Update existing user's credentials and name if configured
-            var needsUpdate = false;
-
-            if (!string.IsNullOrWhiteSpace(adminConfig["FirstName"]) &&
-                existingUser.FirstName != adminConfig["FirstName"])
-            {
-                existingUser.FirstName = adminConfig["FirstName"];
-                needsUpdate = true;
-            }
-
-            if (!string.IsNullOrWhiteSpace(adminConfig["LastName"]) &&
-                existingUser.LastName != adminConfig["LastName"])
-            {
-                existingUser.LastName = adminConfig["LastName"];
-                needsUpdate = true;
-            }
-
-            if (needsUpdate)
-            {
-                await userManager.UpdateAsync(existingUser);
-            }
-
-            // Always reset password to configured value to ensure login works
-            var passwordResetToken = await userManager.GeneratePasswordResetTokenAsync(existingUser);
-            var passwordResult = await userManager.ResetPasswordAsync(existingUser, passwordResetToken, adminPassword);
-            if (!passwordResult.Succeeded)
-            {
-                Console.WriteLine($"Failed to reset password for {adminEmail}: {string.Join(", ", passwordResult.Errors.Select(e => e.Description))}");
+                var adminUser = new ApplicationUser
+                {
+                    UserName = adminEmail,
+                    Email = adminEmail,
+                    EmailConfirmed = true,
+                    FirstName = adminConfig["FirstName"] ?? "Zola",
+                    LastName = adminConfig["LastName"] ?? "Mzozoyana"
+                };
+                await userManager.CreateAsync(adminUser, adminPassword);
+                Console.WriteLine($"Admin user created: {adminEmail}");
             }
             else
             {
-                Console.WriteLine($"Admin user password updated: {adminEmail}");
+                // Update existing user's credentials and name if configured
+                var needsUpdate = false;
+
+                if (!string.IsNullOrWhiteSpace(adminConfig["FirstName"]) &&
+                    existingUser.FirstName != adminConfig["FirstName"])
+                {
+                    existingUser.FirstName = adminConfig["FirstName"];
+                    needsUpdate = true;
+                }
+
+                if (!string.IsNullOrWhiteSpace(adminConfig["LastName"]) &&
+                    existingUser.LastName != adminConfig["LastName"])
+                {
+                    existingUser.LastName = adminConfig["LastName"];
+                    needsUpdate = true;
+                }
+
+                if (needsUpdate)
+                {
+                    await userManager.UpdateAsync(existingUser);
+                }
+
+                // Always reset password to configured value to ensure login works
+                var passwordResetToken = await userManager.GeneratePasswordResetTokenAsync(existingUser);
+                var passwordResult = await userManager.ResetPasswordAsync(existingUser, passwordResetToken, adminPassword);
+                if (!passwordResult.Succeeded)
+                {
+                    Console.WriteLine($"Failed to reset password for {adminEmail}: {string.Join(", ", passwordResult.Errors.Select(e => e.Description))}");
+                }
+                else
+                {
+                    Console.WriteLine($"Admin user password updated: {adminEmail}");
+                }
             }
         }
     }
+}
+catch (Exception ex)
+{
+    // Don't crash the API if the DB is temporarily unreachable.
+    Console.WriteLine($"WARNING: Could not seed admin user (continuing anyway): {ex.Message}");
 }
 
 // ======================================================
