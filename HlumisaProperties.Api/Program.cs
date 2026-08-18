@@ -74,13 +74,21 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     try
     {
         // Try to auto-detect the MySQL server version (requires a live connection)
-        options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+        options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString),
+            mySqlOptions => mySqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 10,
+                maxRetryDelay: TimeSpan.FromSeconds(30),
+                errorNumbersToAdd: null));
     }
     catch
     {
         // If the DB is temporarily unreachable, fall back to a known version so the app can start.
         // The app will retry DB operations when the database comes back online.
-        options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 37)));
+        options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 37)),
+            mySqlOptions => mySqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 10,
+                maxRetryDelay: TimeSpan.FromSeconds(30),
+                errorNumbersToAdd: null));
     }
 });
 
@@ -127,96 +135,120 @@ builder.Services.AddHangfireServer();
 var app = builder.Build();
 
 // ======================================================
-// AUTO-APPLY DATABASE MIGRATIONS ON STARTUP
+// AUTO-APPLY DATABASE MIGRATIONS + SEED ADMIN ON STARTUP
+// WITH SELF-HEALING BACKGROUND RETRY
 // ======================================================
-try
+async Task TrySetupDatabaseAsync(IServiceProvider services)
 {
-    using (var migrationScope = app.Services.CreateScope())
+    try
     {
-        var dbContext = migrationScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        dbContext.Database.Migrate();
-        Console.WriteLine("Database migrations applied successfully.");
-    }
-}
-catch (Exception ex)
-{
-    // Don't crash the API if the DB is temporarily unreachable.
-    // Endpoints will return proper 500s until the DB comes back online.
-    Console.WriteLine($"WARNING: Could not apply database migrations (continuing anyway): {ex.Message}");
-}
-
-// ======================================================
-// AUTO-SEED ADMIN USER ON STARTUP
-// ======================================================
-try
-{
-    using (var scope = app.Services.CreateScope())
-    {
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-        var adminConfig = builder.Configuration.GetSection("AdminUser");
-        var adminEmail = adminConfig["Email"];
-        var adminPassword = adminConfig["Password"];
-
-        if (!string.IsNullOrWhiteSpace(adminEmail) && !string.IsNullOrWhiteSpace(adminPassword))
+        using (var migrationScope = services.CreateScope())
         {
-            var existingUser = await userManager.FindByEmailAsync(adminEmail);
-            if (existingUser == null)
+            var dbContext = migrationScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            dbContext.Database.Migrate();
+            Console.WriteLine("Database migrations applied successfully.");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"WARNING: Could not apply database migrations (will retry in background): {ex.Message}");
+        return;
+    }
+
+    // Only seed admin after migrations succeed
+    try
+    {
+        using (var scope = services.CreateScope())
+        {
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var adminConfig = builder.Configuration.GetSection("AdminUser");
+            var adminEmail = adminConfig["Email"];
+            var adminPassword = adminConfig["Password"];
+
+            if (!string.IsNullOrWhiteSpace(adminEmail) && !string.IsNullOrWhiteSpace(adminPassword))
             {
-                var adminUser = new ApplicationUser
+                var existingUser = await userManager.FindByEmailAsync(adminEmail);
+                if (existingUser == null)
                 {
-                    UserName = adminEmail,
-                    Email = adminEmail,
-                    EmailConfirmed = true,
-                    FirstName = adminConfig["FirstName"] ?? "Zola",
-                    LastName = adminConfig["LastName"] ?? "Mzozoyana"
-                };
-                await userManager.CreateAsync(adminUser, adminPassword);
-                Console.WriteLine($"Admin user created: {adminEmail}");
-            }
-            else
-            {
-                // Update existing user's credentials and name if configured
-                var needsUpdate = false;
-
-                if (!string.IsNullOrWhiteSpace(adminConfig["FirstName"]) &&
-                    existingUser.FirstName != adminConfig["FirstName"])
-                {
-                    existingUser.FirstName = adminConfig["FirstName"];
-                    needsUpdate = true;
-                }
-
-                if (!string.IsNullOrWhiteSpace(adminConfig["LastName"]) &&
-                    existingUser.LastName != adminConfig["LastName"])
-                {
-                    existingUser.LastName = adminConfig["LastName"];
-                    needsUpdate = true;
-                }
-
-                if (needsUpdate)
-                {
-                    await userManager.UpdateAsync(existingUser);
-                }
-
-                // Always reset password to configured value to ensure login works
-                var passwordResetToken = await userManager.GeneratePasswordResetTokenAsync(existingUser);
-                var passwordResult = await userManager.ResetPasswordAsync(existingUser, passwordResetToken, adminPassword);
-                if (!passwordResult.Succeeded)
-                {
-                    Console.WriteLine($"Failed to reset password for {adminEmail}: {string.Join(", ", passwordResult.Errors.Select(e => e.Description))}");
+                    var adminUser = new ApplicationUser
+                    {
+                        UserName = adminEmail,
+                        Email = adminEmail,
+                        EmailConfirmed = true,
+                        FirstName = adminConfig["FirstName"] ?? "Zola",
+                        LastName = adminConfig["LastName"] ?? "Mzozoyana"
+                    };
+                    await userManager.CreateAsync(adminUser, adminPassword);
+                    Console.WriteLine($"Admin user created: {adminEmail}");
                 }
                 else
                 {
-                    Console.WriteLine($"Admin user password updated: {adminEmail}");
+                    // Update existing user's credentials and name if configured
+                    var needsUpdate = false;
+
+                    if (!string.IsNullOrWhiteSpace(adminConfig["FirstName"]) &&
+                        existingUser.FirstName != adminConfig["FirstName"])
+                    {
+                        existingUser.FirstName = adminConfig["FirstName"];
+                        needsUpdate = true;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(adminConfig["LastName"]) &&
+                        existingUser.LastName != adminConfig["LastName"])
+                    {
+                        existingUser.LastName = adminConfig["LastName"];
+                        needsUpdate = true;
+                    }
+
+                    if (needsUpdate)
+                    {
+                        await userManager.UpdateAsync(existingUser);
+                    }
+
+                    // Always reset password to configured value to ensure login works
+                    var passwordResetToken = await userManager.GeneratePasswordResetTokenAsync(existingUser);
+                    var passwordResult = await userManager.ResetPasswordAsync(existingUser, passwordResetToken, adminPassword);
+                    if (!passwordResult.Succeeded)
+                    {
+                        Console.WriteLine($"Failed to reset password for {adminEmail}: {string.Join(", ", passwordResult.Errors.Select(e => e.Description))}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Admin user password updated: {adminEmail}");
+                    }
                 }
             }
         }
+
+        Console.WriteLine("Database setup completed successfully.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"WARNING: Could not seed admin user (will retry in background): {ex.Message}");
     }
 }
-catch (Exception ex)
+
+// Attempt initial setup
+await TrySetupDatabaseAsync(app.Services);
+
+// Start background retry loop — every 30s, keep trying until setup succeeds.
+// This makes the API self-healing: if MySQL comes online after the API starts,
+// migrations + admin seeding will eventually succeed automatically.
+_ = Task.Run(async () =>
 {
-    // Don't crash the API if the DB is temporarily unreachable.
-    Console.WriteLine($"WARNING: Could not seed admin user (continuing anyway): {ex.Message}");
-}
+    while (true)
+    {
+        await Task.Delay(TimeSpan.FromSeconds(30));
+        try
+        {
+            await TrySetupDatabaseAsync(app.Services);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"WARNING: Background database setup retry failed: {ex.Message}");
+        }
+    }
+});
 
 // ======================================================
 // OPEN API (DEV ONLY)
@@ -273,7 +305,30 @@ RecurringJob.AddOrUpdate<ILeadExtractionService>(
 // ======================================================
 // ROOT ENDPOINT - HEALTH CHECK
 // ======================================================
-app.MapGet("/", () => Results.Ok("HlumisaProperties API is running correctly."));
+app.MapGet("/", () => Results.Ok(new
+{
+    status = "ok",
+    message = "HlumisaProperties API is running correctly.",
+    time = DateTime.UtcNow
+}));
+
+// ======================================================
+// HEALTH CHECK ENDPOINT - REPORTS DB CONNECTIVITY
+// ======================================================
+app.MapGet("/health", async (ApplicationDbContext dbContext) =>
+{
+    try
+    {
+        await dbContext.Database.CanConnectAsync();
+        return Results.Ok(new { status = "healthy", database = "connected", time = DateTime.UtcNow });
+    }
+    catch (Exception ex)
+    {
+        return Results.Json(
+            new { status = "degraded", database = "unavailable", error = ex.Message, time = DateTime.UtcNow },
+            statusCode: 503);
+    }
+});
 
 // ======================================================
 // CONTROLLERS
