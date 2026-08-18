@@ -273,6 +273,7 @@ function BooksContent() {
   }
   const inputRef = useRef<HTMLInputElement>(null);
   const tableRef = useRef<HTMLDivElement>(null);
+  const addEntryRef = useRef<HTMLDivElement>(null);
 
   const months = ["ALL", "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST"];
 
@@ -289,8 +290,14 @@ function BooksContent() {
     const fType = fieldConfig[field] || "readonly";
     if (fType === "readonly") return;
     setColorPickerCell({ row: row.id, field });
-    // Always show the color picker next to the "Add new entry" button (bottom-left area)
-    setColorPickerPos({ x: 20, y: window.innerHeight - 230 });
+    // Position the color picker next to the "Add new entry" button (left side)
+    const addEntryEl = addEntryRef.current;
+    if (addEntryEl) {
+      const rect = addEntryEl.getBoundingClientRect();
+      setColorPickerPos({ x: rect.left - 220, y: rect.top });
+    } else {
+      setColorPickerPos({ x: 20, y: window.innerHeight - 230 });
+    }
   };
 
   const handleColorSelected = (color: BookStatusColor) => {
@@ -643,7 +650,7 @@ function BooksContent() {
         </div>
       )}
 
-      <div className="flex justify-center gap-4">
+      <div ref={addEntryRef} className="flex justify-center gap-4">
         <button onClick={handleAddRow}
           className="flex items-center gap-2 rounded-full border-2 border-dashed border-white/20 px-8 py-4 text-base text-stone-400 transition hover:border-amber-200/40 hover:text-amber-200 hover:bg-amber-200/5">
           <span className="text-2xl font-light">+</span><span>Add new entry</span>

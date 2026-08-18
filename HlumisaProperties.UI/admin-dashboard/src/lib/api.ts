@@ -251,7 +251,7 @@ export async function deleteReferral(id: number): Promise<void> {
 }
 
 export async function toggleReferralDiscarded(id: number): Promise<Referral> {
-  const response = await fetch(apiUrl(`/api/referrals/${id}/discard`), { method: "PATCH", headers: authHeaders() });
+  const response = await fetch(apiUrl(`/api/referrals/${id}/toggle-discard`), { method: "PATCH", headers: authHeaders() });
   if (!response.ok) throw new Error(`Failed to toggle referral discard (${response.status})`);
   return response.json();
 }

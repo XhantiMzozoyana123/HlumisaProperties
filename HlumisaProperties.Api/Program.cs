@@ -27,15 +27,18 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddCors(options =>
 {
+    // Landing page (public referral form) — allow all origins
     options.AddPolicy("LandingPage", policy =>
         policy.AllowAnyHeader()
               .AllowAnyMethod()
               .AllowAnyOrigin());
 
+    // API (admin dashboard, landing page, local dev) — allow known origins
     options.AddPolicy("Api", policy =>
         policy.AllowAnyHeader()
               .AllowAnyMethod()
-              .AllowAnyOrigin());
+              .SetIsOriginAllowed(origin => true) // Allow all origins (incl. mobile apps / bots)
+              .AllowCredentials());
 });
 
 // ======================================================
