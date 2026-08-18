@@ -66,6 +66,8 @@ public class AuthController : ControllerBase
         }
         catch (Exception ex)
         {
+            // Log the actual error so we can diagnose the root cause
+            Console.WriteLine($"ERROR: Login failed with exception: {ex}");
             // Return a friendly message instead of a raw 500
             return StatusCode(503, new { message = "Database is temporarily unavailable. Please try again in a moment." });
         }

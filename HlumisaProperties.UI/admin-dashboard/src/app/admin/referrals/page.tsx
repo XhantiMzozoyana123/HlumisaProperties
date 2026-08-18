@@ -19,6 +19,8 @@ function ReferralsContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [showGreyed, setShowGreyed] = useState(false);
+  const [fadingOutId, setFadingOutId] = useState<number | null>(null);
   const [form, setForm] = useState({
     referrerName: "",
     referrerPhone: "",
@@ -45,6 +47,8 @@ function ReferralsContent() {
   }, []);
 
   const activeReferrals = referrals.filter((r) => !r.isDiscarded);
+  const greyedReferrals = referrals.filter((r) => r.isDiscarded);
+  const visibleReferrals = showGreyed ? referrals : activeReferrals;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -78,12 +82,32 @@ function ReferralsContent() {
   }
 
   async function handleDiscard(id: number) {
+    const target = referrals.find((r) => r.id === id);
+    if (!target) return;
+
+    // If we're un-greying, just toggle immediately (no fade-out needed)
+    if (target.isDiscarded) {
+      setReferrals((current) => current.map((r) => r.id === id ? { ...r, isDiscarded: false } : r));
+      try {
+        await toggleReferralDiscarded(id);
+      } catch (err) {
+        console.warn("Failed to sync discard with server:", err);
+      }
+      return;
+    }
+
+    // Discarding — trigger fade-out animation first, then update state
+    setFadingOutId(id);
     try {
       await toggleReferralDiscarded(id);
-      setReferrals((current) => current.map((r) => r.id === id ? { ...r, isDiscarded: !r.isDiscarded } : r));
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to update referral.");
+      console.warn("Failed to sync discard with server:", err);
     }
+    // Wait for the CSS animation to finish (500ms) before removing the row from the active list
+    setTimeout(() => {
+      setReferrals((current) => current.map((r) => r.id === id ? { ...r, isDiscarded: true } : r));
+      setFadingOutId(null);
+    }, 500);
   }
 
   if (loading) {
@@ -114,12 +138,26 @@ function ReferralsContent() {
             )}
           </p>
         </div>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="rounded-full bg-amber-200 px-6 py-3 text-sm font-semibold text-stone-950 transition hover:bg-amber-100"
-        >
-          + Add referral
-        </button>
+        <div className="flex items-center gap-3">
+          {greyedReferrals.length > 0 && (
+            <button
+              onClick={() => setShowGreyed(!showGreyed)}
+              className={`rounded-full border px-4 py-2 text-xs font-medium transition ${
+                showGreyed
+                  ? "border-amber-200/40 bg-amber-200/10 text-amber-200"
+                  : "border-white/10 text-stone-400 hover:bg-white/5"
+              }`}
+            >
+              {showGreyed ? "Hide greyed out" : `Show greyed out (${greyedReferrals.length})`}
+            </button>
+          )}
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="rounded-full bg-amber-200 px-6 py-3 text-sm font-semibold text-stone-950 transition hover:bg-amber-100"
+          >
+            + Add referral
+          </button>
+        </div>
       </div>
 
       {/* Add form */}
@@ -151,9 +189,9 @@ function ReferralsContent() {
       )}
 
       {/* Table */}
-      {referrals.length === 0 ? (
+      {visibleReferrals.length === 0 ? (
         <div className="rounded-2xl border border-white/10 bg-black/20 p-6 text-sm text-stone-400">
-          No referrals yet. Click &ldquo;+ Add referral&rdquo; to record one.
+          {showGreyed ? "No greyed out referrals." : "No active referrals. Click &ldquo;+ Add referral&rdquo; to record one."}
         </div>
       ) : (
         <div className="overflow-x-auto rounded-[1.5rem] border border-white/10 bg-black/20">
@@ -168,14 +206,18 @@ function ReferralsContent() {
               </tr>
             </thead>
             <tbody>
-              {referrals.map((r) => (
+              {visibleReferrals.map((r) => (
                 <tr
                   key={r.id}
                   onDoubleClick={() => {
                     if (r.isDiscarded) handleDiscard(r.id);
                   }}
-                  className={`border-b border-white/5 last:border-0 ${
-                    r.isDiscarded ? "opacity-40 bg-stone-900/20" : "hover:bg-white/[0.02]"
+                  className={`border-b border-white/5 last:border-0 transition-all duration-500 ${
+                    fadingOutId === r.id
+                      ? "row-fade-out"
+                      : r.isDiscarded
+                        ? "opacity-40 bg-stone-900/20"
+                        : "hover:bg-white/[0.02]"
                   }`}
                 >
                   <td className="px-5 py-4">

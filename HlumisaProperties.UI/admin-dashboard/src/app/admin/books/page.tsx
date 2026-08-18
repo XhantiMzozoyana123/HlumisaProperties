@@ -290,13 +290,14 @@ function BooksContent() {
     const fType = fieldConfig[field] || "readonly";
     if (fType === "readonly") return;
     setColorPickerCell({ row: row.id, field });
-    // Position the color picker next to the "Add new entry" button (left side)
-    const addEntryEl = addEntryRef.current;
-    if (addEntryEl) {
-      const rect = addEntryEl.getBoundingClientRect();
-      setColorPickerPos({ x: rect.left - 220, y: rect.top });
+    // Position the color picker right below the clicked cell
+    if (e && e.currentTarget) {
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      const x = Math.min(rect.left, window.innerWidth - 260);
+      const y = Math.min(rect.bottom + 8, window.innerHeight - 200);
+      setColorPickerPos({ x, y });
     } else {
-      setColorPickerPos({ x: 20, y: window.innerHeight - 230 });
+      setColorPickerPos({ x: window.innerWidth / 2 - 120, y: window.innerHeight / 2 - 80 });
     }
   };
 
@@ -629,28 +630,29 @@ function BooksContent() {
         </table>
       </div>
 
+      {/* Color picker popover — anchored right below the clicked cell */}
       {colorPickerCell && colorPickerPos && (
         <div
-          className="fixed z-50 rounded-[2rem] border border-white/10 bg-[#12100e] p-5 shadow-[0_30px_100px_rgba(0,0,0,0.6)]"
+          className="fixed z-50 rounded-[2rem] border border-amber-200/30 bg-[#1d2736] p-5 shadow-[0_30px_100px_rgba(0,0,0,0.6)]"
           style={{ left: colorPickerPos.x, top: colorPickerPos.y }}
         >
           <div className="text-center">
-            <p className="mb-3 text-sm text-stone-400">Color for <span className="text-amber-200 font-medium">{fieldLabels[colorPickerCell.field]}</span></p>
-            <div className="flex justify-center gap-3">
+            <p className="mb-3 text-sm text-stone-400">Color for <span className="font-medium text-amber-200">{fieldLabels[colorPickerCell.field]}</span>:</p>
+            <div className="flex justify-center items-center gap-3">
               <button onClick={() => handleColorSelected("white")}
-                className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-white/60 bg-white text-xs font-bold uppercase tracking-wider text-stone-800 transition hover:scale-110 hover:border-white hover:bg-stone-100">W</button>
+                className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-white/60 bg-white text-xs font-bold uppercase tracking-wider text-stone-800 transition hover:scale-110 hover:border-white hover:bg-stone-100">W</button>
               <button onClick={() => handleColorSelected("red")}
-                className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-rose-400/70 bg-rose-600 text-xs font-bold uppercase tracking-wider text-white transition hover:scale-110 hover:border-rose-300 hover:bg-rose-500">R</button>
+                className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-rose-400/70 bg-rose-600 text-xs font-bold uppercase tracking-wider text-white transition hover:scale-110 hover:border-rose-300 hover:bg-rose-500">R</button>
               <button onClick={() => handleColorSelected("green")}
-                className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-emerald-400/70 bg-emerald-600 text-xs font-bold uppercase tracking-wider text-white transition hover:scale-110 hover:border-emerald-300 hover:bg-emerald-500">G</button>
+                className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-emerald-400/70 bg-emerald-600 text-xs font-bold uppercase tracking-wider text-white transition hover:scale-110 hover:border-emerald-300 hover:bg-emerald-500">G</button>
             </div>
-            <button onClick={() => setColorPickerCell(null)}
+            <button onClick={() => { setColorPickerCell(null); setColorPickerPos(null); }}
               className="mt-3 rounded-full border border-white/10 px-4 py-1.5 text-xs text-stone-400 transition hover:text-white hover:bg-white/5">Cancel</button>
           </div>
         </div>
       )}
 
-      <div ref={addEntryRef} className="flex justify-center gap-4">
+      <div ref={addEntryRef} className="flex flex-wrap items-center justify-center gap-4">
         <button onClick={handleAddRow}
           className="flex items-center gap-2 rounded-full border-2 border-dashed border-white/20 px-8 py-4 text-base text-stone-400 transition hover:border-amber-200/40 hover:text-amber-200 hover:bg-amber-200/5">
           <span className="text-2xl font-light">+</span><span>Add new entry</span>
