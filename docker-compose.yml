@@ -5,6 +5,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "5000:5000" 
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     env_file:
       - .env
     environment:
@@ -16,7 +18,7 @@ services:
       - Facebook__VerifyToken=${FACEBOOK_VERIFY_TOKEN}
       - Facebook__PageAccessToken=${FACEBOOK_PAGE_ACCESS_TOKEN}
       - Facebook__PageId=${FACEBOOK_PAGE_ID}
-      - ConnectionStrings__DefaultConnection=${CONNECTION_STRING}
+      - ConnectionStrings__DefaultConnection=Server=host.docker.internal;Port=3306;Database=hlumisapropertiesdb;User=zola;Password=Zola123!
       - Jwt__Secret=${JWT_SECRET}
       - Jwt__Issuer=${JWT_ISSUER}
       - Jwt__Audience=${JWT_AUDIENCE}

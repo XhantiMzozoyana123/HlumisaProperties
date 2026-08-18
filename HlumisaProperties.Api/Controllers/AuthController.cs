@@ -42,25 +42,33 @@ public class AuthController : ControllerBase
         if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
             return BadRequest(new { message = "Email and password are required." });
 
-        var user = await _userManager.FindByEmailAsync(request.Email.Trim());
-        if (user == null)
-            return Unauthorized(new { message = "Invalid email or password." });
-
-        var result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: false);
-        if (!result.Succeeded)
-            return Unauthorized(new { message = "Invalid email or password." });
-
-        var token = await GenerateJwtTokenAsync(user);
-
-        return Ok(new AuthResponse
+        try
         {
-            Token = token,
-            Email = user.Email!,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            ProfilePictureBase64 = user.ProfilePictureBase64,
-            ExpiresAt = DateTime.UtcNow.AddDays(7)
-        });
+            var user = await _userManager.FindByEmailAsync(request.Email.Trim());
+            if (user == null)
+                return Unauthorized(new { message = "Invalid email or password." });
+
+            var result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: false);
+            if (!result.Succeeded)
+                return Unauthorized(new { message = "Invalid email or password." });
+
+            var token = await GenerateJwtTokenAsync(user);
+
+            return Ok(new AuthResponse
+            {
+                Token = token,
+                Email = user.Email!,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                ProfilePictureBase64 = user.ProfilePictureBase64,
+                ExpiresAt = DateTime.UtcNow.AddDays(7)
+            });
+        }
+        catch (Exception ex)
+        {
+            // Return a friendly message instead of a raw 500
+            return StatusCode(503, new { message = "Database is temporarily unavailable. Please try again in a moment." });
+        }
     }
 
     /// <summary>
