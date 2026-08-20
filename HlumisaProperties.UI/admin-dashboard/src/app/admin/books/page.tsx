@@ -263,6 +263,7 @@ function BooksContent() {
   const [colorPickerPos, setColorPickerPos] = useState<{ x: number; y: number } | null>(null);
   const [showAddColorPicker, setShowAddColorPicker] = useState(false);
   const [pendingNewEntry, setPendingNewEntry] = useState<BookEntry | null>(null);
+  const [editSelectedColor, setEditSelectedColor] = useState<BookStatusColor>("white");
 
   function cycleBookStatusColor(rowId: string) {
     setData((prev) =>
@@ -291,6 +292,18 @@ function BooksContent() {
   const handleCellClick = (row: BookEntry, field: string, e?: React.MouseEvent) => {
     const fType = fieldConfig[field] || "readonly";
     if (fType === "readonly") return;
+    
+    // When in "add entry" mode, apply the selected color directly and start editing
+    if (showAddColorPicker) {
+      const key = `${row.id}_${field}`;
+      setCellColors((prev) => ({ ...prev, [key]: editSelectedColor }));
+      const val = (row as any)[field];
+      setEditCell({ row: row.id, field });
+      setEditValue(val != null && val !== 0 ? String(val) : "");
+      setTimeout(() => inputRef.current?.focus(), 10);
+      return;
+    }
+    
     setColorPickerCell({ row: row.id, field });
     // Position the color picker right below the clicked cell
     if (e && e.currentTarget) {
@@ -419,25 +432,38 @@ function BooksContent() {
       waterAccount: 0, section118: 0, erfNumber: "", area: "",
       outstandingBalance: 0, statusColor: "white",
     };
-    // Show the 3 color options right next to the "Add new entry" button
+    // Add the new entry immediately AND show the 3 color options right next to the button
     setPendingNewEntry(newEntry);
-    setShowAddColorPicker(true);
-  };
-
-  const handleAddColorSelected = (color: BookStatusColor) => {
-    if (!pendingNewEntry) return;
-    const newEntry = { ...pendingNewEntry, statusColor: color };
     setData((prev) => [...prev, newEntry]);
-    setShowAddColorPicker(false);
-    setPendingNewEntry(null);
+    setShowAddColorPicker(true);
+    setEditSelectedColor("white");
     setTimeout(() => {
-      const el = document.getElementById(`book-row-${newEntry.id}`);
+      const el = document.getElementById(`book-row-${newId}`);
       if (el) {
         el.scrollIntoView({ behavior: "smooth", block: "center" });
-        setHighlightedRow(newEntry.id);
+        setHighlightedRow(newId);
         setTimeout(() => setHighlightedRow(null), 2500);
       }
     }, 100);
+  };
+
+  const handleAddColorSelected = (color: BookStatusColor) => {
+    // Keep the picker open! Just update the selected color for the next cell click
+    setEditSelectedColor(color);
+    // If there's a pending new entry, update its status color
+    if (pendingNewEntry) {
+      setData((prev) =>
+        prev.map((d) =>
+          d.id === pendingNewEntry.id ? { ...d, statusColor: color } : d
+        )
+      );
+    }
+  };
+
+  const handleFinishAddEntry = () => {
+    setShowAddColorPicker(false);
+    setPendingNewEntry(null);
+    setEditCell(null);
   };
 
   const handleRemoveRow = () => {
@@ -674,13 +700,13 @@ function BooksContent() {
             <div className="flex items-center gap-2 rounded-full border border-amber-200/30 bg-[#1d2736] px-4 py-2 shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
               <span className="text-xs text-stone-400 mr-1">Color:</span>
               <button onClick={() => handleAddColorSelected("white")}
-                className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white/60 bg-white text-xs font-bold uppercase tracking-wider text-stone-800 transition hover:scale-110 hover:border-white hover:bg-stone-100">W</button>
+                className={`flex h-9 w-9 items-center justify-center rounded-full border-2 text-xs font-bold uppercase tracking-wider transition hover:scale-110 ${editSelectedColor === "white" ? "ring-2 ring-amber-300" : ""} border-white/60 bg-white text-stone-800 hover:border-white hover:bg-stone-100`}>W</button>
               <button onClick={() => handleAddColorSelected("red")}
-                className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-rose-400/70 bg-rose-600 text-xs font-bold uppercase tracking-wider text-white transition hover:scale-110 hover:border-rose-300 hover:bg-rose-500">R</button>
+                className={`flex h-9 w-9 items-center justify-center rounded-full border-2 text-xs font-bold uppercase tracking-wider transition hover:scale-110 ${editSelectedColor === "red" ? "ring-2 ring-amber-300" : ""} border-rose-400/70 bg-rose-600 text-white hover:border-rose-300 hover:bg-rose-500`}>R</button>
               <button onClick={() => handleAddColorSelected("green")}
-                className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-emerald-400/70 bg-emerald-600 text-xs font-bold uppercase tracking-wider text-white transition hover:scale-110 hover:border-emerald-300 hover:bg-emerald-500">G</button>
-              <button onClick={() => { setShowAddColorPicker(false); setPendingNewEntry(null); }}
-                className="ml-1 rounded-full border border-white/10 px-2 py-1 text-xs text-stone-400 transition hover:text-white hover:bg-white/5">✕</button>
+                className={`flex h-9 w-9 items-center justify-center rounded-full border-2 text-xs font-bold uppercase tracking-wider transition hover:scale-110 ${editSelectedColor === "green" ? "ring-2 ring-amber-300" : ""} border-emerald-400/70 bg-emerald-600 text-white hover:border-emerald-300 hover:bg-emerald-500`}>G</button>
+              <button onClick={handleFinishAddEntry}
+                className="ml-1 rounded-full bg-amber-200 px-3 py-1.5 text-xs font-semibold text-stone-950 transition hover:bg-amber-100">✓ Done</button>
             </div>
           )}
         </div>
@@ -714,7 +740,7 @@ function BooksContent() {
       </div>
 
       <p className="text-center text-xs text-stone-600">
-        Click any cell to edit. First pick a color (white/red/green), then type your value. Press Enter to save, Escape to cancel. Double-click a row to select it, then click "Remove selected row" to delete it. Hit "Save Changes" to persist to localStorage.
+        Click "Add new entry" then pick a color (white/red/green) and click any cell to fill it in. The color picker stays until you click "✓ Done". Click any existing cell to edit with its own color picker. Press Enter to save, Escape to cancel. Double-click a row to select it, then click "Remove selected row" to delete it. Hit "Save Changes" to persist to localStorage.
       </p>
     </div>
   );
