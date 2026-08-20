@@ -261,6 +261,8 @@ function BooksContent() {
 
   const [colorPickerCell, setColorPickerCell] = useState<{ row: string; field: string } | null>(null);
   const [colorPickerPos, setColorPickerPos] = useState<{ x: number; y: number } | null>(null);
+  const [showAddColorPicker, setShowAddColorPicker] = useState(false);
+  const [pendingNewEntry, setPendingNewEntry] = useState<BookEntry | null>(null);
 
   function cycleBookStatusColor(rowId: string) {
     setData((prev) =>
@@ -417,12 +419,22 @@ function BooksContent() {
       waterAccount: 0, section118: 0, erfNumber: "", area: "",
       outstandingBalance: 0, statusColor: "white",
     };
+    // Show the 3 color options right next to the "Add new entry" button
+    setPendingNewEntry(newEntry);
+    setShowAddColorPicker(true);
+  };
+
+  const handleAddColorSelected = (color: BookStatusColor) => {
+    if (!pendingNewEntry) return;
+    const newEntry = { ...pendingNewEntry, statusColor: color };
     setData((prev) => [...prev, newEntry]);
+    setShowAddColorPicker(false);
+    setPendingNewEntry(null);
     setTimeout(() => {
-      const el = document.getElementById(`book-row-${newId}`);
+      const el = document.getElementById(`book-row-${newEntry.id}`);
       if (el) {
         el.scrollIntoView({ behavior: "smooth", block: "center" });
-        setHighlightedRow(newId);
+        setHighlightedRow(newEntry.id);
         setTimeout(() => setHighlightedRow(null), 2500);
       }
     }, 100);
@@ -653,10 +665,25 @@ function BooksContent() {
       )}
 
       <div ref={addEntryRef} className="flex flex-wrap items-center justify-center gap-4">
-        <button onClick={handleAddRow}
-          className="flex items-center gap-2 rounded-full border-2 border-dashed border-white/20 px-8 py-4 text-base text-stone-400 transition hover:border-amber-200/40 hover:text-amber-200 hover:bg-amber-200/5">
-          <span className="text-2xl font-light">+</span><span>Add new entry</span>
-        </button>
+        <div className="relative flex items-center gap-3">
+          <button onClick={handleAddRow}
+            className="flex items-center gap-2 rounded-full border-2 border-dashed border-white/20 px-8 py-4 text-base text-stone-400 transition hover:border-amber-200/40 hover:text-amber-200 hover:bg-amber-200/5">
+            <span className="text-2xl font-light">+</span><span>Add new entry</span>
+          </button>
+          {showAddColorPicker && (
+            <div className="flex items-center gap-2 rounded-full border border-amber-200/30 bg-[#1d2736] px-4 py-2 shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
+              <span className="text-xs text-stone-400 mr-1">Color:</span>
+              <button onClick={() => handleAddColorSelected("white")}
+                className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white/60 bg-white text-xs font-bold uppercase tracking-wider text-stone-800 transition hover:scale-110 hover:border-white hover:bg-stone-100">W</button>
+              <button onClick={() => handleAddColorSelected("red")}
+                className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-rose-400/70 bg-rose-600 text-xs font-bold uppercase tracking-wider text-white transition hover:scale-110 hover:border-rose-300 hover:bg-rose-500">R</button>
+              <button onClick={() => handleAddColorSelected("green")}
+                className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-emerald-400/70 bg-emerald-600 text-xs font-bold uppercase tracking-wider text-white transition hover:scale-110 hover:border-emerald-300 hover:bg-emerald-500">G</button>
+              <button onClick={() => { setShowAddColorPicker(false); setPendingNewEntry(null); }}
+                className="ml-1 rounded-full border border-white/10 px-2 py-1 text-xs text-stone-400 transition hover:text-white hover:bg-white/5">✕</button>
+            </div>
+          )}
+        </div>
         <button onClick={handleRemoveRow} disabled={!selectedRow}
           className={`flex items-center gap-2 rounded-full border-2 px-8 py-4 text-base transition ${selectedRow ? "border-rose-400/40 text-rose-300 hover:border-rose-300/60 hover:bg-rose-500/10 hover:text-rose-200" : "border-white/10 text-stone-600 cursor-not-allowed"}`}>
           <span className="text-2xl font-light">✕</span><span>Remove selected row</span>
