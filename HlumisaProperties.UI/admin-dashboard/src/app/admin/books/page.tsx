@@ -621,10 +621,10 @@ function BooksContent() {
         </div>
       )}
 
-      <div ref={tableRef} className="backdrop-card overflow-x-auto rounded-[2rem]">
+      <div ref={tableRef} className="backdrop-card overflow-x-auto overflow-y-auto rounded-[2rem] max-h-[70vh]">
         <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="border-b border-white/10 text-xs uppercase tracking-wider text-stone-400">
+          <thead className="sticky top-0 z-10">
+            <tr className="border-b border-white/10 text-xs uppercase tracking-wider text-stone-400 bg-[#0d1520]">
               {columnOrder.map((key) => (
                 <th key={key} className={`px-4 py-4 ${key === "outstandingBalance" ? "text-rose-300" : ""} ${rightAlignedFields.has(key) ? "text-right" : ""}`}>
                   {fieldLabels[key]}
