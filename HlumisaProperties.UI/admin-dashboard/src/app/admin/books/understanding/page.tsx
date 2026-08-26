@@ -35,7 +35,7 @@ function BooksUnderstandingContent() {
           The <strong className="text-amber-200">Books</strong> section is a transaction ledger that records all property deals handled by Hlumisa Properties. Each row represents a single deal between a buyer and a seller. The table stores key financial figures for each transaction, including the amount due to the seller, commissions earned, transfer costs, electrical certificate fees, water account balances, Section 118 figures, and outstanding balances.
         </p>
         <p className="mt-2 text-sm leading-relaxed text-stone-300">
-          You can edit any editable cell by clicking on it. <strong className="text-amber-200">First a color picker popup appears</strong> — choose white, red, or green to highlight the cell value. Then type your value and press <kbd className="rounded bg-white/10 px-1.5 py-0.5 text-xs text-amber-200">Enter</kbd> to save or <kbd className="rounded bg-white/10 px-1.5 py-0.5 text-xs text-stone-400">Esc</kbd> to cancel. <strong className="text-amber-200">Everything auto-saves instantly to the database</strong> — no save button needed. A local copy is also kept in your browser as an offline backup.
+          You can edit any editable cell by clicking on it. <strong className="text-amber-200">First a color picker popup appears</strong> — choose white, red, or green to highlight the cell value. Then type your value and press <kbd className="rounded bg-white/10 px-1.5 py-0.5 text-xs text-amber-200">Enter</kbd> to save or <kbd className="rounded bg-white/10 px-1.5 py-0.5 text-xs text-stone-400">Esc</kbd> to cancel. When you click the "Save Changes" button, everything is persisted to <strong className="text-stone-200">the database</strong> via the API.
         </p>
       </section>
 
@@ -80,7 +80,7 @@ function BooksUnderstandingContent() {
             <p className="mt-1">The legal and administrative costs for transferring the property from the seller to the buyer.</p>
           </div>
           <div className="rounded-xl border border-white/5 bg-black/20 p-4">
-            <h3 className="font-semibold text-amber-200">📋 Master Fees</h3>
+            <h3 className="font-semibold text-amber-200">Master Fees</h3>
             <p className="mt-1">Fees paid to the Master of the High Court for estate-related matters. Now placed right next to Transfer Costs for easy reference. These are also tracked in the summary cards at the top.</p>
           </div>
           <div className="rounded-xl border border-white/5 bg-black/20 p-4">
@@ -88,11 +88,11 @@ function BooksUnderstandingContent() {
             <p className="mt-1">Electrical Certificate costs — the fee for the required electrical compliance certificate needed when transferring a property.</p>
           </div>
           <div className="rounded-xl border border-white/5 bg-black/20 p-4">
-            <h3 className="font-semibold text-amber-200">🚰 Water Account</h3>
+            <h3 className="font-semibold text-amber-200">Water Account</h3>
             <p className="mt-1">Outstanding water account amounts for the property that need to be settled as part of the transfer process.</p>
           </div>
           <div className="rounded-xl border border-white/5 bg-black/20 p-4">
-            <h3 className="font-semibold text-amber-200">📋 Section 118</h3>
+            <h3 className="font-semibold text-amber-200">Section 118</h3>
             <p className="mt-1">Section 118 is part of the property transfer process. Before a property can be transferred to a new owner, the municipality must issue a Rates Clearance Certificate. To get this certificate, the municipality requires a Section 118 clearance amount to be paid.</p>
             <div className="mt-3 rounded-lg border border-amber-200/20 bg-amber-500/5 p-4">
               <p className="font-medium text-amber-200 text-xs uppercase tracking-wide">Example</p>
@@ -123,15 +123,15 @@ function BooksUnderstandingContent() {
         </p>
         <ul className="mt-3 space-y-2 text-sm leading-relaxed text-stone-300">
           <li className="flex items-start gap-3">
-            <span className="mt-0.5 text-stone-200">○</span>
+            <span className="mt-0.5 text-stone-200"></span>
             <span><strong className="text-white">White</strong> — standard/default text color (greyish-white).</span>
           </li>
           <li className="flex items-start gap-3">
-            <span className="mt-0.5 text-rose-300">●</span>
+            <span className="mt-0.5 text-rose-300"></span>
             <span><strong className="text-rose-300">Red</strong> — highlights the cell value in rose-red with a subtle red background, useful for flagging problematic amounts.</span>
           </li>
           <li className="flex items-start gap-3">
-            <span className="mt-0.5 text-emerald-300">●</span>
+            <span className="mt-0.5 text-emerald-300"></span>
             <span><strong className="text-emerald-300">Green</strong> — highlights the cell value in emerald-green with a subtle green background, useful for confirming completed amounts.</span>
           </li>
         </ul>
@@ -187,7 +187,7 @@ function BooksUnderstandingContent() {
           </div>
           <div className="rounded-xl border border-white/5 bg-black/20 p-4">
             <h3 className="font-semibold text-rose-300">Remove a Row</h3>
-            <p className="mt-1"><strong className="text-white">Double-click</strong> any row to select it (it will get a golden highlight border). Then click the "<strong className="text-rose-300">✕ Remove selected row</strong>" button. The row will be deleted and all the summary numbers will update automatically. To deselect without deleting, <strong className="text-white">double-click anywhere on the page background</strong>.</p>
+            <p className="mt-1"><strong className="text-white">Double-click</strong> any row to select it (it will get a golden highlight border). Then click the "<strong className="text-rose-300">Remove selected row</strong>" button. The row will be deleted and all the summary numbers will update automatically. To deselect without deleting, <strong className="text-white">double-click anywhere on the page background</strong>.</p>
           </div>
         </div>
       </section>
@@ -229,15 +229,15 @@ function BooksUnderstandingContent() {
         </p>
         <ul className="mt-3 space-y-2 text-sm leading-relaxed text-stone-300">
           <li className="flex items-start gap-3">
-            <span className="mt-0.5 text-stone-200">○</span>
+            <span className="mt-0.5 text-stone-200"></span>
             <span><strong className="text-white">Pending</strong> — white/grey default state (not yet processed).</span>
           </li>
           <li className="flex items-start gap-3">
-            <span className="mt-0.5 text-rose-300">✕</span>
+            <span className="mt-0.5 text-rose-300"></span>
             <span><strong className="text-rose-300">Declined</strong> — red state for deals that fell through or were declined.</span>
           </li>
           <li className="flex items-start gap-3">
-            <span className="mt-0.5 text-emerald-200">✓</span>
+            <span className="mt-0.5 text-emerald-200"></span>
             <span><strong className="text-emerald-200">Done</strong> — green state for completed/successful deals.</span>
           </li>
         </ul>
@@ -271,7 +271,7 @@ function BooksUnderstandingContent() {
           </li>
           <li className="flex items-start gap-3">
             <span className="mt-0.5 text-emerald-200">5.</span>
-            <span>Every change you make <strong className="text-white">auto-saves</strong> to the database after a short pause, so closing the page or switching devices never loses your records.</span>
+            <span>When you click "<strong className="text-white">Save Changes</strong>", all the current data is persisted to the <strong className="text-white">database</strong> (new rows are created, edits updated, and removed rows deleted).</span>
           </li>
           <li className="flex items-start gap-3">
             <span className="mt-0.5 text-emerald-200">6.</span>
@@ -294,7 +294,7 @@ function BooksUnderstandingContent() {
           </li>
           <li className="flex items-start gap-3">
             <span className="mt-0.5 text-amber-200">•</span>
-            <span>Data is <strong className="text-white">stored in the database automatically</strong>, so it persists across browsers and devices. Your browser also keeps a local backup copy of your latest records.</span>
+            <span><strong className="text-white">Save Changes</strong> writes everything to the <strong className="text-white">database</strong>, so your records persist across devices and browsers (it no longer relies on your browser's localStorage).</span>
           </li>
           <li className="flex items-start gap-3">
             <span className="mt-0.5 text-amber-200">•</span>

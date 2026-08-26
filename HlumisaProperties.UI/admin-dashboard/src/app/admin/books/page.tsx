@@ -1,10 +1,9 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useState, useCallback, useRef, useEffect } from "react";
 import RequireZola from "@/components/RequireZola";
 import { parseExcelFile } from "@/lib/excelParser";
-import { formatNumberInput, parseNumberInput } from "@/lib/formatUtils";
 import {
   fetchTransactionLedger,
   createTransactionLedgerEntry,
@@ -36,6 +35,8 @@ type BookEntry = {
   area: string;
   outstandingBalance: number;
   statusColor: BookStatusColor;
+  /** Database id (set once the entry has been persisted server-side). */
+  backendId?: number;
 };
 
 /** Get today's date in South African timezone as YYYY-MM-DD */
@@ -64,262 +65,91 @@ const MONTH_NAMES = [
   "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER",
 ];
 
-/** Rank a month chronologically (JANUARY = 0, DECEMBER = 11). Unknown months sort last. */
+function monthNameToNumber(name: string): number {
+  return MONTH_NAMES.indexOf(String(name || "").toUpperCase().trim());
+}
+
+/** Rank a month chronologically (JANUARY = 0 … DECEMBER = 11). Unknown months sort last. */
 function monthRank(m: string): number {
-  const i = MONTH_NAMES.indexOf(m);
+  const i = monthNameToNumber(m);
   return i === -1 ? MONTH_NAMES.length : i;
 }
 
-// ====== DATABASE SYNC HELPERS ======
-
-/** Convert the Books date field (YYYY-MM-DD, possibly empty) to a valid DB date. */
-function toLedgerDate(dateStr: string): string {
-  const trimmed = (dateStr || "").trim();
-  return /^\d{4}-\d{2}-\d{2}/.test(trimmed)
-    ? `${trimmed}T00:00:00`
-    : `${getTodaySA()}T00:00:00`;
-}
-
-/** Extract this row's per-cell colors as a JSON string for the DB (CellColors column). */
-function rowCellColorsJson(colors: Record<string, BookStatusColor>, rowId: string): string {
-  const obj: Record<string, BookStatusColor> = {};
-  Object.keys(colors).forEach((key) => {
-    if (key.startsWith(`${rowId}_`)) {
-      obj[key.slice(rowId.length + 1)] = colors[key];
-    }
-  });
-  return JSON.stringify(obj);
-}
-
-/** Map a BookEntry (Books UI) → TransactionLedger API payload. */
-function entryToLedgerPayload(entry: BookEntry, colors: Record<string, BookStatusColor>): Partial<TransactionLedger> {
-  return {
-    date: toLedgerDate(entry.date),
-    month: (entry.month || "").toUpperCase(),
-    buyer: entry.buyer || "",
-    seller: entry.seller || "",
-    originalAmount: entry.originalAmount || 0,
-    dueToSeller: entry.amountPaid || 0,
-    deposit: entry.deposit || 0,
-    lostDeed: entry.lostDeed || 0,
-    commission: entry.commission || 0,
-    transferCosts: entry.transferCosts || 0,
-    masterFees: entry.masterFees || 0,
-    elecCert: entry.electricalCertificate || 0,
-    waterAccount: entry.waterAccount || 0,
-    section118: entry.section118 || 0,
-    balance: entry.outstandingBalance || 0,
-    erfNumber: entry.erfNumber || "",
-    area: entry.area || "",
-    status: entry.statusColor.toUpperCase(),
-    cellColors: rowCellColorsJson(colors, entry.id),
-  };
-}
-
-/** Map a TransactionLedger row from the DB → Books UI shape. */
-function ledgerToBookEntry(ledger: TransactionLedger): { entry: BookEntry; colors: Record<string, BookStatusColor> } {
-  const id = `db-${ledger.id}`;
-  const colors: Record<string, BookStatusColor> = {};
-  try {
-    const parsed = JSON.parse(ledger.cellColors || "{}") as Record<string, string>;
-    Object.keys(parsed).forEach((field) => {
-      if (parsed[field] === "red" || parsed[field] === "green" || parsed[field] === "white") {
-        colors[`${id}_${field}`] = parsed[field] as BookStatusColor;
-      }
-    });
-  } catch { /* ignore invalid cell-colors JSON */ }
-
-  const statusLower = (ledger.status || "").toLowerCase();
-  const statusColor: BookStatusColor = statusLower === "red" || statusLower === "green" ? statusLower : "white";
-
-  return {
-    entry: {
-      id,
-      date: String(ledger.date || "").slice(0, 10),
-      month: ledger.month || "",
-      buyer: ledger.buyer || "",
-      seller: ledger.seller || "",
-      originalAmount: Number(ledger.originalAmount ?? 0),
-      amountPaid: Number(ledger.dueToSeller ?? 0),
-      deposit: Number(ledger.deposit ?? 0),
-      lostDeed: Number(ledger.lostDeed ?? 0),
-      commission: Number(ledger.commission ?? 0),
-      transferCosts: Number(ledger.transferCosts ?? 0),
-      masterFees: Number(ledger.masterFees ?? 0),
-      balance: 0,
-      electricalCertificate: Number(ledger.elecCert ?? 0),
-      waterAccount: Number(ledger.waterAccount ?? 0),
-      section118: Number(ledger.section118 ?? 0),
-      erfNumber: ledger.erfNumber || "",
-      area: ledger.area || "",
-      outstandingBalance: Number(ledger.balance ?? 0),
-      statusColor,
-    },
-    colors,
-  };
-}
-
-/** Deterministic snapshot of a row (incl. its colors) so we only PUT rows that actually changed. */
-function serializeBookEntry(entry: BookEntry, colors: Record<string, BookStatusColor>): string {
-  return JSON.stringify({ ...entry, cellColors: rowCellColorsJson(colors, entry.id) });
-}
-
 /**
- * Sync the current Books table to the database:
- *  - new rows    → POST (create) + remember the server id
- *  - changed rows → PUT (update)
- *  - removed rows → DELETE
- * Returns false if any call failed (those rows are retried on the next autosave).
+ * Returns a YYYY-MM-DD date for a row. If the row has an explicit date we keep it;
+ * otherwise we derive a representative date from the Month so the backend's
+ * auto-derived Month always matches the selected month (e.g. an empty date in month
+ * MARCH becomes 2026-03-01 and never gets mislabelled as JANUARY by the server).
  */
-async function syncLedgerToDatabase(
-  current: BookEntry[],
-  colors: Record<string, BookStatusColor>,
-  idMap: Record<string, number>,
-  synced: Record<string, string>,
-  keepalive = false,
-): Promise<boolean> {
-  let ok = true;
-  const currentIds = new Set(current.map((e) => e.id));
-
-  // Rows that were persisted but no longer exist in the table → delete them.
-  const toDelete = Object.keys(idMap).filter((clientId) => !currentIds.has(clientId));
-  for (const clientId of toDelete) {
-    const serverId = idMap[clientId];
-    try {
-      await deleteTransactionLedgerEntry(serverId, keepalive);
-      delete idMap[clientId];
-      delete synced[clientId];
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (msg.includes("(404)")) {
-        delete idMap[clientId];
-        delete synced[clientId];
-      } else {
-        ok = false; // retry on the next autosave
-      }
-    }
-  }
-
-  // Upsert every visible row.
-  for (const entry of current) {
-    const snapshot = serializeBookEntry(entry, colors);
-    const serverId = idMap[entry.id];
-    try {
-      if (serverId) {
-        if (synced[entry.id] !== snapshot) {
-          await updateTransactionLedgerEntry(serverId, entryToLedgerPayload(entry, colors), keepalive);
-          synced[entry.id] = snapshot;
-        }
-      } else {
-        const created = await createTransactionLedgerEntry(entryToLedgerPayload(entry, colors), keepalive);
-        idMap[entry.id] = created.id;
-        synced[entry.id] = snapshot;
-      }
-    } catch {
-      ok = false;
-    }
-  }
-
-  // Persist the client-id → server-id map so reloads never lose track or duplicate.
-  try {
-    localStorage.setItem("hlumisa-books-ids", JSON.stringify(idMap));
-  } catch { /* ignore */ }
-  return ok;
+function resolveDate(dateStr: string, month: string): string {
+  if (dateStr && /^\d{4}-\d{2}-\d{2}/.test(dateStr)) return dateStr;
+  const m = monthNameToNumber(month) + 1;
+  const year = new Date().getFullYear();
+  if (m < 1) return `${year}-01-01`;
+  return `${year}-${String(m).padStart(2, "0")}-01`;
 }
 
-const initialData: BookEntry[] = [
-  { id: "jan1", date: "", month: "JANUARY", buyer: "MASOKA", seller: "E/L MANCATA", originalAmount: 0, amountPaid: 140000, deposit: 0, lostDeed: 0, commission: 30000, transferCosts: 15000, masterFees: 10520, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "1588", area: "WELLS ESTATE", outstandingBalance: 0, statusColor: "white" },
-  { id: "jan2", date: "", month: "JANUARY", buyer: "SWELINDAWO", seller: "SMILO", originalAmount: 0, amountPaid: 150000, deposit: 0, lostDeed: 0, commission: 15000, transferCosts: 15000, masterFees: 10520, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "IBHAYI", outstandingBalance: 0, statusColor: "white" },
-  { id: "jan3", date: "", month: "JANUARY", buyer: "KITSANA", seller: "NKABI", originalAmount: 0, amountPaid: 110000, deposit: 60000, lostDeed: 50000, commission: 0, transferCosts: 15000, masterFees: 10520, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "21755", area: "MOTHERWELL", outstandingBalance: 0, statusColor: "white" },
-  { id: "jan4", date: "", month: "JANUARY", buyer: "NONJAKAZI", seller: "SAM", originalAmount: 0, amountPaid: 195000, deposit: 0, lostDeed: 0, commission: 15000, transferCosts: 15000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "65696", area: "IBHAYI", outstandingBalance: 0, statusColor: "white" },
-  { id: "jan5", date: "", month: "JANUARY", buyer: "NDABAMBI", seller: "E/L JOHNSON", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 7800, commission: 0, transferCosts: 21000, masterFees: 10520, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "18741", area: "MOTHERWELL", outstandingBalance: 0, statusColor: "white" },
-  { id: "jan6", date: "", month: "JANUARY", buyer: "MINI", seller: "MTATI", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 15000, transferCosts: 15000, masterFees: 10520, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "31834", area: "KAMVELIHLE", outstandingBalance: 0, statusColor: "white" },
-  { id: "jan7", date: "", month: "JANUARY", buyer: "PLAATJIES", seller: "E/L BINDA", originalAmount: 0, amountPaid: 160000, deposit: 0, lostDeed: 7800, commission: 0, transferCosts: 13500, masterFees: 10520, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "27922", area: "MOTHERWELL", outstandingBalance: 0, statusColor: "white" },
-  { id: "jan8", date: "", month: "JANUARY", buyer: "GWATUDZI", seller: "SMILE", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 0, transferCosts: 21500, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "MOTHERWELL", outstandingBalance: 0, statusColor: "white" },
-  { id: "jan9", date: "", month: "JANUARY", buyer: "TOBI", seller: "MZOZOYANA", originalAmount: 0, amountPaid: 205600, deposit: 0, lostDeed: 0, commission: 30000, transferCosts: 15600, masterFees: 10520, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "28514", area: "MOTHERWELL", outstandingBalance: 90000, statusColor: "white" },
-  { id: "jan10", date: "", month: "JANUARY", buyer: "HEWANA", seller: "E/L MBUTUMA", originalAmount: 0, amountPaid: 24000, deposit: 0, lostDeed: 0, commission: 11000, transferCosts: 13000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "20342", area: "BETHELSDORP", outstandingBalance: 0, statusColor: "white" },
-  { id: "jan11", date: "", month: "JANUARY", buyer: "MZAYIDUME", seller: "E/L MCOTOYI", originalAmount: 0, amountPaid: 140000, deposit: 0, lostDeed: 0, commission: 25000, transferCosts: 15000, masterFees: 10520, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "16429", area: "MOTHERWELL", outstandingBalance: 0, statusColor: "white" },
-  { id: "jan12", date: "", month: "JANUARY", buyer: "GONI", seller: "FANS", originalAmount: 0, amountPaid: 13000, deposit: 7000, lostDeed: 0, commission: 0, transferCosts: 13000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "7958", area: "BOOYSENS", outstandingBalance: 0, statusColor: "white" },
-  { id: "jan13", date: "", month: "JANUARY", buyer: "NQWENISO", seller: "DAVIDS", originalAmount: 0, amountPaid: 163000, deposit: 0, lostDeed: 7800, commission: 30000, transferCosts: 13000, masterFees: 10520, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "27114", area: "MOTHERWELL", outstandingBalance: 40000, statusColor: "white" },
-  { id: "jan14", date: "", month: "JANUARY", buyer: "JOHNSON", seller: "JONAS", originalAmount: 0, amountPaid: 180000, deposit: 0, lostDeed: 0, commission: 0, transferCosts: 15000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "30583", area: "MISSIONVALLE", outstandingBalance: 0, statusColor: "white" },
-  { id: "jan15", date: "", month: "JANUARY", buyer: "GABAYI", seller: "E/L GANA", originalAmount: 0, amountPaid: 190000, deposit: 0, lostDeed: 0, commission: 0, transferCosts: 15000, masterFees: 10520, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "", outstandingBalance: 0, statusColor: "white" },
-  { id: "jan16", date: "", month: "JANUARY", buyer: "KWATSHA", seller: "MZOZOYANA", originalAmount: 0, amountPaid: 170000, deposit: 0, lostDeed: 7800, commission: 50000, transferCosts: 15000, masterFees: 10520, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "24014", area: "MOTHERWELL", outstandingBalance: 100000, statusColor: "white" },
-  { id: "jan17", date: "", month: "JANUARY", buyer: "BOKOYI", seller: "MZOZOYANA", originalAmount: 0, amountPaid: 190000, deposit: 0, lostDeed: 7800, commission: 40000, transferCosts: 15000, masterFees: 10520, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "31553", area: "KAMVELIHLE", outstandingBalance: 44500, statusColor: "white" },
-  { id: "jan18", date: "", month: "JANUARY", buyer: "PONO/KAWE", seller: "E/L CAKWE", originalAmount: 0, amountPaid: 170000, deposit: 0, lostDeed: 0, commission: 24000, transferCosts: 15000, masterFees: 10520, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "MOTHERWELL", outstandingBalance: 0, statusColor: "white" },
-  { id: "jan19", date: "", month: "JANUARY", buyer: "ZEPE", seller: "MANELI", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 40000, transferCosts: 0, masterFees: 10520, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "BOND", area: "", outstandingBalance: 0, statusColor: "white" },
-  { id: "jan20", date: "", month: "JANUARY", buyer: "SIDLABANE", seller: "E/L SKOSANA", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 0, transferCosts: 28500, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "", outstandingBalance: 0, statusColor: "white" },
-  { id: "jan21", date: "", month: "JANUARY", buyer: "SIMANGO", seller: "SIMANGO", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 0, transferCosts: 21500, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "19007", area: "IBHAYI", outstandingBalance: 0, statusColor: "white" },
-  { id: "jan22", date: "", month: "JANUARY", buyer: "BEBE", seller: "E/L QOLANI", originalAmount: 0, amountPaid: 203000, deposit: 0, lostDeed: 0, commission: 14000, transferCosts: 13000, masterFees: 10520, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "65033", area: "IBHAYI", outstandingBalance: 0, statusColor: "white" },
-  { id: "feb1", date: "", month: "FEBRUARY", buyer: "KONA", seller: "LUBAMBO", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 0, transferCosts: 13000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "7941", area: "DESPATCH", outstandingBalance: 0, statusColor: "white" },
-  { id: "feb2", date: "", month: "FEBRUARY", buyer: "SAM", seller: "DLAKUDLA", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 14000, transferCosts: 13000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "65696", area: "IBHAYI", outstandingBalance: 0, statusColor: "white" },
-  { id: "feb3", date: "", month: "FEBRUARY", buyer: "MZOZOYANA", seller: "NTEYI", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 75000, transferCosts: 0, masterFees: 10520, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "5351", area: "WELLS ESTATE", outstandingBalance: 0, statusColor: "white" },
-  { id: "feb4", date: "", month: "FEBRUARY", buyer: "SIWENDU", seller: "E/L MOSI", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 0, transferCosts: 10000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "22718", area: "KAMVELIHLE", outstandingBalance: 0, statusColor: "white" },
-  { id: "feb5", date: "", month: "FEBRUARY", buyer: "MANELI", seller: "RALA", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 100000, transferCosts: 0, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "27969", area: "MOTHERWELL", outstandingBalance: 0, statusColor: "white" },
-  { id: "feb6", date: "", month: "FEBRUARY", buyer: "SIWENDU", seller: "MNYAMANA", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 7800, commission: 0, transferCosts: 13000, masterFees: 10520, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "32937", area: "MOTHERWELL", outstandingBalance: 0, statusColor: "white" },
-  { id: "feb7", date: "", month: "FEBRUARY", buyer: "SIYA", seller: "MAVATHA", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 7800, commission: 6000, transferCosts: 13000, masterFees: 10520, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "27281", area: "MOTHERWELL", outstandingBalance: 0, statusColor: "white" },
-  { id: "feb8", date: "", month: "FEBRUARY", buyer: "NCULA", seller: "NOTSHOBA", originalAmount: 0, amountPaid: 160000, deposit: 0, lostDeed: 0, commission: 0, transferCosts: 15000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "30801", area: "MOTHERWELL", outstandingBalance: 0, statusColor: "white" },
-  { id: "feb9", date: "", month: "FEBRUARY", buyer: "NTSHOKO", seller: "E/L MPOZA", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 7800, commission: 0, transferCosts: 13000, masterFees: 10520, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "32293", area: "KWANOBUHLE", outstandingBalance: 0, statusColor: "white" },
-  { id: "mar1", date: "", month: "MARCH", buyer: "XHANTI", seller: "SODZEME", originalAmount: 0, amountPaid: 280000, deposit: 0, lostDeed: 0, commission: 70000, transferCosts: 20000, masterFees: 10520, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "3902", area: "MOTHERWELL", outstandingBalance: 0, statusColor: "white" },
-  { id: "mar2", date: "", month: "MARCH", buyer: "XHANTI", seller: "LUKWE", originalAmount: 0, amountPaid: 200000, deposit: 0, lostDeed: 38000, commission: 25000, transferCosts: 18000, masterFees: 38000, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "4077", area: "IBHAYI", outstandingBalance: 170000, statusColor: "white" },
-  { id: "mar3", date: "", month: "MARCH", buyer: "MPALALA", seller: "MPI", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 0, transferCosts: 15000, masterFees: 10520, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "33931", area: "MOTHERWELL", outstandingBalance: 0, statusColor: "white" },
-  { id: "mar4", date: "", month: "MARCH", buyer: "MCAKUMBANA", seller: "FUBESI", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 0, transferCosts: 13000, masterFees: 10520, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "13067", area: "BOOYSENS PARK", outstandingBalance: 0, statusColor: "white" },
-  { id: "mar5", date: "", month: "MARCH", buyer: "BILLY", seller: "MAVATA", originalAmount: 0, amountPaid: 195000, deposit: 0, lostDeed: 0, commission: 25000, transferCosts: 15000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "26739", area: "MOTHERWELL", outstandingBalance: 120000, statusColor: "white" },
-  { id: "mar6", date: "", month: "MARCH", buyer: "TSILITE", seller: "NYAMAKAZI", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 0, transferCosts: 21000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "14797", area: "MOTHERWELL", outstandingBalance: 40000, statusColor: "white" },
-  { id: "mar7", date: "", month: "MARCH", buyer: "MAFUXWANA", seller: "NXADI", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 30000, transferCosts: 0, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "16850", area: "MOTHERWELL", outstandingBalance: 0, statusColor: "white" },
-  { id: "mar8", date: "", month: "MARCH", buyer: "MLUNGWANA", seller: "KOTA", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 0, transferCosts: 14800, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "26420", area: "BETHELSDORP", outstandingBalance: 0, statusColor: "white" },
-  { id: "mar9", date: "", month: "MARCH", buyer: "MPOFU", seller: "NALITI", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 7800, commission: 0, transferCosts: 13000, masterFees: 10520, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "MOTHERWELL", outstandingBalance: 0, statusColor: "white" },
-  { id: "mar10", date: "", month: "MARCH", buyer: "MZOZOYANA", seller: "MJIJWA", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 40000, transferCosts: 17000, masterFees: 10520, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "MOTHERWELL", outstandingBalance: 150000, statusColor: "white" },
-  { id: "apr1", date: "", month: "APRIL", buyer: "MDABULA", seller: "MDABULA", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 0, transferCosts: 25000, masterFees: 10520, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "2835", area: "IBHAYI", outstandingBalance: 0, statusColor: "white" },
-  { id: "apr2", date: "", month: "APRIL", buyer: "NYIKI", seller: "KLAAS", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 7800, commission: 0, transferCosts: 13000, masterFees: 10520, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "12169", area: "KWANOBUHLE", outstandingBalance: 0, statusColor: "white" },
-  { id: "apr3", date: "", month: "APRIL", buyer: "MKHONTO", seller: "E/L YOKO", originalAmount: 0, amountPaid: 190000, deposit: 0, lostDeed: 7800, commission: 0, transferCosts: 16000, masterFees: 10520, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "24755", area: "MOTHERWELL", outstandingBalance: 106950, statusColor: "white" },
-  { id: "apr4", date: "", month: "APRIL", buyer: "VANTYI", seller: "MAYISHE", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 30000, transferCosts: 0, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "9106", area: "IBHAYI", outstandingBalance: 0, statusColor: "white" },
-  { id: "apr5", date: "", month: "APRIL", buyer: "FANTA", seller: "KHWALO", originalAmount: 0, amountPaid: 200000, deposit: 0, lostDeed: 0, commission: 20000, transferCosts: 15000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "MOTHERWELL", outstandingBalance: 0, statusColor: "white" },
-  { id: "apr6", date: "", month: "APRIL", buyer: "MZALAZALA", seller: "JOKANI", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 7800, commission: 0, transferCosts: 13000, masterFees: 10520, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "16758", area: "MOTHERWELL", outstandingBalance: 0, statusColor: "white" },
-  { id: "apr7", date: "", month: "APRIL", buyer: "MZOZOYANA", seller: "MAGABA", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 5000, transferCosts: 13000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "", outstandingBalance: 0, statusColor: "white" },
-  { id: "apr8", date: "", month: "APRIL", buyer: "NTONTELA", seller: "MATANJANA", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 20000, transferCosts: 0, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "BOND", area: "", outstandingBalance: 0, statusColor: "white" },
-  { id: "apr9", date: "", month: "APRIL", buyer: "MANELI", seller: "MANJEZI", originalAmount: 0, amountPaid: 195000, deposit: 0, lostDeed: 0, commission: 10000, transferCosts: 18000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "", outstandingBalance: 0, statusColor: "white" },
-  { id: "apr10", date: "", month: "APRIL", buyer: "NGANGANI", seller: "NGANGANI", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 0, transferCosts: 10000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "", outstandingBalance: 0, statusColor: "white" },
-  { id: "may1", date: "", month: "MAY", buyer: "FUZANI", seller: "E/L TORO", originalAmount: 0, amountPaid: 39000, deposit: 0, lostDeed: 7800, commission: 0, transferCosts: 13000, masterFees: 10520, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "25475", area: "KWANOBUHLE", outstandingBalance: 16220, statusColor: "white" },
-  { id: "may2", date: "", month: "MAY", buyer: "MNYAMANA", seller: "E/L DESI", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 7800, commission: 0, transferCosts: 13000, masterFees: 10520, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "28121", area: "KWANOBUHLE", outstandingBalance: 0, statusColor: "white" },
-  { id: "may3", date: "", month: "MAY", buyer: "NTSINI", seller: "E/L TUSWA", originalAmount: 0, amountPaid: 153000, deposit: 0, lostDeed: 7800, commission: 15000, transferCosts: 13000, masterFees: 10520, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "27040", area: "MOTHERWELL", outstandingBalance: 80000, statusColor: "white" },
-  { id: "may4", date: "", month: "MAY", buyer: "ZWENI", seller: "E/L MAPU", originalAmount: 0, amountPaid: 60000, deposit: 0, lostDeed: 7800, commission: 0, transferCosts: 13000, masterFees: 10520, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "11679", area: "KWANOBUHLE", outstandingBalance: 34700, statusColor: "white" },
-  { id: "may5", date: "", month: "MAY", buyer: "CHIEF SAI", seller: "", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 30000, transferCosts: 18000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "25600", area: "MOTHERWELL", outstandingBalance: 0, statusColor: "white" },
-  { id: "may6", date: "", month: "MAY", buyer: "JELA", seller: "SIGUTYWA", originalAmount: 0, amountPaid: 150000, deposit: 0, lostDeed: 13000, commission: 0, transferCosts: 13000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "34863", area: "MOTHERWELL", outstandingBalance: 0, statusColor: "white" },
-  { id: "may7", date: "", month: "MAY", buyer: "MZOZOYANA", seller: "NTENTENI", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 40000, transferCosts: 18000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "MOTHERWELL", outstandingBalance: 0, statusColor: "white" },
-  { id: "may8", date: "", month: "MAY", buyer: "SNAM", seller: "E/L SLATER", originalAmount: 0, amountPaid: 225000, deposit: 0, lostDeed: 0, commission: 0, transferCosts: 18000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "1357", area: "WELLS ESTATE", outstandingBalance: 100000, statusColor: "white" },
-  { id: "may9", date: "", month: "MAY", buyer: "", seller: "PALAMENTE", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 0, transferCosts: 18000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "27366", area: "MOTHERWELL", outstandingBalance: 0, statusColor: "white" },
-  { id: "may10", date: "", month: "MAY", buyer: "MANGE", seller: "E/L TALAMBA", originalAmount: 0, amountPaid: 119701, deposit: 0, lostDeed: 7800, commission: 0, transferCosts: 20000, masterFees: 10520, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "9708", area: "KWANOBUHLE", outstandingBalance: 81381, statusColor: "white" },
-  { id: "jun1", date: "", month: "JUNE", buyer: "MTSHAULANA", seller: "ZENZILE", originalAmount: 0, amountPaid: 83000, deposit: 0, lostDeed: 0, commission: 0, transferCosts: 13000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "", outstandingBalance: 0, statusColor: "white" },
-  { id: "jun2", date: "", month: "JUNE", buyer: "MJUZA", seller: "MAYEKISO", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 7800, commission: 0, transferCosts: 13000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "17993", area: "MISSIONVALE", outstandingBalance: 72200, statusColor: "white" },
-  { id: "jun3", date: "", month: "JUNE", buyer: "MAFUNDA", seller: "DAYIMANI", originalAmount: 0, amountPaid: 180000, deposit: 0, lostDeed: 7800, commission: 0, transferCosts: 17000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "WELLS ESTATE", outstandingBalance: 92200, statusColor: "white" },
-  { id: "jun4", date: "", month: "JUNE", buyer: "", seller: "BOOI", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 0, transferCosts: 0, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "IBHAYI", outstandingBalance: 0, statusColor: "white" },
-  { id: "jun5", date: "", month: "JUNE", buyer: "MZOZOYANA", seller: "NANGU", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 60000, transferCosts: 20000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "MOTHERWELL", outstandingBalance: 0, statusColor: "white" },
-  { id: "jun6", date: "", month: "JUNE", buyer: "TSOTSO", seller: "", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 0, transferCosts: 18000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "", outstandingBalance: 0, statusColor: "white" },
-  { id: "jun7", date: "", month: "JUNE", buyer: "", seller: "THANDIWE", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 0, transferCosts: 0, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "IBHAYI", outstandingBalance: 0, statusColor: "white" },
-  { id: "jun8", date: "", month: "JUNE", buyer: "MZOZOYANA", seller: "E/L TSHIRA", originalAmount: 0, amountPaid: 250000, deposit: 0, lostDeed: 0, commission: 50000, transferCosts: 20000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "MOTHERWELL", outstandingBalance: 0, statusColor: "white" },
-  { id: "jun9", date: "", month: "JUNE", buyer: "", seller: "NGXANGANI", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 30000, transferCosts: 18000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "IBHAYI", outstandingBalance: 0, statusColor: "white" },
-  { id: "jun10", date: "", month: "JUNE", buyer: "SIYA", seller: "BAKWANA", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 0, transferCosts: 0, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "BLOEMENDAL", outstandingBalance: 0, statusColor: "white" },
-  { id: "jun11", date: "", month: "JUNE", buyer: "MANELI", seller: "JONAS", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 20000, transferCosts: 18000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "", outstandingBalance: 0, statusColor: "white" },
-  { id: "jun12", date: "", month: "JUNE", buyer: "", seller: "KHASTA", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 20000, transferCosts: 20000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "IBHAYI", outstandingBalance: 0, statusColor: "white" },
-  { id: "jun13", date: "", month: "JUNE", buyer: "JACK", seller: "T MAN", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 0, transferCosts: 18000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "NKANDLA", outstandingBalance: 0, statusColor: "white" },
-  { id: "jun14", date: "", month: "JUNE", buyer: "JOSEPH", seller: "MTATI", originalAmount: 0, amountPaid: 117000, deposit: 0, lostDeed: 50000, commission: 0, transferCosts: 17000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "BLOEMENDAL", outstandingBalance: 80000, statusColor: "white" },
-  { id: "jun15", date: "", month: "JUNE", buyer: "MOODLEY", seller: "SAM", originalAmount: 0, amountPaid: 153000, deposit: 0, lostDeed: 0, commission: 0, transferCosts: 13000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "UITENHAGE", outstandingBalance: 0, statusColor: "white" },
-  { id: "jul1", date: "", month: "JULY", buyer: "MZOZOYANA", seller: "E/L NYODI", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 40000, transferCosts: 18000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "MOTHERWELL", outstandingBalance: 0, statusColor: "white" },
-  { id: "jul2", date: "", month: "JULY", buyer: "MAHLAKAHLAKA", seller: "NZUBE", originalAmount: 0, amountPaid: 94000, deposit: 0, lostDeed: 0, commission: 0, transferCosts: 16000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "", outstandingBalance: 0, statusColor: "white" },
-  { id: "jul3", date: "", month: "JULY", buyer: "MZOZOYANA", seller: "MPI", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 150000, transferCosts: 17000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "33931", area: "MOTHERWELL", outstandingBalance: 0, statusColor: "white" },
-  { id: "jul4", date: "", month: "JULY", buyer: "MZOZOYANA", seller: "MTATI", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 25000, transferCosts: 17000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "MOTHERWELL", outstandingBalance: 0, statusColor: "white" },
-  { id: "jul5", date: "", month: "JULY", buyer: "MZOZOYANA", seller: "MPI", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 0, transferCosts: 0, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "MOTHERWELL", outstandingBalance: 0, statusColor: "white" },
-  { id: "jul6", date: "", month: "JULY", buyer: "FRANCE", seller: "MAKHULU", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 60000, transferCosts: 0, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "BOND", area: "IBHAYI", outstandingBalance: 0, statusColor: "white" },
-  { id: "jul7", date: "", month: "JULY", buyer: "ENTITY", seller: "SIMANGA", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 0, transferCosts: 12500, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "1743", area: "KWANOBUHLE", outstandingBalance: 25405, statusColor: "white" },
-  { id: "jul8", date: "", month: "JULY", buyer: "LEVEL", seller: "VENA", originalAmount: 0, amountPaid: 0, deposit: 6000, lostDeed: 0, commission: 0, transferCosts: 7000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "38155", area: "MOTHERWELL", outstandingBalance: 0, statusColor: "white" },
-  { id: "jul9", date: "", month: "JULY", buyer: "PAYI", seller: "", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 0, transferCosts: 13000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "IBHAYI", outstandingBalance: 0, statusColor: "white" },
-  { id: "jul10", date: "", month: "JULY", buyer: "MATYUNU", seller: "", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 0, transferCosts: 13000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "KWANOBUHLE", outstandingBalance: 30000, statusColor: "white" },
-  { id: "jul11", date: "", month: "JULY", buyer: "YOYO", seller: "E/L MANKEYA", originalAmount: 0, amountPaid: 180000, deposit: 0, lostDeed: 0, commission: 0, transferCosts: 15000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "KWADWESI", outstandingBalance: 0, statusColor: "white" },
-  { id: "jul12", date: "", month: "JULY", buyer: "CENENDA", seller: "BOOI", originalAmount: 0, amountPaid: 147200, deposit: 0, lostDeed: 0, commission: 0, transferCosts: 14000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "IBHAYI", outstandingBalance: 27200, statusColor: "white" },
-  { id: "aug1", date: "", month: "AUGUST", buyer: "KWATSHUBE", seller: "NGUMBELA", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 0, transferCosts: 15000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "14848", area: "BLOEMENDAL", outstandingBalance: 0, statusColor: "white" },
-  { id: "aug2", date: "", month: "AUGUST", buyer: "MZOZOYANA", seller: "E/L THEMBANI", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 25000, transferCosts: 20000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "33259", area: "MOTHERWELL", outstandingBalance: 0, statusColor: "white" },
-  { id: "aug3", date: "", month: "AUGUST", buyer: "MATI", seller: "", originalAmount: 0, amountPaid: 0, deposit: 0, lostDeed: 0, commission: 0, transferCosts: 20000, masterFees: 0, balance: 0, electricalCertificate: 0, waterAccount: 0, section118: 0, erfNumber: "", area: "MOTHERWELL", outstandingBalance: 0, statusColor: "white" },
-];
+/** Map a database entry onto the UI BookEntry model (id is namespaced as db-<id>). */
+function dbToEntry(r: TransactionLedger): BookEntry {
+  const rawDate = String(r.date ?? "");
+  return {
+    id: `db-${r.id}`,
+    backendId: r.id,
+    date: rawDate.slice(0, 10),
+    month: r.month || "",
+    buyer: r.buyer || "",
+    seller: r.seller || "",
+    originalAmount: Number(r.originalAmount) || 0,
+    amountPaid: Number(r.dueToSeller) || 0,
+    deposit: Number(r.deposit) || 0,
+    lostDeed: Number(r.lostDeed) || 0,
+    commission: Number(r.commission) || 0,
+    transferCosts: Number(r.transferCosts) || 0,
+    masterFees: Number(r.masterFees) || 0,
+    balance: 0,
+    electricalCertificate: Number(r.elecCert) || 0,
+    waterAccount: Number(r.waterAccount) || 0,
+    section118: Number(r.section118) || 0,
+    erfNumber: r.erfNumber || "",
+    area: r.area || "",
+    outstandingBalance: Number(r.balance) || 0,
+    statusColor: (r.status as BookStatusColor) || "white",
+  };
+}
+
+/** Build the API payload from a UI row, mapping UI column names onto DB columns. */
+function toLedgerPayload(
+  entry: BookEntry,
+  colors: Record<string, BookStatusColor>
+): Partial<TransactionLedger> {
+  const rowColors: Record<string, BookStatusColor> = {};
+  Object.entries(colors).forEach(([k, v]) => {
+    if (k.startsWith(`${entry.id}_`)) rowColors[k.slice(entry.id.length + 1)] = v;
+  });
+
+  return {
+    date: resolveDate(entry.date, entry.month),
+    month: entry.month,
+    buyer: entry.buyer,
+    seller: entry.seller,
+    originalAmount: entry.originalAmount,
+    dueToSeller: entry.amountPaid,
+    deposit: entry.deposit,
+    lostDeed: entry.lostDeed,
+    commission: entry.commission,
+    transferCosts: entry.transferCosts,
+    masterFees: entry.masterFees,
+    elecCert: entry.electricalCertificate,
+    waterAccount: entry.waterAccount,
+    section118: entry.section118,
+    balance: entry.outstandingBalance,
+    erfNumber: entry.erfNumber,
+    area: entry.area,
+    status: entry.statusColor,
+    cellColors: JSON.stringify(rowColors),
+  };
+}
+
 
 type FieldType = "number" | "text" | "readonly";
 
@@ -344,7 +174,7 @@ const fieldConfig: Record<string, FieldType> = {
   outstandingBalance: "number",
 };
 
-/** Ordered keys for table columns — new layout as requested */
+/** Ordered keys for table columns Ã¢â‚¬â€ new layout as requested */
 const columnOrder = [
   "date", "month", "buyer", "seller", "originalAmount", "amountPaid",
   "deposit", "lostDeed", "commission", "transferCosts", "masterFees",
@@ -375,7 +205,7 @@ function formatMoney(amount: number) {
     style: "currency",
     currency: "ZAR",
     maximumFractionDigits: 0,
-  }).format(amount).replace(/,/g, " ");
+  }).format(amount);
 }
 
 function getCellColorClass(color: BookStatusColor): string {
@@ -403,293 +233,61 @@ export default function BooksPage() {
 }
 
 function BooksContent() {
-  const [data, setData] = useState<BookEntry[]>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("hlumisa-books-data");
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed as BookEntry[];
-        } catch { /* ignore corrupted data */ }
-      }
-    }
-    return initialData;
-  });
+  const [data, setData] = useState<BookEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState<string>("ALL");
   const [editCell, setEditCell] = useState<{ row: string; field: string } | null>(null);
   const [editValue, setEditValue] = useState<string>("");
   const [saved, setSaved] = useState(false);
   const [highlightedRow, setHighlightedRow] = useState<string | null>(null);
   const [selectedRow, setSelectedRow] = useState<string | null>(null);
-  const [pendingFields, setPendingFields] = useState<Record<string, boolean>>(() => {
-    const initial: Record<string, boolean> = {};
-    initialData.forEach((row) => {
-      if (row.lostDeed === 7800) initial[`${row.id}_lostDeed`] = true;
-      if (row.outstandingBalance > 0) initial[`${row.id}_outstandingBalance`] = true;
-      if (row.lostDeed === 50000) initial[`${row.id}_lostDeed`] = true;
-    });
-    return initial;
-  });
+  const [pendingFields, setPendingFields] = useState<Record<string, boolean>>({});
 
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [cellColors, setCellColors] = useState<Record<string, BookStatusColor>>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("hlumisa-books-colors");
-      if (saved) {
+  const [cellColors, setCellColors] = useState<Record<string, BookStatusColor>>({});
+
+  // Load the transaction ledger from the database on mount.
+  const loadLedger = useCallback(async () => {
+    try {
+      setLoading(true);
+      const rows = await fetchTransactionLedger();
+      const mapped = rows.map(dbToEntry);
+      const colors: Record<string, BookStatusColor> = {};
+      rows.forEach((r) => {
+        let stored: Record<string, string> = {};
         try {
-          const parsed = JSON.parse(saved);
-          if (parsed && typeof parsed === "object") return parsed as Record<string, BookStatusColor>;
-        } catch { /* ignore corrupted data */ }
-      }
-    }
-    const initial: Record<string, BookStatusColor> = {};
-    initialData.forEach((row) => {
-      if (row.outstandingBalance > 0) initial[`${row.id}_outstandingBalance`] = "red";
-      if (row.lostDeed === 7800) initial[`${row.id}_lostDeed`] = "red";
-      if (row.lostDeed === 50000) initial[`${row.id}_lostDeed`] = "red";
-      if (row.commission > 39000) initial[`${row.id}_commission`] = "green";
-    });
-    return initial;
-  });
-
-  // ===== DATABASE CONNECTION / SYNC STATE =====
-  const dataRef = useRef(data);
-  const colorsRef = useRef(cellColors);
-  const serverIdRef = useRef<Record<string, number>>({});
-  const syncedStateRef = useRef<Record<string, string>>({});
-  const syncingRef = useRef(false);
-  const pendingSyncRef = useRef(false);
-  const hydratedRef = useRef(false);
-  const hydratingRef = useRef(false);
-  const syncTimerRef = useRef<number | null>(null);
-
-  const [dbConnected, setDbConnected] = useState<boolean | null>(null);
-  const [syncingNow, setSyncingNow] = useState(false);
-  const [syncError, setSyncError] = useState(false);
-
-  // Restore the client-id → server-id map we persisted from previous sessions.
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("hlumisa-books-ids");
-      if (raw) serverIdRef.current = JSON.parse(raw) as Record<string, number>;
-    } catch { /* ignore corrupted data */ }
-  }, []);
-
-  // Update state AND the ref synchronously so an "instant" save right after a
-  // handler always sees the newest values (functional updaters only run later).
-  const commitData = useCallback((updater: (prev: BookEntry[]) => BookEntry[]) => {
-    const next = updater(dataRef.current);
-    dataRef.current = next;
-    setData(next);
-  }, []);
-
-  const commitColors = useCallback((updater: (prev: Record<string, BookStatusColor>) => Record<string, BookStatusColor>) => {
-    const next = updater(colorsRef.current);
-    colorsRef.current = next;
-    setCellColors(next);
-  }, []);
-
-  // Push any pending changes to the database NOW.
-  const flushSync = useCallback(async (keepalive = false) => {
-    if (!hydratedRef.current) return;
-    if (syncingRef.current) {
-      pendingSyncRef.current = true;
-      return;
-    }
-    syncingRef.current = true;
-    if (!keepalive) {
-      setSyncingNow(true);
-      setSyncError(false);
-    }
-    try {
-      const ok = await syncLedgerToDatabase(
-        dataRef.current,
-        colorsRef.current,
-        serverIdRef.current,
-        syncedStateRef.current,
-        keepalive,
-      );
-      if (ok) {
-        setDbConnected(true);
-        setSyncError(false);
-      } else {
-        setSyncError(true); // some rows failed — will retry
-      }
+          stored = JSON.parse(r.cellColors || "{}");
+        } catch {
+          stored = {};
+        }
+        Object.entries(stored).forEach(([f, c]) => {
+          if (c === "red" || c === "green" || c === "white") colors[`db-${r.id}_${f}`] = c;
+        });
+      });
+      // Derive the semantic highlight colours that used to be hardcoded.
+      mapped.forEach((row) => {
+        if (row.outstandingBalance > 0) colors[`${row.id}_outstandingBalance`] = colors[`${row.id}_outstandingBalance`] || "red";
+        if (row.lostDeed === 7800) colors[`${row.id}_lostDeed`] = colors[`${row.id}_lostDeed`] || "red";
+        if (row.lostDeed === 50000) colors[`${row.id}_lostDeed`] = colors[`${row.id}_lostDeed`] || "red";
+        if (row.commission > 39000) colors[`${row.id}_commission`] = colors[`${row.id}_commission`] || "green";
+      });
+      setCellColors(colors);
+      setData(mapped);
     } catch (err) {
-      console.warn("Books: database sync failed.", err);
-      setSyncError(true);
+      setUploadResult(`âŒ Failed to load ledger from database: ${err instanceof Error ? err.message : "Unknown error"}`);
     } finally {
-      syncingRef.current = false;
-      if (!keepalive) setSyncingNow(false);
-      if (pendingSyncRef.current && !keepalive) {
-        pendingSyncRef.current = false;
-        void flushSync();
-      }
+      setLoading(false);
     }
   }, []);
 
-  // Fire a sync now or shortly after. `immediate` is used for the actions the
-  // user performs explicitly (add / edit / delete) so the row hits the DB right away.
-  const scheduleSync = useCallback((immediate = false) => {
-    if (hydratingRef.current) {
-      // Initial DB load still in progress — the load handler will sync afterwards.
-      return;
-    }
-    if (syncTimerRef.current !== null) {
-      clearTimeout(syncTimerRef.current);
-      syncTimerRef.current = null;
-    }
-    if (immediate) {
-      void flushSync();
-    } else {
-      syncTimerRef.current = window.setTimeout(() => {
-        syncTimerRef.current = null;
-        void flushSync();
-      }, 400);
-    }
-  }, [flushSync]);
-
-  // Load from the database when the page opens — the DB is the source of truth.
-  // Falls back to localStorage (offline cache) if the API is unreachable, and
-  // reconciles local-only rows so nothing the user did is ever lost or duplicated.
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      hydratingRef.current = true;
-      try {
-        const rows = await fetchTransactionLedger();
-        if (cancelled) return;
-        hydratedRef.current = true;
+    void loadLedger();
+  }, [loadLedger]);
 
-        if (!rows || rows.length === 0) {
-          // DB is empty but the user still has local rows (first run / offline
-          // edits) — keep everything and push it straight into the database.
-          if (dataRef.current.length > 0) void flushSync();
-          setDbConnected(true);
-          return;
-        }
-
-        const idMap: Record<string, number> = { ...serverIdRef.current };
-        const synced: Record<string, string> = {};
-        const colors: Record<string, BookStatusColor> = {};
-        const entries: BookEntry[] = rows.map((row) => {
-          const { entry, colors: rowColors } = ledgerToBookEntry(row);
-          Object.assign(colors, rowColors);
-          idMap[entry.id] = row.id;
-          return entry;
-        });
-
-        const dbEntryById = new Map(entries.map((e) => [e.id, e]));
-        const claimedKeys = new Set<string>();
-        // Content-based key so local copies of already-saved records are matched
-        // to their server row instead of being posted again as duplicates.
-        const dbKey = (e: BookEntry) =>
-          JSON.stringify([e.month, e.buyer, e.seller, e.amountPaid, e.deposit,
-            e.lostDeed, e.commission, e.transferCosts, e.masterFees, e.erfNumber, e.area]);
-
-        const keptLocalRows: BookEntry[] = [];
-        dataRef.current.forEach((localRow) => {
-          if (localRow.id.startsWith("db-")) return; // already a DB-backed copy
-          const serverId = idMap[localRow.id];
-          if (serverId && dbEntryById.has(`db-${serverId}`)) {
-            return; // persisted earlier — the DB copy is authoritative
-          }
-          if (serverId) delete idMap[localRow.id]; // stale mapping — will re-post
-          const key = dbKey(localRow);
-          if (!claimedKeys.has(key)) {
-            const match = entries.find((e) => dbKey(e) === key);
-            if (match) {
-              claimedKeys.add(key);
-              idMap[localRow.id] = Number(match.id.slice(3));
-              synced[localRow.id] = serializeBookEntry(match, colors);
-              return;
-            }
-          }
-          keptLocalRows.push(localRow);
-        });
-
-        // Preserve unsynced/offline rows and fold in their cell colours.
-        keptLocalRows.forEach((r) => entries.push(r));
-        entries.forEach((entry) => {
-          if (!synced[entry.id]) synced[entry.id] = serializeBookEntry(entry, colors);
-        });
-        Object.keys(colorsRef.current).forEach((key) => {
-          if (keptLocalRows.some((e) => key.startsWith(`${e.id}_`))) {
-            colors[key] = colorsRef.current[key];
-          }
-        });
-
-        serverIdRef.current = idMap;
-        syncedStateRef.current = synced;
-        dataRef.current = entries;
-        setData(entries);
-        colorsRef.current = colors;
-        setCellColors(colors);
-        try {
-          localStorage.setItem("hlumisa-books-ids", JSON.stringify(idMap));
-        } catch { /* ignore */ }
-        if (keptLocalRows.length > 0) {
-          // Unsynced rows exist — push them to the DB right away.
-          void flushSync();
-        }
-      } catch (err) {
-        if (cancelled) return;
-        console.warn("Books: database unavailable — using local data.", err);
-        hydratedRef.current = true;
-        setSyncError(true);
-        setDbConnected(false);
-      } finally {
-        hydratingRef.current = false;
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [flushSync]);
-
-  // 🔥 AUTO-SAVE on every change: keep the local cache fresh immediately and
-  // push to the database ~400ms after the user stops typing.
-  useEffect(() => {
-    dataRef.current = data;
-    colorsRef.current = cellColors;
-    try {
-      localStorage.setItem("hlumisa-books-data", JSON.stringify(data));
-      localStorage.setItem("hlumisa-books-colors", JSON.stringify(cellColors));
-    } catch { /* storage full or unavailable */ }
-    scheduleSync(false);
-  }, [data, cellColors, scheduleSync]);
-
-  // 💾 Flush on leaving the page / switching sections, so nothing is ever lost
-  // even if the user navigates away before the debounce fires.
-  useEffect(() => {
-    return () => {
-      if (syncTimerRef.current !== null) clearTimeout(syncTimerRef.current);
-      void flushSync(true);
-    };
-  }, [flushSync]);
-
-  // 💾 Flush on browser close / tab switch / refresh, using keepalive requests
-  // so the data is still delivered even as the page disappears.
-  useEffect(() => {
-    const fire = () => { void flushSync(true); };
-    window.addEventListener("pagehide", fire);
-    window.addEventListener("beforeunload", fire);
-    window.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "hidden") fire();
-    });
-    return () => {
-      window.removeEventListener("pagehide", fire);
-      window.removeEventListener("beforeunload", fire);
-    };
-  }, [flushSync]);
-
-  // 🔁 Keep retrying while there are unsaved rows, so offline edits eventually sync.
-  useEffect(() => {
-    if (!syncError) return;
-    const id = window.setInterval(() => { void flushSync(); }, 15000);
-    return () => clearInterval(id);
-  }, [syncError, flushSync]);
 
   const [colorPickerCell, setColorPickerCell] = useState<{ row: string; field: string } | null>(null);
   const [colorPickerPos, setColorPickerPos] = useState<{ x: number; y: number } | null>(null);
@@ -698,24 +296,19 @@ function BooksContent() {
   const [editSelectedColor, setEditSelectedColor] = useState<BookStatusColor>("white");
 
   function cycleBookStatusColor(rowId: string) {
-    commitData((prev) =>
+    setData((prev) =>
       prev.map((d) => {
         if (d.id !== rowId) return d;
         const next: Record<BookStatusColor, BookStatusColor> = { white: "red", red: "green", green: "white" };
         return { ...d, statusColor: next[d.statusColor] };
       })
     );
-    scheduleSync(true);
   }
   const inputRef = useRef<HTMLInputElement>(null);
   const tableRef = useRef<HTMLDivElement>(null);
   const addEntryRef = useRef<HTMLDivElement>(null);
 
-  const months = [
-    "ALL",
-    ...MONTH_NAMES,
-    ...Array.from(new Set(data.map((d) => d.month).filter((m) => m && !MONTH_NAMES.includes(m)))),
-  ];
+  const months = ["ALL", "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST"];
 
   // Sort rows chronologically by month so JANUARY sits on top and AUGUST at the bottom.
   const filtered = (selectedMonth === "ALL" ? data : data.filter((d) => d.month === selectedMonth))
@@ -736,7 +329,7 @@ function BooksContent() {
     // When in "add entry" mode, apply the selected color directly and start editing
     if (showAddColorPicker) {
       const key = `${row.id}_${field}`;
-      commitColors((prev) => ({ ...prev, [key]: editSelectedColor }));
+      setCellColors((prev) => ({ ...prev, [key]: editSelectedColor }));
       const val = (row as any)[field];
       setEditCell({ row: row.id, field });
       setEditValue(val != null && val !== 0 ? String(val) : "");
@@ -759,7 +352,7 @@ function BooksContent() {
   const handleColorSelected = (color: BookStatusColor) => {
     if (!colorPickerCell) return;
     const key = `${colorPickerCell.row}_${colorPickerCell.field}`;
-    commitColors((prev) => ({ ...prev, [key]: color }));
+    setCellColors((prev) => ({ ...prev, [key]: color }));
     const row = data.find((d) => d.id === colorPickerCell.row);
     if (row) {
       const val = (row as any)[colorPickerCell.field];
@@ -772,7 +365,7 @@ function BooksContent() {
 
   const handleCellSave = useCallback(() => {
     if (!editCell) return;
-    commitData((prev) =>
+    setData((prev) =>
       prev.map((d) => {
         if (d.id !== editCell.row) return d;
         const fType = fieldConfig[editCell.field] || "text";
@@ -786,8 +379,7 @@ function BooksContent() {
       })
     );
     setEditCell(null);
-    scheduleSync(true);
-  }, [editCell, editValue, commitData, scheduleSync]);
+  }, [editCell, editValue]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") handleCellSave();
@@ -852,12 +444,11 @@ function BooksContent() {
         };
       });
 
-      commitData((prev) => [...newEntries, ...prev]);
-      setUploadResult(`Successfully imported ${newEntries.length} row${newEntries.length !== 1 ? "s" : ""} from ${file.name}. The data has been auto-filled into the Books table.`);
+      setData((prev) => [...newEntries, ...prev]);
+      setUploadResult(`Ã¢Å“â€¦ Successfully imported ${newEntries.length} row${newEntries.length !== 1 ? "s" : ""} from ${file.name}. The data has been auto-filled into the Books table.`);
       if (fileInputRef.current) fileInputRef.current.value = "";
-      if (hydratedRef.current) scheduleSync(true);
     } catch (err) {
-      setUploadResult(`Failed to parse Excel file: ${err instanceof Error ? err.message : "Unknown error"}`);
+      setUploadResult(`Ã¢ÂÅ’ Failed to parse Excel file: ${err instanceof Error ? err.message : "Unknown error"}`);
     } finally {
       setUploading(false);
     }
@@ -874,13 +465,11 @@ function BooksContent() {
       waterAccount: 0, section118: 0, erfNumber: "", area: "",
       outstandingBalance: 0, statusColor: "white",
     };
-    // Add the new entry immediately AND show the 3 color options right next to the button.
-    // It is also pushed to the database right away, so it's saved the moment you click.
+    // Add the new entry immediately AND show the 3 color options right next to the button
     setPendingNewEntry(newEntry);
-    commitData((prev) => [...prev, newEntry]);
+    setData((prev) => [...prev, newEntry]);
     setShowAddColorPicker(true);
     setEditSelectedColor("white");
-    if (hydratedRef.current) scheduleSync(true);
     setTimeout(() => {
       const el = document.getElementById(`book-row-${newId}`);
       if (el) {
@@ -894,14 +483,13 @@ function BooksContent() {
   const handleAddColorSelected = (color: BookStatusColor) => {
     // Keep the picker open! Just update the selected color for the next cell click
     setEditSelectedColor(color);
-    // If there's a pending new entry, update its status color and save immediately
+    // If there's a pending new entry, update its status color
     if (pendingNewEntry) {
-      commitData((prev) =>
+      setData((prev) =>
         prev.map((d) =>
           d.id === pendingNewEntry.id ? { ...d, statusColor: color } : d
         )
       );
-      scheduleSync(true);
     }
   };
 
@@ -911,26 +499,47 @@ function BooksContent() {
     setEditCell(null);
   };
 
-  const handleRemoveRow = () => {
-    if (!selectedRow) return;
-    commitData((prev) => prev.filter((d) => d.id !== selectedRow));
-    setSelectedRow(null);
-    if (hydratedRef.current) scheduleSync(true);
-  };
+  const handleRemoveRow = async () => {
+  if (!selectedRow) return;
+  const target = data.find((d) => d.id === selectedRow);
+  setData((prev) => prev.filter((d) => d.id !== selectedRow));
+  setSelectedRow(null);
+  if (target?.backendId != null) {
+    try {
+      await deleteTransactionLedgerEntry(target.backendId);
+    } catch (err) {
+      setUploadResult(`Failed to delete from database: ${err instanceof Error ? err.message : "Unknown error"}`);
+      await loadLedger();
+    }
+  }
+};
 
   const handleRowDoubleClick = (rowId: string) => {
     setSelectedRow((prev) => (prev === rowId ? null : rowId));
   };
 
-  const handleSaveAll = () => {
-    try {
-      localStorage.setItem("hlumisa-books-data", JSON.stringify(data));
-      localStorage.setItem("hlumisa-books-colors", JSON.stringify(cellColors));
-    } catch { /* storage full or unavailable */ }
-    void flushSync();
+  const handleSaveAll = async () => {
+  if (!data.length) { setSaved(true); setTimeout(() => setSaved(false), 1500); return; }
+  setSaving(true);
+  try {
+    for (const entry of data) {
+      const payload = toLedgerPayload(entry, cellColors);
+      if (entry.backendId != null) {
+        await updateTransactionLedgerEntry(entry.backendId, payload);
+      } else {
+        await createTransactionLedgerEntry(payload);
+      }
+    }
+    await loadLedger();
     setSaved(true);
+    setUploadResult(`Saved ${data.length} entry${data.length === 1 ? "" : "ies"} to the database.`);
+  } catch (err) {
+    setUploadResult(`Failed to save to database: ${err instanceof Error ? err.message : "Unknown error"}`);
+  } finally {
+    setSaving(false);
     setTimeout(() => setSaved(false), 2000);
-  };
+  }
+};
 
   const totalCommission = filtered.reduce((s, d) => s + d.commission, 0);
   const totalTransfer = filtered.reduce((s, d) => s + d.transferCosts, 0);
@@ -938,23 +547,6 @@ function BooksContent() {
   const totalOutstanding = filtered.reduce((s, d) => s + d.outstandingBalance, 0);
   const totalOutstandingUnfiltered = data.reduce((s, d) => s + d.outstandingBalance, 0);
   const flippedCount = filtered.filter((d) => d.commission > 39000).length;
-
-  // 🔢 TOTALS ROW: sum every numeric column across the filtered rows
-  const numericFields = columnOrder.filter((f) => fieldConfig[f] === "number");
-  const columnTotals: Record<string, number> = {};
-  numericFields.forEach((f) => {
-    columnTotals[f] = filtered.reduce((s, d) => s + ((d as any)[f] as number || 0), 0);
-  });
-  const totalAmountPaid = filtered.reduce((s, d) => s + d.amountPaid, 0);
-  const totalDeposit = filtered.reduce((s, d) => s + d.deposit, 0);
-  const totalLostDeed = filtered.reduce((s, d) => s + d.lostDeed, 0);
-  const totalElecCert = filtered.reduce((s, d) => s + d.electricalCertificate, 0);
-  const totalWater = filtered.reduce((s, d) => s + d.waterAccount, 0);
-  const totalSection118 = filtered.reduce((s, d) => s + d.section118, 0);
-  const totalOriginal = filtered.reduce((s, d) => s + d.originalAmount, 0);
-  const totalBalance = filtered.reduce((s, d) => s + d.balance, 0);
-  const totalRows = filtered.length;
-  const grandTotal = totalCommission + totalTransfer + totalMasterFees + totalOutstanding + totalAmountPaid + totalDeposit + totalLostDeed + totalElecCert + totalWater + totalSection118 + totalOriginal + totalBalance;
 
   const scrollToBookRow = (rowId: string) => {
     setSelectedMonth("ALL");
@@ -987,18 +579,8 @@ function BooksContent() {
 
     if (isEditing) {
       return (
-        <input ref={inputRef} type="text" inputMode={fType === "number" ? "numeric" : "text"}
-          value={editValue} onChange={(e) => {
-            const raw = e.target.value;
-            // For number fields, show spaces as thousand separators while typing
-            const formatted = fType === "number" ? formatNumberInput(raw) : raw;
-            // Keep raw digits in editValue but display formatted
-            setEditValue(fType === "number" ? parseNumberInput(formatted) : formatted);
-            // Update the visible input value immediately via ref
-            if (inputRef.current) {
-              inputRef.current.value = fType === "number" ? formatNumberInput(parseNumberInput(formatted)) : formatted;
-            }
-          }}
+        <input ref={inputRef} type={fType === "number" ? "number" : "text"}
+          value={editValue} onChange={(e) => setEditValue(e.target.value)}
           onBlur={handleCellSave} onKeyDown={handleKeyDown}
           className="w-full min-w-[80px] rounded-lg border border-amber-200/40 bg-black/60 px-2 py-1 text-sm text-white outline-none" autoFocus />
       );
@@ -1008,6 +590,7 @@ function BooksContent() {
       <span onClick={(e) => handleCellClick(row, field, e)}
         className={`cursor-pointer rounded px-1 py-0.5 transition hover:bg-amber-200/15 ${colorClass} ${bgClass} ${isOutstanding || isLostDeedRed ? "font-semibold" : ""} ${isCommissionHighlight ? "font-semibold" : ""}`}>
         {display}
+        <span className="ml-1 opacity-0 group-hover:opacity-100 text-stone-500 text-xs">Ã¢Å“Å½</span>
       </span>
     );
   }
@@ -1017,7 +600,7 @@ function BooksContent() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-semibold text-white">Books</h1>
-          <p className="mt-1 text-sm text-stone-400">Transaction ledger — all deals, commissions & balances.</p>
+          <p className="mt-1 text-sm text-stone-400">Transaction ledger Ã¢â‚¬â€ all deals, commissions & balances.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}
@@ -1025,7 +608,7 @@ function BooksContent() {
             {months.map((m) => (<option key={m} value={m}>{m === "ALL" ? "All Months" : m}</option>))}
           </select>
           <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-200 transition hover:bg-emerald-500/20">
-            {uploading ? "Importing..." : "Upload Excel"}
+            {uploading ? "Ã¢ÂÂ³ Importing..." : "Ã°Å¸â€œÅ  Upload Excel"}
             <input
               ref={fileInputRef}
               type="file"
@@ -1036,19 +619,8 @@ function BooksContent() {
           </label>
           <button onClick={handleSaveAll}
             className="rounded-full bg-amber-200 px-6 py-2 text-sm font-semibold text-stone-950 transition hover:bg-amber-100">
-            {syncingNow ? "Saving…" : syncError ? "Retry" : dbConnected === false ? "Offline" : saved ? "Saved!" : "Auto-Saved"}
+            {saving ? "Saving..." : saved ? "Saved!" : "Save Changes"}
           </button>
-          {dbConnected !== null && (
-            <span className={`rounded-full border px-3 py-1 text-xs font-medium ${
-              dbConnected
-                ? syncError
-                  ? "border-amber-300/30 bg-amber-500/10 text-amber-200"
-                  : "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
-                : "border-rose-400/30 bg-rose-500/10 text-rose-200"
-            }`}>
-              {dbConnected ? (syncError ? "DB sync pending…" : "● Database synced") : "● Offline — saved locally"}
-            </span>
-          )}
         </div>
       </div>
 
@@ -1062,7 +634,7 @@ function BooksContent() {
           <p className="mt-2 text-2xl font-semibold text-white">{formatMoney(totalTransfer) || "R0"}</p>
         </div>
         <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-5">
-          <p className="text-xs uppercase tracking-[0.3em] text-stone-400">Flipped Houses</p>
+          <p className="text-xs uppercase tracking-[0.3em] text-stone-400">Ã°Å¸ÂÂ  Flipped Houses</p>
           <p className="mt-2 text-2xl font-semibold text-purple-200">{flippedCount}</p>
         </div>
         <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-5">
@@ -1070,11 +642,11 @@ function BooksContent() {
           <p className="mt-2 text-2xl font-semibold text-white">{formatMoney(totalMasterFees) || "R0"}</p>
         </div>
         <div className="rounded-[1.5rem] border border-rose-300/20 bg-rose-500/10 p-5">
-          <p className="text-xs uppercase tracking-[0.3em] text-rose-300">Pending Payments</p>
+          <p className="text-xs uppercase tracking-[0.3em] text-rose-300">Ã°Å¸â€™Â³ Pending Payments</p>
           <p className="mt-2 text-2xl font-semibold text-rose-200">{formatMoney(totalOutstanding) || "R0"}</p>
         </div>
         <div className="rounded-[1.5rem] border border-amber-300/20 bg-amber-500/10 p-5">
-          <p className="text-xs uppercase tracking-[0.3em] text-amber-300">Outstanding Total</p>
+          <p className="text-xs uppercase tracking-[0.3em] text-amber-300">Ã°Å¸â€œÅ  Outstanding Total</p>
           <p className="mt-2 text-2xl font-semibold text-amber-200">{formatMoney(totalOutstandingUnfiltered) || "R0"}</p>
         </div>
       </div>
@@ -1091,7 +663,7 @@ function BooksContent() {
 
       {uploadResult && (
         <div className={`rounded-[1.5rem] border px-6 py-4 text-sm ${
-          uploadResult.startsWith("Failed")
+          uploadResult.startsWith("Saved")
             ? "border-emerald-400/20 bg-emerald-500/10 text-emerald-200"
             : "border-rose-400/20 bg-rose-500/10 text-rose-200"
         }`}>
@@ -1135,50 +707,27 @@ function BooksContent() {
                     <div className="flex flex-col gap-1">
                       <button onClick={() => cycleBookStatusColor(row.id)}
                         className={`rounded-full px-2.5 py-0.5 text-xs font-medium transition cursor-pointer hover:ring-2 hover:ring-white/20 ${row.statusColor === "green" ? "bg-emerald-500/20 text-emerald-200" : row.statusColor === "red" ? "bg-rose-500/20 text-rose-200" : "bg-white/5 text-stone-300"}`}>
-                        {row.statusColor === "green" ? "✓ Done" : row.statusColor === "red" ? "✕ Declined" : "○ Pending"}
+                        {row.statusColor === "green" ? "Ã¢Å“â€œ Done" : row.statusColor === "red" ? "Ã¢Å“â€¢ Declined" : "Ã¢â€”â€¹ Pending"}
                       </button>
                       {isFlipped && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-purple-500/20 px-2.5 py-0.5 text-xs font-medium text-purple-200">Flipped</span>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-purple-500/20 px-2.5 py-0.5 text-xs font-medium text-purple-200">Ã°Å¸ÂÂ  Flipped</span>
                       )}
                     </div>
                   </td>
                 </tr>
               );
             })}
-            {filtered.length === 0 && (
+            {loading && (
+              <tr><td colSpan={columnOrder.length + 1} className="px-4 py-8 text-center text-sm text-stone-500">Loading ledger from the database…</td></tr>
+            )}
+            {!loading && filtered.length === 0 && (
               <tr><td colSpan={columnOrder.length + 1} className="px-4 py-8 text-center text-sm text-stone-500">No entries for this month.</td></tr>
             )}
           </tbody>
-          {filtered.length > 0 && (
-            <tfoot className="sticky bottom-0 z-10">
-              <tr className="border-t-2 border-amber-200/30 bg-[#0d1520] text-xs font-semibold text-amber-200">
-                <td className="px-4 py-3 text-amber-200" colSpan={2}>TOTALS ({totalRows} rows)</td>
-                <td className="px-4 py-3" colSpan={2}></td>
-                {columnOrder.slice(4).map((field) => {
-                  if (fieldConfig[field] === "number") {
-                    const total = columnTotals[field] || 0;
-                    return (
-                      <td key={field} className={`px-4 py-3 ${rightAlignedFields.has(field) ? "text-right" : ""} ${field === "outstandingBalance" ? "text-rose-300" : "text-amber-200"}`}>
-                        {formatMoney(total) || "R0"}
-                      </td>
-                    );
-                  }
-                  return <td key={field} className="px-4 py-3"></td>;
-                })}
-                <td className="px-4 py-3"></td>
-              </tr>
-              <tr className="border-t border-amber-200/10 bg-[#0d1520] text-xs font-bold text-white">
-                <td className="px-4 py-3 text-stone-400" colSpan={2}>GRAND TOTAL</td>
-                <td className="px-4 py-3" colSpan={2}></td>
-                <td className="px-4 py-3 text-right text-amber-200">{formatMoney(grandTotal) || "R0"}</td>
-                <td className="px-4 py-3" colSpan={12}></td>
-              </tr>
-            </tfoot>
-          )}
         </table>
       </div>
 
-      {/* Color picker popover — anchored right below the clicked cell */}
+      {/* Color picker popover Ã¢â‚¬â€ anchored right below the clicked cell */}
       {colorPickerCell && colorPickerPos && (
         <div
           className="fixed z-50 rounded-[2rem] border border-amber-200/30 bg-[#1d2736] p-5 shadow-[0_30px_100px_rgba(0,0,0,0.6)]"
@@ -1216,25 +765,25 @@ function BooksContent() {
               <button onClick={() => handleAddColorSelected("green")}
                 className={`flex h-9 w-9 items-center justify-center rounded-full border-2 text-xs font-bold uppercase tracking-wider transition hover:scale-110 ${editSelectedColor === "green" ? "ring-2 ring-amber-300" : ""} border-emerald-400/70 bg-emerald-600 text-white hover:border-emerald-300 hover:bg-emerald-500`}>G</button>
               <button onClick={handleFinishAddEntry}
-                className="ml-1 rounded-full bg-amber-200 px-3 py-1.5 text-xs font-semibold text-stone-950 transition hover:bg-amber-100">✓ Done</button>
+                className="ml-1 rounded-full bg-amber-200 px-3 py-1.5 text-xs font-semibold text-stone-950 transition hover:bg-amber-100">Ã¢Å“â€œ Done</button>
             </div>
           )}
         </div>
         <button onClick={handleRemoveRow} disabled={!selectedRow}
           className={`flex items-center gap-2 rounded-full border-2 px-8 py-4 text-base transition ${selectedRow ? "border-rose-400/40 text-rose-300 hover:border-rose-300/60 hover:bg-rose-500/10 hover:text-rose-200" : "border-white/10 text-stone-600 cursor-not-allowed"}`}>
-          <span className="text-2xl font-light">✕</span><span>Remove selected row</span>
+          <span className="text-2xl font-light">Ã¢Å“â€¢</span><span>Remove selected row</span>
         </button>
       </div>
 
       {flippedCount > 0 && (
         <div className="rounded-[2rem] border border-purple-300/20 bg-purple-500/5 p-6">
-          <h2 className="text-lg font-semibold text-white">Flipped Houses (Commission {">"} R39,000)</h2>
+          <h2 className="text-lg font-semibold text-white">Ã°Å¸ÂÂ  Flipped Houses (Commission {">"} R39,000)</h2>
           <p className="text-sm text-stone-400">These deals have commission amounts exceeding R39,000. Click a row to jump to it in the table above.</p>
           <div className="mt-4 space-y-2">
             {data.filter((d) => d.commission > 39000).map((d) => (
               <div key={d.id} onClick={() => scrollToBookRow(d.id)}
                 className="flex cursor-pointer items-center justify-between rounded-2xl border border-purple-300/10 bg-black/20 px-5 py-3 transition hover:border-amber-300/30 hover:bg-amber-200/10 hover:scale-[1.01]">
-                <div><p className="text-sm font-medium text-white">{d.buyer} → {d.seller}</p><p className="text-xs text-stone-400">{d.month} · {d.area}</p></div>
+                <div><p className="text-sm font-medium text-white">{d.buyer} Ã¢â€ â€™ {d.seller}</p><p className="text-xs text-stone-400">{d.month} Ã‚Â· {d.area}</p></div>
                 <span className="text-sm font-semibold text-purple-200">{formatMoney(d.commission)}</span>
               </div>
             ))}
@@ -1245,12 +794,12 @@ function BooksContent() {
       <div className="flex justify-center">
         <Link href="/admin/books/understanding"
           className="inline-flex items-center gap-2 rounded-full border border-white/10 px-6 py-3 text-sm text-stone-400 transition hover:border-amber-200/40 hover:text-amber-200">
-          <span>Books Understanding — learn how this page works</span>
+          <span>Ã°Å¸â€œâ€“</span><span>Books Understanding Ã¢â‚¬â€ learn how this page works</span>
         </Link>
       </div>
 
       <p className="text-center text-xs text-stone-600">
-        Click "Add new entry" then pick a color (white/red/green) and click any cell to fill it in. The color picker stays until you click "✓ Done". Click any existing cell to edit with its own color picker. Press Enter to save, Escape to cancel. Double-click a row to select it, then click "Remove selected row" to delete it. <strong className="text-amber-200">Everything auto-saves instantly to the database</strong> — leave the page, close the browser, or even open it from another device and your records will still be there. The bottom row shows totals for every number column.
+        Click "Add new entry" then pick a color (white/red/green) and click any cell to fill it in. The color picker stays until you click "Ã¢Å“â€œ Done". Click any existing cell to edit with its own color picker. Press Enter to save, Escape to cancel. Double-click a row to select it, then click "Remove selected row" to delete it. Hit "Save Changes" to persist to the database.
       </p>
     </div>
   );
