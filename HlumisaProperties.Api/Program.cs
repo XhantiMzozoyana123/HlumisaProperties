@@ -1,4 +1,5 @@
-using System.Text;
+﻿using System.Text;
+using System.Linq;
 using Hangfire;
 using Hangfire.InMemory;
 using HlumisaProperties.Api;
@@ -27,13 +28,13 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddCors(options =>
 {
-    // Landing page (public referral form) — allow all origins
+    // Landing page (public referral form) â€” allow all origins
     options.AddPolicy("LandingPage", policy =>
         policy.AllowAnyHeader()
               .AllowAnyMethod()
               .AllowAnyOrigin());
 
-    // API (admin dashboard, landing page, local dev) — allow known origins
+    // API (admin dashboard, landing page, local dev) â€” allow known origins
     options.AddPolicy("Api", policy =>
         policy.AllowAnyHeader()
               .AllowAnyMethod()
@@ -226,12 +227,29 @@ async Task TrySetupDatabaseAsync(IServiceProvider services)
     {
         Console.WriteLine($"WARNING: Could not seed admin user (will retry in background): {ex.Message}");
     }
+
+    // Seed the transaction ledger (Books) when the table is empty.
+    try
+    {
+        using var seedScope = services.CreateScope();
+        var seedContext = seedScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        if (!seedContext.TransactionLedgers.Any())
+        {
+            seedContext.TransactionLedgers.AddRange(TransactionLedgerSeedData.Rows);
+            seedContext.SaveChanges();
+            Console.WriteLine($"Seeded {TransactionLedgerSeedData.Rows.Length} transaction ledger entries.");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"WARNING: Could not seed transaction ledger (will retry in background): {ex.Message}");
+    }
 }
 
 // Attempt initial setup
 await TrySetupDatabaseAsync(app.Services);
 
-// Start background retry loop — every 30s, keep trying until setup succeeds.
+// Start background retry loop â€” every 30s, keep trying until setup succeeds.
 // This makes the API self-healing: if MySQL comes online after the API starts,
 // migrations + admin seeding will eventually succeed automatically.
 _ = Task.Run(async () =>

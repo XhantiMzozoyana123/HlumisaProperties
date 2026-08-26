@@ -9,23 +9,18 @@ services:
       - "3001:3001"
     environment:
       - NODE_ENV=production
-      - MESSENGER_EMAIL_ADDRESS=${MESSENGER_EMAIL_ADDRESS}
-      - MESSENGER_PASSWORD=${MESSENGER_PASSWORD}
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - LLM_BASE_URL=${LLM_BASE_URL}
-      - LLM_MODEL=${LLM_MODEL}
-    volumes:
-      - ./logs:/app/logs
+      - FACEBOOK_PAGE_ACCESS_TOKEN
+      - FACEBOOK_PAGE_ID
+      - FACEBOOK_VERIFY_TOKEN
+      - LLM_BASE_URL
+      - LLM_MODEL
+      - MESSENGER_BOT_PORT=3001
     healthcheck:
-      test: ["CMD", "node", "-e", "console.log('Health check passed')"]
+      test: ["CMD", "node", "-e", "const http=require('http');const req=http.get('http://localhost:3001/health',res=>{process.exit(res.statusCode===200?0:1)});req.on('error',()=>process.exit(1));req.setTimeout(3000,()=>{req.destroy();process.exit(1)})"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 15s
     networks:
       - bot-network
 

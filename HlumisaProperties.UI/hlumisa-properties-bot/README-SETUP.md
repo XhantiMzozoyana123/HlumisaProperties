@@ -1,215 +1,91 @@
-# Messenger Bot API Server Setup
-
-This document explains how to set up and run the Messenger Bot API server for the HlumisaProperties application.
+# Messenger Bot — Setup Guide (Official Meta Graph API)
 
 ## Overview
-
-The Messenger Bot uses Puppeteer to automate Facebook Messenger interactions. It runs as a separate Node.js API server that the C# ASP.NET Core application communicates with via HTTP.
+This is a standalone Node.js/TypeScript microservice that powers an AI chatbot on
+Facebook Messenger using the **official Meta Graph API (v21.0)**. It does **not**
+use Puppeteer or any browser automation.
 
 ## Prerequisites
+1. **Node.js** v18 or higher (with npm)
+2. A **Meta for Developers** app with the **Messenger** product added
+3. A **Facebook Page Access Token** granted the `pages_messaging` (and `pages_manage_metadata` if needed) permission
+4. A **Webhook Verify Token** (any string you choose — used only to verify webhooks)
+5. An **Ollama / LLM** endpoint (Llama 3) for AI responses
 
-1. **Node.js** (v16 or higher)
-2. **npm** or **yarn**
-3. **Facebook Account** with 2FA disabled (required for Puppeteer automation)
-
-## Installation
-
-1. Navigate to the Messenger-Bot directory:
-   ```bash
-   cd HlumisaProperties.UI/Messenger-Bot
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Create a `.env` file from the example:
-   ```bash
-   cp .env.example .env
-   ```
-
-4. Edit `.env` and add your Facebook credentials:
-   ```
-   MESSENGER_EMAIL_ADDRESS=your-email@example.com
-   MESSENGER_PASSWORD=your-password
-   ```
-
-5. Create a `config.json` file from the example:
-   ```bash
-   cp src/config.json.example src/config.json
-   ```
-
-## Configuration
-
-### Environment Variables (.env)
-
-| Variable | Description |
-|----------|-------------|
-| `MESSENGER_EMAIL_ADDRESS` | Your Facebook account email |
-| `MESSENGER_PASSWORD` | Your Facebook account password |
-| `MESSENGER_BOT_PORT` | (Optional) Port for API server (default: 3001) |
-
-### Config File (src/config.json)
-
-```json
-{
-  "chats": [
-    {
-      "chatId": "USER_PSID_HERE",
-      "events": [
-        {
-          "name": "Event Name",
-          "cron": "0 9 * * *",
-          "message": "Your message here",
-          "useChatGpt": false
-        }
-      ]
-    }
-  ],
-  "puppeteerArgs": {
-    "headless": true,
-    "executablePath": "/path/to/chrome",
-    "args": ["--no-sandbox", "--disable-setuid-sandbox"]
-  },
-  "timeZone": "Africa/Johannesburg"
-}
-```
-
-### C# Application Configuration (appsettings.json)
-
-Add the following to your `appsettings.json` in the HlumisaProperties.Api project:
-
-```json
-"MessengerBot": {
-  "ApiUrl": "http://localhost:3001",
-  "Email": "your-email@example.com",
-  "Password": "your-password",
-  "PuppeteerArgs": {
-    "Headless": true,
-    "ExecutablePath": "",
-    "Args": [
-      "--no-sandbox",
-      "--disable-setuid-sandbox"
-    ]
-  }
-}
-```
-
-## Running the API Server
-
-### Option 1: Run the API Server (Recommended for Production)
-
+## 1. Install Dependencies
 ```bash
-npm run start:api
+cd HlumisaProperties.UI/hlumisa-properties-bot
+npm install
 ```
 
-This starts the Express API server on port 3001 (configurable via `MESSENGER_BOT_PORT`).
+## 2. Configure Environment
+```bash
+cp .env.example .env
+```
+Edit `.env`:
+```env
+FACEBOOK_PAGE_ACCESS_TOKEN=<your-page-access-token>
+FACEBOOK_PAGE_ID=<your-facebook-page-id>
+FACEBOOK_VERIFY_TOKEN=<your-webhook-verify-token>
+LLM_BASE_URL=http://<ollama-host>:11434
+LLM_MODEL=llama3:latest
+MESSENGER_BOT_PORT=3001
+```
 
-### Option 2: Run the Original Cron-based Bot
+## 3. Configure the Facebook Webhook
+In the [Meta for Developers](https://developers.facebook.com/) console for your app:
+- Go to **Products → Messenger** (add the product if missing).
+- Under **Webhooks**, add the callback URL: `https://<your-domain>/webhook`
+- Enter the **Verify Token** — this must be the same value you put in `FACEBOOK_VERIFY_TOKEN`.
+- Subscribe your Page and select the `messages` field (and `message_deliveries` / `messaging_postbacks` as needed).
 
+## 4. Run the Bot
+### Local (development)
 ```bash
 npm start
+# Server: http://localhost:3001
+```
+For Facebook to reach your local server, expose it with a tunnel:
+```bash
+ngrok http 3001   # then use https://*.ngrok.io/webhook as the callback URL
 ```
 
-This runs the original cron-based scheduler for automated messages.
-
-## API Endpoints
-
-### Health Check
-```
-GET http://localhost:3001/health
-```
-
-### Send Message
-```
-POST http://localhost:3001/send-message
-Content-Type: application/json
-
-{
-  "email": "your-email@example.com",
-  "password": "your-password",
-  "chatId": "USER_PSID",
-  "message": "Hello from HlumisaProperties!",
-  "puppeteerArgs": {
-    "headless": true,
-    "args": ["--no-sandbox", "--disable-setuid-sandbox"]
-  }
-}
+### Production (PM2)
+```bash
+npm install -g pm2
+pm2 start npm --name messenger-bot -- start
+pm2 save
+pm2 startup
 ```
 
-## Integration with C# ASP.NET Core
+### Production (Docker)
+```bash
+docker compose up -d --build
+```
 
-The C# application automatically uses the PuppeteerMessengerService which:
+## 5. Test
+- Health check: `curl http://localhost:3001/health`
+- Send a manual message:
+  ```bash
+  curl -X POST http://localhost:3001/send-message \
+    -H "Content-Type: application/json" \
+    -d '{"recipientId":"<USER_PSID>","message":"Hello from Hlumisa!"}'
+  ```
+- Send a real message to your Facebook Page and confirm the AI replies.
 
-1. Receives messages from the MessengerController
-2. Forwards them to the Node.js API server
-3. Puppeteer automates the browser to send the message via Messenger.com
-4. The message is logged to the local database
-
-### Important Notes
-
-- **Two-Factor Authentication**: Must be disabled on the Facebook account for Puppeteer to work
-- **Browser Requirements**: Chrome/Chromium must be installed on the server
-- **Session Persistence**: Currently, each message requires a fresh login. Future versions may support session persistence
-- **Rate Limiting**: Be mindful of Facebook's rate limits to avoid account restrictions
+## Endpoints Reference
+- `GET  /webhook` — Facebook webhook verification (returns the challenge).
+- `POST /webhook` — Facebook webhook payload (incoming messages). Always returns
+  `200 OK` quickly to acknowledge receipt.
+- `POST /send-message` — send a text message to a recipient PSID (manual trigger).
+  Body: `{ "recipientId": "...", "message": "..." }`
+- `GET  /health` — returns `{ status, service, mode, llm }`.
 
 ## Troubleshooting
-
-### Puppeteer fails to launch
-- Ensure Chrome/Chromium is installed
-- Set `executablePath` in `puppeteerArgs` if Chrome is not in the default location
-- On Linux servers, you may need additional args: `["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]`
-
-### Login fails
-- Verify email and password in `.env` or `appsettings.json`
-- Ensure 2FA is disabled on the Facebook account
-- Check if Facebook has blocked the login attempt (may need to verify via email/phone)
-
-### Messages not sending
-- Check the API server logs for errors
-- Verify the `chatId` is correct (user's PSID)
-- Ensure the MessengerController is receiving requests properly
-
-## Development
-
-### Building TypeScript
-
-```bash
-npm run build
-```
-
-### Running Tests
-
-```bash
-npm test
-```
-
-### Formatting Code
-
-```bash
-npm run prettier:fix
-```
-
-## Security Considerations
-
-1. **Credentials Storage**: Store Facebook credentials securely using environment variables or a secrets manager
-2. **API Protection**: In production, protect the Node.js API server with authentication or run it on localhost only
-3. **Account Safety**: Use a dedicated Facebook account for automation to avoid personal account restrictions
-4. **Rate Limiting**: Implement rate limiting to avoid being blocked by Facebook
-
-## Migration from Graph API
-
-This Puppeteer-based system replaces the previous Meta Graph API implementation. The main differences:
-
-- **No Webhook Required**: Messages are sent proactively without webhook verification
-- **Browser Automation**: Uses Puppeteer instead of direct API calls
-- **Session Management**: Requires Facebook login for each session (currently)
-- **No Official API Limits**: Bypasses Graph API rate limits (but subject to Facebook's terms of service)
-
-## Support
-
-For issues with:
-- **Puppeteer**: Check [Puppeteer Documentation](https://pptr.dev/)
-- **Messenger-Bot**: Check [Messenger-Bot GitHub](https://github.com/dolanmiu/Messenger-Bot)
-- **HlumisaProperties Integration**: Contact the development team
+- **Webhook verification fails**: ensure `FACEBOOK_VERIFY_TOKEN` in `.env` matches the
+  Verify Token configured in the Meta Developer console, and that the callback URL is `https`.
+- **(OAuthException) Invalid OAuth access token / #190**: the Page Access Token is missing,
+  expired, or lacks `pages_messaging`. Regenerate it from your app's Messenger product.
+- **AI response is slow/empty**: confirm `LLM_BASE_URL` is reachable and the model
+  (`llama3:latest`) is pulled (`ollama run llama3`).
+- **NGINX reverse proxy**: don't buffer `/webhook` POST bodies; ensure the path is proxied.
