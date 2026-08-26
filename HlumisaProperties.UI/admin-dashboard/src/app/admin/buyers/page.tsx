@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { fetchBuyers, deleteBuyer, toggleBuyerDiscarded, markBuyerContacted, createBuyer } from "@/lib/api";
 import { getSession } from "@/lib/session";
+import { formatZaPhone } from "@/lib/formatUtils";
 
 type Buyer = Awaited<ReturnType<typeof fetchBuyers>>[number];
 
@@ -154,7 +155,7 @@ export default function BuyersPage() {
                 <p className={`text-base font-semibold ${buyer.isDiscarded ? "text-stone-500 line-through" : "text-white"}`}>
                   {buyer.firstName} {buyer.lastName}
                 </p>
-                <p className="text-sm text-stone-400">{buyer.phoneNumber}</p>
+                <p className="text-sm text-stone-400">{formatZaPhone(buyer.phoneNumber)}</p>
                 <p className="text-sm text-stone-400">{buyer.location}</p>
                 <p className="mt-1 text-xs text-stone-500">{buyer.propertyType}</p>
               </div>
@@ -254,7 +255,7 @@ export default function BuyersPage() {
                   type="tel"
                   required
                   value={form.phoneNumber}
-                  onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })}
+                  onChange={(e) => setForm({ ...form, phoneNumber: formatZaPhone(e.target.value) })}
                   className="w-full rounded-xl border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white outline-none placeholder:text-stone-500 focus:border-amber-200/30"
                   placeholder="+27 82 555 0000"
                 />

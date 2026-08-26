@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { fetchLeads, updateLeadContacted, type Lead, formatDate } from "@/lib/api";
 import RequireZola from "@/components/RequireZola";
+import { formatZaPhone } from "@/lib/formatUtils";
 
 export default function LeadsPage() {
   return (
@@ -95,7 +96,7 @@ function LeadsContent() {
                   {lead.firstName} {lead.lastName}
                 </p>
                 <p className="text-sm text-stone-300">{lead.emailAddress}</p>
-                <p className="text-sm text-stone-400">{lead.phoneNumber}</p>
+                <p className="text-sm text-stone-400">{formatZaPhone(lead.phoneNumber)}</p>
                 {lead.createdAt && (
                   <p className="text-xs text-stone-500">Created {formatDate(lead.createdAt)}</p>
                 )}

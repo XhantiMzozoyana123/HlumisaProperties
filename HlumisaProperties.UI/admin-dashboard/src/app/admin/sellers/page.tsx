@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { fetchSellers, deleteSeller, toggleSellerDiscarded, cycleSellerStatusColor, createSeller } from "@/lib/api";
 import { getSession } from "@/lib/session";
+import { formatZaPhone } from "@/lib/formatUtils";
 
 type Seller = Awaited<ReturnType<typeof fetchSellers>>[number];
 
@@ -167,7 +168,7 @@ export default function SellersPage() {
                           : "text-stone-400"
                   }`}
                 >
-                  {seller.phoneNumber}
+                  {formatZaPhone(seller.phoneNumber)}
                 </p>
                 <p className="text-sm text-stone-400">{seller.location}</p>
                 <p className="mt-1 text-xs text-stone-500">{seller.propertyType}</p>
@@ -269,7 +270,7 @@ export default function SellersPage() {
                   type="tel"
                   required
                   value={form.phoneNumber}
-                  onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })}
+                  onChange={(e) => setForm({ ...form, phoneNumber: formatZaPhone(e.target.value) })}
                   className="w-full rounded-xl border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white outline-none placeholder:text-stone-500 focus:border-amber-200/30"
                   placeholder="+27 82 555 0000"
                 />

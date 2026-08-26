@@ -339,5 +339,5 @@ export function formatMoney(amount: number) {
     style: "currency",
     currency: "ZAR",
     maximumFractionDigits: 0,
-  }).format(amount);
+  }).format(amount).replace(/,/g, " ");
 }

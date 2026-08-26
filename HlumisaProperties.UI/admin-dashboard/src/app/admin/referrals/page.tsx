@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { fetchReferrals, createReferral, deleteReferral, toggleReferralDiscarded } from "@/lib/api";
 import RequireZola from "@/components/RequireZola";
+import { formatZaPhone } from "@/lib/formatUtils";
 
 type Referral = Awaited<ReturnType<typeof fetchReferrals>>[number];
 
@@ -169,7 +170,7 @@ function ReferralsContent() {
               <p className="mb-2 text-xs font-medium uppercase tracking-wider text-stone-400">Referrer</p>
             </div>
             <input className="w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none placeholder:text-stone-500" placeholder="Full name" value={form.referrerName} onChange={(e) => setForm((f) => ({ ...f, referrerName: e.target.value }))} required />
-            <input className="w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none placeholder:text-stone-500" placeholder="Phone number" value={form.referrerPhone} onChange={(e) => setForm((f) => ({ ...f, referrerPhone: e.target.value }))} required />
+            <input className="w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none placeholder:text-stone-500" placeholder="Phone number" value={form.referrerPhone} onChange={(e) => setForm((f) => ({ ...f, referrerPhone: formatZaPhone(e.target.value) }))} required />
 
             <select className="w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none" value={form.intent} onChange={(e) => setForm((f) => ({ ...f, intent: e.target.value as "buy" | "sell" }))}>
               <option value="buy">Looking to Buy</option>
@@ -225,7 +226,7 @@ function ReferralsContent() {
                       <p className={`font-medium ${r.isDiscarded ? "text-stone-500 line-through" : "text-white"}`}>
                         {r.referrerName}
                       </p>
-                      <p className="text-xs text-stone-400">{r.referrerPhone}</p>
+                      <p className="text-xs text-stone-400">{formatZaPhone(r.referrerPhone)}</p>
                       <span className="rounded-full bg-stone-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-stone-700">In Process</span>
                     </div>
                   </td>

@@ -11,6 +11,7 @@ import {
 } from "@/lib/localData";
 import Link from "next/link";
 import RequireZola from "@/components/RequireZola";
+import { formatNumberInput, parseNumberInput } from "@/lib/formatUtils";
 
 const STATUS_CONFIG: Record<PropertyStatus, { label: string; color: string; bg: string }> = {
   "on-market": { label: "On Market", color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/30" },
@@ -71,7 +72,7 @@ function PropertiesContent() {
       id: "h" + Date.now(),
       title: form.title,
       description: form.description,
-      price: Number(form.price),
+      price: Number(parseNumberInput(form.price)),
       images: images.length > 0 ? images : [
         "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='260' viewBox='0 0 400 260'%3E%3Crect width='400' height='260' fill='%232a241a'/%3E%3Ctext x='200' y='130' text-anchor='middle' fill='%23d4b373' font-size='18' font-family='sans-serif'%3ENew Listing%3C/text%3E%3C/svg%3E",
       ],
@@ -164,11 +165,12 @@ function PropertiesContent() {
               required
             />
             <input
-              className="w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none placeholder:text-stone-500"
-              placeholder="Price (ZAR)"
-              type="number"
+              className="w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none placeholder:text-stone-500 font-mono"
+              placeholder="Price (ZAR) — e.g. 2 000 000"
+              type="text"
+              inputMode="numeric"
               value={form.price}
-              onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
+              onChange={(e) => setForm((f) => ({ ...f, price: formatNumberInput(e.target.value) }))}
               required
             />
 

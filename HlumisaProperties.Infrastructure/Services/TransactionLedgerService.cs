@@ -25,8 +25,10 @@ namespace HlumisaProperties.Infrastructure.Services
             entry.CreatedAt = DateTime.UtcNow;
             entry.UpdatedAt = DateTime.UtcNow;
 
-            // Auto-set the Month field based on the Date
-            entry.Month = entry.Date.ToString("MMMM").ToUpper();
+            // Prefer the month provided by the client (the Books UI lets users assign
+            // an entry to a specific month slot); otherwise derive it from the Date.
+            if (string.IsNullOrWhiteSpace(entry.Month))
+                entry.Month = entry.Date.ToString("MMMM").ToUpper();
 
             _context.Set<TransactionLedger>().Add(entry);
             await _context.SaveChangesAsync();
@@ -78,7 +80,10 @@ namespace HlumisaProperties.Infrastructure.Services
 
             // Update all fields
             existing.Date = entry.Date;
-            existing.Month = entry.Date.ToString("MMMM").ToUpper();
+            if (string.IsNullOrWhiteSpace(entry.Month))
+                existing.Month = entry.Date.ToString("MMMM").ToUpper();
+            else
+                existing.Month = entry.Month.Trim().ToUpper();
             existing.Buyer = entry.Buyer;
             existing.Seller = entry.Seller;
             existing.OriginalAmount = entry.OriginalAmount;

@@ -4,6 +4,14 @@ import Link from "next/link";
 import { useState, useCallback, useRef, useEffect } from "react";
 import RequireZola from "@/components/RequireZola";
 import { parseExcelFile } from "@/lib/excelParser";
+import { formatNumberInput, parseNumberInput } from "@/lib/formatUtils";
+import {
+  fetchTransactionLedger,
+  createTransactionLedgerEntry,
+  updateTransactionLedgerEntry,
+  deleteTransactionLedgerEntry,
+  type TransactionLedger,
+} from "@/lib/api";
 
 type BookStatusColor = "white" | "red" | "green";
 
@@ -49,6 +57,174 @@ function getCurrentMonthName(): string {
     timeZone: "Africa/Johannesburg",
   }).format(now);
   return monthNames[parseInt(saMonthIndex, 10) - 1];
+}
+
+const MONTH_NAMES = [
+  "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE",
+  "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER",
+];
+
+/** Rank a month chronologically (JANUARY = 0, DECEMBER = 11). Unknown months sort last. */
+function monthRank(m: string): number {
+  const i = MONTH_NAMES.indexOf(m);
+  return i === -1 ? MONTH_NAMES.length : i;
+}
+
+// ====== DATABASE SYNC HELPERS ======
+
+/** Convert the Books date field (YYYY-MM-DD, possibly empty) to a valid DB date. */
+function toLedgerDate(dateStr: string): string {
+  const trimmed = (dateStr || "").trim();
+  return /^\d{4}-\d{2}-\d{2}/.test(trimmed)
+    ? `${trimmed}T00:00:00`
+    : `${getTodaySA()}T00:00:00`;
+}
+
+/** Extract this row's per-cell colors as a JSON string for the DB (CellColors column). */
+function rowCellColorsJson(colors: Record<string, BookStatusColor>, rowId: string): string {
+  const obj: Record<string, BookStatusColor> = {};
+  Object.keys(colors).forEach((key) => {
+    if (key.startsWith(`${rowId}_`)) {
+      obj[key.slice(rowId.length + 1)] = colors[key];
+    }
+  });
+  return JSON.stringify(obj);
+}
+
+/** Map a BookEntry (Books UI) → TransactionLedger API payload. */
+function entryToLedgerPayload(entry: BookEntry, colors: Record<string, BookStatusColor>): Partial<TransactionLedger> {
+  return {
+    date: toLedgerDate(entry.date),
+    month: (entry.month || "").toUpperCase(),
+    buyer: entry.buyer || "",
+    seller: entry.seller || "",
+    originalAmount: entry.originalAmount || 0,
+    dueToSeller: entry.amountPaid || 0,
+    deposit: entry.deposit || 0,
+    lostDeed: entry.lostDeed || 0,
+    commission: entry.commission || 0,
+    transferCosts: entry.transferCosts || 0,
+    masterFees: entry.masterFees || 0,
+    elecCert: entry.electricalCertificate || 0,
+    waterAccount: entry.waterAccount || 0,
+    section118: entry.section118 || 0,
+    balance: entry.outstandingBalance || 0,
+    erfNumber: entry.erfNumber || "",
+    area: entry.area || "",
+    status: entry.statusColor.toUpperCase(),
+    cellColors: rowCellColorsJson(colors, entry.id),
+  };
+}
+
+/** Map a TransactionLedger row from the DB → Books UI shape. */
+function ledgerToBookEntry(ledger: TransactionLedger): { entry: BookEntry; colors: Record<string, BookStatusColor> } {
+  const id = `db-${ledger.id}`;
+  const colors: Record<string, BookStatusColor> = {};
+  try {
+    const parsed = JSON.parse(ledger.cellColors || "{}") as Record<string, string>;
+    Object.keys(parsed).forEach((field) => {
+      if (parsed[field] === "red" || parsed[field] === "green" || parsed[field] === "white") {
+        colors[`${id}_${field}`] = parsed[field] as BookStatusColor;
+      }
+    });
+  } catch { /* ignore invalid cell-colors JSON */ }
+
+  const statusLower = (ledger.status || "").toLowerCase();
+  const statusColor: BookStatusColor = statusLower === "red" || statusLower === "green" ? statusLower : "white";
+
+  return {
+    entry: {
+      id,
+      date: String(ledger.date || "").slice(0, 10),
+      month: ledger.month || "",
+      buyer: ledger.buyer || "",
+      seller: ledger.seller || "",
+      originalAmount: Number(ledger.originalAmount ?? 0),
+      amountPaid: Number(ledger.dueToSeller ?? 0),
+      deposit: Number(ledger.deposit ?? 0),
+      lostDeed: Number(ledger.lostDeed ?? 0),
+      commission: Number(ledger.commission ?? 0),
+      transferCosts: Number(ledger.transferCosts ?? 0),
+      masterFees: Number(ledger.masterFees ?? 0),
+      balance: 0,
+      electricalCertificate: Number(ledger.elecCert ?? 0),
+      waterAccount: Number(ledger.waterAccount ?? 0),
+      section118: Number(ledger.section118 ?? 0),
+      erfNumber: ledger.erfNumber || "",
+      area: ledger.area || "",
+      outstandingBalance: Number(ledger.balance ?? 0),
+      statusColor,
+    },
+    colors,
+  };
+}
+
+/** Deterministic snapshot of a row (incl. its colors) so we only PUT rows that actually changed. */
+function serializeBookEntry(entry: BookEntry, colors: Record<string, BookStatusColor>): string {
+  return JSON.stringify({ ...entry, cellColors: rowCellColorsJson(colors, entry.id) });
+}
+
+/**
+ * Sync the current Books table to the database:
+ *  - new rows    → POST (create) + remember the server id
+ *  - changed rows → PUT (update)
+ *  - removed rows → DELETE
+ * Returns false if any call failed (those rows are retried on the next autosave).
+ */
+async function syncLedgerToDatabase(
+  current: BookEntry[],
+  colors: Record<string, BookStatusColor>,
+  idMap: Record<string, number>,
+  synced: Record<string, string>,
+  keepalive = false,
+): Promise<boolean> {
+  let ok = true;
+  const currentIds = new Set(current.map((e) => e.id));
+
+  // Rows that were persisted but no longer exist in the table → delete them.
+  const toDelete = Object.keys(idMap).filter((clientId) => !currentIds.has(clientId));
+  for (const clientId of toDelete) {
+    const serverId = idMap[clientId];
+    try {
+      await deleteTransactionLedgerEntry(serverId, keepalive);
+      delete idMap[clientId];
+      delete synced[clientId];
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("(404)")) {
+        delete idMap[clientId];
+        delete synced[clientId];
+      } else {
+        ok = false; // retry on the next autosave
+      }
+    }
+  }
+
+  // Upsert every visible row.
+  for (const entry of current) {
+    const snapshot = serializeBookEntry(entry, colors);
+    const serverId = idMap[entry.id];
+    try {
+      if (serverId) {
+        if (synced[entry.id] !== snapshot) {
+          await updateTransactionLedgerEntry(serverId, entryToLedgerPayload(entry, colors), keepalive);
+          synced[entry.id] = snapshot;
+        }
+      } else {
+        const created = await createTransactionLedgerEntry(entryToLedgerPayload(entry, colors), keepalive);
+        idMap[entry.id] = created.id;
+        synced[entry.id] = snapshot;
+      }
+    } catch {
+      ok = false;
+    }
+  }
+
+  // Persist the client-id → server-id map so reloads never lose track or duplicate.
+  try {
+    localStorage.setItem("hlumisa-books-ids", JSON.stringify(idMap));
+  } catch { /* ignore */ }
+  return ok;
 }
 
 const initialData: BookEntry[] = [
@@ -199,7 +375,7 @@ function formatMoney(amount: number) {
     style: "currency",
     currency: "ZAR",
     maximumFractionDigits: 0,
-  }).format(amount);
+  }).format(amount).replace(/,/g, " ");
 }
 
 function getCellColorClass(color: BookStatusColor): string {
@@ -227,7 +403,18 @@ export default function BooksPage() {
 }
 
 function BooksContent() {
-  const [data, setData] = useState<BookEntry[]>(initialData);
+  const [data, setData] = useState<BookEntry[]>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("hlumisa-books-data");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed as BookEntry[];
+        } catch { /* ignore corrupted data */ }
+      }
+    }
+    return initialData;
+  });
   const [selectedMonth, setSelectedMonth] = useState<string>("ALL");
   const [editCell, setEditCell] = useState<{ row: string; field: string } | null>(null);
   const [editValue, setEditValue] = useState<string>("");
@@ -249,6 +436,15 @@ function BooksContent() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [cellColors, setCellColors] = useState<Record<string, BookStatusColor>>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("hlumisa-books-colors");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed && typeof parsed === "object") return parsed as Record<string, BookStatusColor>;
+        } catch { /* ignore corrupted data */ }
+      }
+    }
     const initial: Record<string, BookStatusColor> = {};
     initialData.forEach((row) => {
       if (row.outstandingBalance > 0) initial[`${row.id}_outstandingBalance`] = "red";
@@ -259,6 +455,242 @@ function BooksContent() {
     return initial;
   });
 
+  // ===== DATABASE CONNECTION / SYNC STATE =====
+  const dataRef = useRef(data);
+  const colorsRef = useRef(cellColors);
+  const serverIdRef = useRef<Record<string, number>>({});
+  const syncedStateRef = useRef<Record<string, string>>({});
+  const syncingRef = useRef(false);
+  const pendingSyncRef = useRef(false);
+  const hydratedRef = useRef(false);
+  const hydratingRef = useRef(false);
+  const syncTimerRef = useRef<number | null>(null);
+
+  const [dbConnected, setDbConnected] = useState<boolean | null>(null);
+  const [syncingNow, setSyncingNow] = useState(false);
+  const [syncError, setSyncError] = useState(false);
+
+  // Restore the client-id → server-id map we persisted from previous sessions.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("hlumisa-books-ids");
+      if (raw) serverIdRef.current = JSON.parse(raw) as Record<string, number>;
+    } catch { /* ignore corrupted data */ }
+  }, []);
+
+  // Update state AND the ref synchronously so an "instant" save right after a
+  // handler always sees the newest values (functional updaters only run later).
+  const commitData = useCallback((updater: (prev: BookEntry[]) => BookEntry[]) => {
+    const next = updater(dataRef.current);
+    dataRef.current = next;
+    setData(next);
+  }, []);
+
+  const commitColors = useCallback((updater: (prev: Record<string, BookStatusColor>) => Record<string, BookStatusColor>) => {
+    const next = updater(colorsRef.current);
+    colorsRef.current = next;
+    setCellColors(next);
+  }, []);
+
+  // Push any pending changes to the database NOW.
+  const flushSync = useCallback(async (keepalive = false) => {
+    if (!hydratedRef.current) return;
+    if (syncingRef.current) {
+      pendingSyncRef.current = true;
+      return;
+    }
+    syncingRef.current = true;
+    if (!keepalive) {
+      setSyncingNow(true);
+      setSyncError(false);
+    }
+    try {
+      const ok = await syncLedgerToDatabase(
+        dataRef.current,
+        colorsRef.current,
+        serverIdRef.current,
+        syncedStateRef.current,
+        keepalive,
+      );
+      if (ok) {
+        setDbConnected(true);
+        setSyncError(false);
+      } else {
+        setSyncError(true); // some rows failed — will retry
+      }
+    } catch (err) {
+      console.warn("Books: database sync failed.", err);
+      setSyncError(true);
+    } finally {
+      syncingRef.current = false;
+      if (!keepalive) setSyncingNow(false);
+      if (pendingSyncRef.current && !keepalive) {
+        pendingSyncRef.current = false;
+        void flushSync();
+      }
+    }
+  }, []);
+
+  // Fire a sync now or shortly after. `immediate` is used for the actions the
+  // user performs explicitly (add / edit / delete) so the row hits the DB right away.
+  const scheduleSync = useCallback((immediate = false) => {
+    if (hydratingRef.current) {
+      // Initial DB load still in progress — the load handler will sync afterwards.
+      return;
+    }
+    if (syncTimerRef.current !== null) {
+      clearTimeout(syncTimerRef.current);
+      syncTimerRef.current = null;
+    }
+    if (immediate) {
+      void flushSync();
+    } else {
+      syncTimerRef.current = window.setTimeout(() => {
+        syncTimerRef.current = null;
+        void flushSync();
+      }, 400);
+    }
+  }, [flushSync]);
+
+  // Load from the database when the page opens — the DB is the source of truth.
+  // Falls back to localStorage (offline cache) if the API is unreachable, and
+  // reconciles local-only rows so nothing the user did is ever lost or duplicated.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      hydratingRef.current = true;
+      try {
+        const rows = await fetchTransactionLedger();
+        if (cancelled) return;
+        hydratedRef.current = true;
+
+        if (!rows || rows.length === 0) {
+          // DB is empty but the user still has local rows (first run / offline
+          // edits) — keep everything and push it straight into the database.
+          if (dataRef.current.length > 0) void flushSync();
+          setDbConnected(true);
+          return;
+        }
+
+        const idMap: Record<string, number> = { ...serverIdRef.current };
+        const synced: Record<string, string> = {};
+        const colors: Record<string, BookStatusColor> = {};
+        const entries: BookEntry[] = rows.map((row) => {
+          const { entry, colors: rowColors } = ledgerToBookEntry(row);
+          Object.assign(colors, rowColors);
+          idMap[entry.id] = row.id;
+          return entry;
+        });
+
+        const dbEntryById = new Map(entries.map((e) => [e.id, e]));
+        const claimedKeys = new Set<string>();
+        // Content-based key so local copies of already-saved records are matched
+        // to their server row instead of being posted again as duplicates.
+        const dbKey = (e: BookEntry) =>
+          JSON.stringify([e.month, e.buyer, e.seller, e.amountPaid, e.deposit,
+            e.lostDeed, e.commission, e.transferCosts, e.masterFees, e.erfNumber, e.area]);
+
+        const keptLocalRows: BookEntry[] = [];
+        dataRef.current.forEach((localRow) => {
+          if (localRow.id.startsWith("db-")) return; // already a DB-backed copy
+          const serverId = idMap[localRow.id];
+          if (serverId && dbEntryById.has(`db-${serverId}`)) {
+            return; // persisted earlier — the DB copy is authoritative
+          }
+          if (serverId) delete idMap[localRow.id]; // stale mapping — will re-post
+          const key = dbKey(localRow);
+          if (!claimedKeys.has(key)) {
+            const match = entries.find((e) => dbKey(e) === key);
+            if (match) {
+              claimedKeys.add(key);
+              idMap[localRow.id] = Number(match.id.slice(3));
+              synced[localRow.id] = serializeBookEntry(match, colors);
+              return;
+            }
+          }
+          keptLocalRows.push(localRow);
+        });
+
+        // Preserve unsynced/offline rows and fold in their cell colours.
+        keptLocalRows.forEach((r) => entries.push(r));
+        entries.forEach((entry) => {
+          if (!synced[entry.id]) synced[entry.id] = serializeBookEntry(entry, colors);
+        });
+        Object.keys(colorsRef.current).forEach((key) => {
+          if (keptLocalRows.some((e) => key.startsWith(`${e.id}_`))) {
+            colors[key] = colorsRef.current[key];
+          }
+        });
+
+        serverIdRef.current = idMap;
+        syncedStateRef.current = synced;
+        dataRef.current = entries;
+        setData(entries);
+        colorsRef.current = colors;
+        setCellColors(colors);
+        try {
+          localStorage.setItem("hlumisa-books-ids", JSON.stringify(idMap));
+        } catch { /* ignore */ }
+        if (keptLocalRows.length > 0) {
+          // Unsynced rows exist — push them to the DB right away.
+          void flushSync();
+        }
+      } catch (err) {
+        if (cancelled) return;
+        console.warn("Books: database unavailable — using local data.", err);
+        hydratedRef.current = true;
+        setSyncError(true);
+        setDbConnected(false);
+      } finally {
+        hydratingRef.current = false;
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [flushSync]);
+
+  // 🔥 AUTO-SAVE on every change: keep the local cache fresh immediately and
+  // push to the database ~400ms after the user stops typing.
+  useEffect(() => {
+    dataRef.current = data;
+    colorsRef.current = cellColors;
+    try {
+      localStorage.setItem("hlumisa-books-data", JSON.stringify(data));
+      localStorage.setItem("hlumisa-books-colors", JSON.stringify(cellColors));
+    } catch { /* storage full or unavailable */ }
+    scheduleSync(false);
+  }, [data, cellColors, scheduleSync]);
+
+  // 💾 Flush on leaving the page / switching sections, so nothing is ever lost
+  // even if the user navigates away before the debounce fires.
+  useEffect(() => {
+    return () => {
+      if (syncTimerRef.current !== null) clearTimeout(syncTimerRef.current);
+      void flushSync(true);
+    };
+  }, [flushSync]);
+
+  // 💾 Flush on browser close / tab switch / refresh, using keepalive requests
+  // so the data is still delivered even as the page disappears.
+  useEffect(() => {
+    const fire = () => { void flushSync(true); };
+    window.addEventListener("pagehide", fire);
+    window.addEventListener("beforeunload", fire);
+    window.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") fire();
+    });
+    return () => {
+      window.removeEventListener("pagehide", fire);
+      window.removeEventListener("beforeunload", fire);
+    };
+  }, [flushSync]);
+
+  // 🔁 Keep retrying while there are unsaved rows, so offline edits eventually sync.
+  useEffect(() => {
+    if (!syncError) return;
+    const id = window.setInterval(() => { void flushSync(); }, 15000);
+    return () => clearInterval(id);
+  }, [syncError, flushSync]);
+
   const [colorPickerCell, setColorPickerCell] = useState<{ row: string; field: string } | null>(null);
   const [colorPickerPos, setColorPickerPos] = useState<{ x: number; y: number } | null>(null);
   const [showAddColorPicker, setShowAddColorPicker] = useState(false);
@@ -266,21 +698,29 @@ function BooksContent() {
   const [editSelectedColor, setEditSelectedColor] = useState<BookStatusColor>("white");
 
   function cycleBookStatusColor(rowId: string) {
-    setData((prev) =>
+    commitData((prev) =>
       prev.map((d) => {
         if (d.id !== rowId) return d;
         const next: Record<BookStatusColor, BookStatusColor> = { white: "red", red: "green", green: "white" };
         return { ...d, statusColor: next[d.statusColor] };
       })
     );
+    scheduleSync(true);
   }
   const inputRef = useRef<HTMLInputElement>(null);
   const tableRef = useRef<HTMLDivElement>(null);
   const addEntryRef = useRef<HTMLDivElement>(null);
 
-  const months = ["ALL", "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST"];
+  const months = [
+    "ALL",
+    ...MONTH_NAMES,
+    ...Array.from(new Set(data.map((d) => d.month).filter((m) => m && !MONTH_NAMES.includes(m)))),
+  ];
 
-  const filtered = selectedMonth === "ALL" ? data : data.filter((d) => d.month === selectedMonth);
+  // Sort rows chronologically by month so JANUARY sits on top and AUGUST at the bottom.
+  const filtered = (selectedMonth === "ALL" ? data : data.filter((d) => d.month === selectedMonth))
+    .slice()
+    .sort((a, b) => monthRank(a.month) - monthRank(b.month));
 
   const monthlyTotals: Record<string, { commission: number; transferCosts: number }> = {};
   data.forEach((d) => {
@@ -296,7 +736,7 @@ function BooksContent() {
     // When in "add entry" mode, apply the selected color directly and start editing
     if (showAddColorPicker) {
       const key = `${row.id}_${field}`;
-      setCellColors((prev) => ({ ...prev, [key]: editSelectedColor }));
+      commitColors((prev) => ({ ...prev, [key]: editSelectedColor }));
       const val = (row as any)[field];
       setEditCell({ row: row.id, field });
       setEditValue(val != null && val !== 0 ? String(val) : "");
@@ -319,7 +759,7 @@ function BooksContent() {
   const handleColorSelected = (color: BookStatusColor) => {
     if (!colorPickerCell) return;
     const key = `${colorPickerCell.row}_${colorPickerCell.field}`;
-    setCellColors((prev) => ({ ...prev, [key]: color }));
+    commitColors((prev) => ({ ...prev, [key]: color }));
     const row = data.find((d) => d.id === colorPickerCell.row);
     if (row) {
       const val = (row as any)[colorPickerCell.field];
@@ -332,7 +772,7 @@ function BooksContent() {
 
   const handleCellSave = useCallback(() => {
     if (!editCell) return;
-    setData((prev) =>
+    commitData((prev) =>
       prev.map((d) => {
         if (d.id !== editCell.row) return d;
         const fType = fieldConfig[editCell.field] || "text";
@@ -346,7 +786,8 @@ function BooksContent() {
       })
     );
     setEditCell(null);
-  }, [editCell, editValue]);
+    scheduleSync(true);
+  }, [editCell, editValue, commitData, scheduleSync]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") handleCellSave();
@@ -411,11 +852,12 @@ function BooksContent() {
         };
       });
 
-      setData((prev) => [...newEntries, ...prev]);
-      setUploadResult(`✅ Successfully imported ${newEntries.length} row${newEntries.length !== 1 ? "s" : ""} from ${file.name}. The data has been auto-filled into the Books table.`);
+      commitData((prev) => [...newEntries, ...prev]);
+      setUploadResult(`Successfully imported ${newEntries.length} row${newEntries.length !== 1 ? "s" : ""} from ${file.name}. The data has been auto-filled into the Books table.`);
       if (fileInputRef.current) fileInputRef.current.value = "";
+      if (hydratedRef.current) scheduleSync(true);
     } catch (err) {
-      setUploadResult(`❌ Failed to parse Excel file: ${err instanceof Error ? err.message : "Unknown error"}`);
+      setUploadResult(`Failed to parse Excel file: ${err instanceof Error ? err.message : "Unknown error"}`);
     } finally {
       setUploading(false);
     }
@@ -432,11 +874,13 @@ function BooksContent() {
       waterAccount: 0, section118: 0, erfNumber: "", area: "",
       outstandingBalance: 0, statusColor: "white",
     };
-    // Add the new entry immediately AND show the 3 color options right next to the button
+    // Add the new entry immediately AND show the 3 color options right next to the button.
+    // It is also pushed to the database right away, so it's saved the moment you click.
     setPendingNewEntry(newEntry);
-    setData((prev) => [...prev, newEntry]);
+    commitData((prev) => [...prev, newEntry]);
     setShowAddColorPicker(true);
     setEditSelectedColor("white");
+    if (hydratedRef.current) scheduleSync(true);
     setTimeout(() => {
       const el = document.getElementById(`book-row-${newId}`);
       if (el) {
@@ -450,13 +894,14 @@ function BooksContent() {
   const handleAddColorSelected = (color: BookStatusColor) => {
     // Keep the picker open! Just update the selected color for the next cell click
     setEditSelectedColor(color);
-    // If there's a pending new entry, update its status color
+    // If there's a pending new entry, update its status color and save immediately
     if (pendingNewEntry) {
-      setData((prev) =>
+      commitData((prev) =>
         prev.map((d) =>
           d.id === pendingNewEntry.id ? { ...d, statusColor: color } : d
         )
       );
+      scheduleSync(true);
     }
   };
 
@@ -468,8 +913,9 @@ function BooksContent() {
 
   const handleRemoveRow = () => {
     if (!selectedRow) return;
-    setData((prev) => prev.filter((d) => d.id !== selectedRow));
+    commitData((prev) => prev.filter((d) => d.id !== selectedRow));
     setSelectedRow(null);
+    if (hydratedRef.current) scheduleSync(true);
   };
 
   const handleRowDoubleClick = (rowId: string) => {
@@ -477,10 +923,11 @@ function BooksContent() {
   };
 
   const handleSaveAll = () => {
-    setData((current) => {
-      localStorage.setItem("hlumisa-books-data", JSON.stringify(current));
-      return current;
-    });
+    try {
+      localStorage.setItem("hlumisa-books-data", JSON.stringify(data));
+      localStorage.setItem("hlumisa-books-colors", JSON.stringify(cellColors));
+    } catch { /* storage full or unavailable */ }
+    void flushSync();
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -491,6 +938,23 @@ function BooksContent() {
   const totalOutstanding = filtered.reduce((s, d) => s + d.outstandingBalance, 0);
   const totalOutstandingUnfiltered = data.reduce((s, d) => s + d.outstandingBalance, 0);
   const flippedCount = filtered.filter((d) => d.commission > 39000).length;
+
+  // 🔢 TOTALS ROW: sum every numeric column across the filtered rows
+  const numericFields = columnOrder.filter((f) => fieldConfig[f] === "number");
+  const columnTotals: Record<string, number> = {};
+  numericFields.forEach((f) => {
+    columnTotals[f] = filtered.reduce((s, d) => s + ((d as any)[f] as number || 0), 0);
+  });
+  const totalAmountPaid = filtered.reduce((s, d) => s + d.amountPaid, 0);
+  const totalDeposit = filtered.reduce((s, d) => s + d.deposit, 0);
+  const totalLostDeed = filtered.reduce((s, d) => s + d.lostDeed, 0);
+  const totalElecCert = filtered.reduce((s, d) => s + d.electricalCertificate, 0);
+  const totalWater = filtered.reduce((s, d) => s + d.waterAccount, 0);
+  const totalSection118 = filtered.reduce((s, d) => s + d.section118, 0);
+  const totalOriginal = filtered.reduce((s, d) => s + d.originalAmount, 0);
+  const totalBalance = filtered.reduce((s, d) => s + d.balance, 0);
+  const totalRows = filtered.length;
+  const grandTotal = totalCommission + totalTransfer + totalMasterFees + totalOutstanding + totalAmountPaid + totalDeposit + totalLostDeed + totalElecCert + totalWater + totalSection118 + totalOriginal + totalBalance;
 
   const scrollToBookRow = (rowId: string) => {
     setSelectedMonth("ALL");
@@ -523,8 +987,18 @@ function BooksContent() {
 
     if (isEditing) {
       return (
-        <input ref={inputRef} type={fType === "number" ? "number" : "text"}
-          value={editValue} onChange={(e) => setEditValue(e.target.value)}
+        <input ref={inputRef} type="text" inputMode={fType === "number" ? "numeric" : "text"}
+          value={editValue} onChange={(e) => {
+            const raw = e.target.value;
+            // For number fields, show spaces as thousand separators while typing
+            const formatted = fType === "number" ? formatNumberInput(raw) : raw;
+            // Keep raw digits in editValue but display formatted
+            setEditValue(fType === "number" ? parseNumberInput(formatted) : formatted);
+            // Update the visible input value immediately via ref
+            if (inputRef.current) {
+              inputRef.current.value = fType === "number" ? formatNumberInput(parseNumberInput(formatted)) : formatted;
+            }
+          }}
           onBlur={handleCellSave} onKeyDown={handleKeyDown}
           className="w-full min-w-[80px] rounded-lg border border-amber-200/40 bg-black/60 px-2 py-1 text-sm text-white outline-none" autoFocus />
       );
@@ -534,7 +1008,6 @@ function BooksContent() {
       <span onClick={(e) => handleCellClick(row, field, e)}
         className={`cursor-pointer rounded px-1 py-0.5 transition hover:bg-amber-200/15 ${colorClass} ${bgClass} ${isOutstanding || isLostDeedRed ? "font-semibold" : ""} ${isCommissionHighlight ? "font-semibold" : ""}`}>
         {display}
-        <span className="ml-1 opacity-0 group-hover:opacity-100 text-stone-500 text-xs">✎</span>
       </span>
     );
   }
@@ -552,7 +1025,7 @@ function BooksContent() {
             {months.map((m) => (<option key={m} value={m}>{m === "ALL" ? "All Months" : m}</option>))}
           </select>
           <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-200 transition hover:bg-emerald-500/20">
-            {uploading ? "⏳ Importing..." : "📊 Upload Excel"}
+            {uploading ? "Importing..." : "Upload Excel"}
             <input
               ref={fileInputRef}
               type="file"
@@ -563,8 +1036,19 @@ function BooksContent() {
           </label>
           <button onClick={handleSaveAll}
             className="rounded-full bg-amber-200 px-6 py-2 text-sm font-semibold text-stone-950 transition hover:bg-amber-100">
-            {saved ? "✓ Saved!" : "Save Changes"}
+            {syncingNow ? "Saving…" : syncError ? "Retry" : dbConnected === false ? "Offline" : saved ? "Saved!" : "Auto-Saved"}
           </button>
+          {dbConnected !== null && (
+            <span className={`rounded-full border px-3 py-1 text-xs font-medium ${
+              dbConnected
+                ? syncError
+                  ? "border-amber-300/30 bg-amber-500/10 text-amber-200"
+                  : "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
+                : "border-rose-400/30 bg-rose-500/10 text-rose-200"
+            }`}>
+              {dbConnected ? (syncError ? "DB sync pending…" : "● Database synced") : "● Offline — saved locally"}
+            </span>
+          )}
         </div>
       </div>
 
@@ -578,7 +1062,7 @@ function BooksContent() {
           <p className="mt-2 text-2xl font-semibold text-white">{formatMoney(totalTransfer) || "R0"}</p>
         </div>
         <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-5">
-          <p className="text-xs uppercase tracking-[0.3em] text-stone-400">🏠 Flipped Houses</p>
+          <p className="text-xs uppercase tracking-[0.3em] text-stone-400">Flipped Houses</p>
           <p className="mt-2 text-2xl font-semibold text-purple-200">{flippedCount}</p>
         </div>
         <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-5">
@@ -586,11 +1070,11 @@ function BooksContent() {
           <p className="mt-2 text-2xl font-semibold text-white">{formatMoney(totalMasterFees) || "R0"}</p>
         </div>
         <div className="rounded-[1.5rem] border border-rose-300/20 bg-rose-500/10 p-5">
-          <p className="text-xs uppercase tracking-[0.3em] text-rose-300">💳 Pending Payments</p>
+          <p className="text-xs uppercase tracking-[0.3em] text-rose-300">Pending Payments</p>
           <p className="mt-2 text-2xl font-semibold text-rose-200">{formatMoney(totalOutstanding) || "R0"}</p>
         </div>
         <div className="rounded-[1.5rem] border border-amber-300/20 bg-amber-500/10 p-5">
-          <p className="text-xs uppercase tracking-[0.3em] text-amber-300">📊 Outstanding Total</p>
+          <p className="text-xs uppercase tracking-[0.3em] text-amber-300">Outstanding Total</p>
           <p className="mt-2 text-2xl font-semibold text-amber-200">{formatMoney(totalOutstandingUnfiltered) || "R0"}</p>
         </div>
       </div>
@@ -607,7 +1091,7 @@ function BooksContent() {
 
       {uploadResult && (
         <div className={`rounded-[1.5rem] border px-6 py-4 text-sm ${
-          uploadResult.startsWith("✅")
+          uploadResult.startsWith("Failed")
             ? "border-emerald-400/20 bg-emerald-500/10 text-emerald-200"
             : "border-rose-400/20 bg-rose-500/10 text-rose-200"
         }`}>
@@ -617,7 +1101,7 @@ function BooksContent() {
 
       {!uploadResult && (
         <div className="rounded-[1.5rem] border border-white/10 bg-black/20 px-6 py-4 text-xs leading-relaxed text-stone-500">
-          <strong className="text-emerald-300">📊 Excel Upload:</strong> Upload an <strong>.xlsx</strong>, <strong>.xls</strong>, or <strong>.csv</strong> file and the data will <strong className="text-amber-200">auto-fill into the Books table</strong>. The first row must contain column headers such as <em>Buyer, Seller, Commission, Transfer Costs, Due to Seller, Balance, ERF, Area</em>, etc. Supported columns: Date, Month, Buyer, Seller, Original Amount, Due to Seller/Amount Paid, Deposit, Lost Deed, Commission, Transfer Costs, Master Fees, Elec Cert, Water Account, Section 118, Balance/Outstanding Balance, ERF, Area.
+          <strong className="text-emerald-300">Excel Upload:</strong> Upload an <strong>.xlsx</strong>, <strong>.xls</strong>, or <strong>.csv</strong> file and the data will <strong className="text-amber-200">auto-fill into the Books table</strong>. The first row must contain column headers such as <em>Buyer, Seller, Commission, Transfer Costs, Due to Seller, Balance, ERF, Area</em>, etc. Supported columns: Date, Month, Buyer, Seller, Original Amount, Due to Seller/Amount Paid, Deposit, Lost Deed, Commission, Transfer Costs, Master Fees, Elec Cert, Water Account, Section 118, Balance/Outstanding Balance, ERF, Area.
         </div>
       )}
 
@@ -654,7 +1138,7 @@ function BooksContent() {
                         {row.statusColor === "green" ? "✓ Done" : row.statusColor === "red" ? "✕ Declined" : "○ Pending"}
                       </button>
                       {isFlipped && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-purple-500/20 px-2.5 py-0.5 text-xs font-medium text-purple-200">🏠 Flipped</span>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-purple-500/20 px-2.5 py-0.5 text-xs font-medium text-purple-200">Flipped</span>
                       )}
                     </div>
                   </td>
@@ -665,6 +1149,32 @@ function BooksContent() {
               <tr><td colSpan={columnOrder.length + 1} className="px-4 py-8 text-center text-sm text-stone-500">No entries for this month.</td></tr>
             )}
           </tbody>
+          {filtered.length > 0 && (
+            <tfoot className="sticky bottom-0 z-10">
+              <tr className="border-t-2 border-amber-200/30 bg-[#0d1520] text-xs font-semibold text-amber-200">
+                <td className="px-4 py-3 text-amber-200" colSpan={2}>TOTALS ({totalRows} rows)</td>
+                <td className="px-4 py-3" colSpan={2}></td>
+                {columnOrder.slice(4).map((field) => {
+                  if (fieldConfig[field] === "number") {
+                    const total = columnTotals[field] || 0;
+                    return (
+                      <td key={field} className={`px-4 py-3 ${rightAlignedFields.has(field) ? "text-right" : ""} ${field === "outstandingBalance" ? "text-rose-300" : "text-amber-200"}`}>
+                        {formatMoney(total) || "R0"}
+                      </td>
+                    );
+                  }
+                  return <td key={field} className="px-4 py-3"></td>;
+                })}
+                <td className="px-4 py-3"></td>
+              </tr>
+              <tr className="border-t border-amber-200/10 bg-[#0d1520] text-xs font-bold text-white">
+                <td className="px-4 py-3 text-stone-400" colSpan={2}>GRAND TOTAL</td>
+                <td className="px-4 py-3" colSpan={2}></td>
+                <td className="px-4 py-3 text-right text-amber-200">{formatMoney(grandTotal) || "R0"}</td>
+                <td className="px-4 py-3" colSpan={12}></td>
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
 
@@ -718,7 +1228,7 @@ function BooksContent() {
 
       {flippedCount > 0 && (
         <div className="rounded-[2rem] border border-purple-300/20 bg-purple-500/5 p-6">
-          <h2 className="text-lg font-semibold text-white">🏠 Flipped Houses (Commission {">"} R39,000)</h2>
+          <h2 className="text-lg font-semibold text-white">Flipped Houses (Commission {">"} R39,000)</h2>
           <p className="text-sm text-stone-400">These deals have commission amounts exceeding R39,000. Click a row to jump to it in the table above.</p>
           <div className="mt-4 space-y-2">
             {data.filter((d) => d.commission > 39000).map((d) => (
@@ -735,12 +1245,12 @@ function BooksContent() {
       <div className="flex justify-center">
         <Link href="/admin/books/understanding"
           className="inline-flex items-center gap-2 rounded-full border border-white/10 px-6 py-3 text-sm text-stone-400 transition hover:border-amber-200/40 hover:text-amber-200">
-          <span>📖</span><span>Books Understanding — learn how this page works</span>
+          <span>Books Understanding — learn how this page works</span>
         </Link>
       </div>
 
       <p className="text-center text-xs text-stone-600">
-        Click "Add new entry" then pick a color (white/red/green) and click any cell to fill it in. The color picker stays until you click "✓ Done". Click any existing cell to edit with its own color picker. Press Enter to save, Escape to cancel. Double-click a row to select it, then click "Remove selected row" to delete it. Hit "Save Changes" to persist to localStorage.
+        Click "Add new entry" then pick a color (white/red/green) and click any cell to fill it in. The color picker stays until you click "✓ Done". Click any existing cell to edit with its own color picker. Press Enter to save, Escape to cancel. Double-click a row to select it, then click "Remove selected row" to delete it. <strong className="text-amber-200">Everything auto-saves instantly to the database</strong> — leave the page, close the browser, or even open it from another device and your records will still be there. The bottom row shows totals for every number column.
       </p>
     </div>
   );

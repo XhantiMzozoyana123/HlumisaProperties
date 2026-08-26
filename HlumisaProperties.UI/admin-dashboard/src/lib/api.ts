@@ -20,13 +20,13 @@ export function formatMoney(amount: number) {
     style: "currency",
     currency: "ZAR",
     maximumFractionDigits: 0,
-  }).format(amount);
+  }).format(amount).replace(/,/g, " ");
 }
 
 export function formatArea(sizeInSqm: number) {
   return new Intl.NumberFormat("en-ZA", {
     maximumFractionDigits: 0,
-  }).format(sizeInSqm);
+  }).format(sizeInSqm).replace(/,/g, " ");
 }
 
 export function formatDate(iso: string) {
@@ -320,27 +320,33 @@ export async function fetchTransactionLedger(): Promise<TransactionLedger[]> {
   return response.json();
 }
 
-export async function createTransactionLedgerEntry(data: Partial<TransactionLedger>): Promise<TransactionLedger> {
+export async function createTransactionLedgerEntry(data: Partial<TransactionLedger>, keepalive = false): Promise<TransactionLedger> {
   const response = await fetch(apiUrl("/api/transaction-ledger"), {
     method: "POST",
     headers: mergeHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(data),
+    ...(keepalive ? { keepalive: true } : {}),
   });
   if (!response.ok) throw new Error(`Failed to create entry (${response.status})`);
   return response.json();
 }
 
-export async function updateTransactionLedgerEntry(id: number, data: Partial<TransactionLedger>): Promise<TransactionLedger> {
+export async function updateTransactionLedgerEntry(id: number, data: Partial<TransactionLedger>, keepalive = false): Promise<TransactionLedger> {
   const response = await fetch(apiUrl(`/api/transaction-ledger/${id}`), {
     method: "PUT",
     headers: mergeHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(data),
+    ...(keepalive ? { keepalive: true } : {}),
   });
   if (!response.ok) throw new Error(`Failed to update entry (${response.status})`);
   return response.json();
 }
 
-export async function deleteTransactionLedgerEntry(id: number): Promise<void> {
-  const response = await fetch(apiUrl(`/api/transaction-ledger/${id}`), { method: "DELETE", headers: authHeaders() });
+export async function deleteTransactionLedgerEntry(id: number, keepalive = false): Promise<void> {
+  const response = await fetch(apiUrl(`/api/transaction-ledger/${id}`), {
+    method: "DELETE",
+    headers: authHeaders(),
+    ...(keepalive ? { keepalive: true } : {}),
+  });
   if (!response.ok) throw new Error(`Failed to delete entry (${response.status})`);
 }

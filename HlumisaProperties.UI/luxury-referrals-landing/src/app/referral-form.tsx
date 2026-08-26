@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
+import { formatZaPhone } from "@/lib/formatUtils";
 
 type PersonForm = {
   fullName: string;
@@ -51,7 +52,7 @@ function PersonCard({ title, subtitle, form, onChange }: PersonCardProps) {
           type="tel"
           inputMode="tel"
           value={form.phoneNumber}
-          onChange={(e) => onChange({ ...form, phoneNumber: e.target.value })}
+          onChange={(e) => onChange({ ...form, phoneNumber: formatZaPhone(e.target.value) })}
           required
         />
       </div>

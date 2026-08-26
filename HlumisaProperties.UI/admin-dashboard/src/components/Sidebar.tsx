@@ -12,8 +12,8 @@ const fullNavItems = [
   { label: "Dashboard", href: "/admin/dashboard", icon: "◉" },
   { label: "Referrals", href: "/admin/referrals", icon: "◎" },
   { label: "Properties", href: "/admin/properties", icon: "◆" },
-  { label: "Books", href: "/admin/books", icon: "📓" },
-  { label: "Books Understanding", href: "/admin/books/understanding", icon: "📖" },
+  { label: "Books", href: "/admin/books", icon: "" },
+  { label: "Books Understanding", href: "/admin/books/understanding", icon: "" },
 ];
 
 const bruWhiteNavItems = [

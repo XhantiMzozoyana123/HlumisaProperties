@@ -12,6 +12,7 @@ import {
   type PropertyStatus,
 } from "@/lib/localData";
 import RequireZola from "@/components/RequireZola";
+import { formatNumberInput, parseNumberInput } from "@/lib/formatUtils";
 
 const STATUS_CONFIG: Record<PropertyStatus, { label: string; color: string; bg: string }> = {
   "on-market": { label: "On Market", color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/30" },
@@ -26,11 +27,11 @@ const STATUS_OPTIONS: { value: PropertyStatus; label: string; color: string }[] 
 ];
 
 function spacedToNumber(val: string): number {
-  return Number(val.replace(/\s/g, ""));
+  return Number(parseNumberInput(val));
 }
 
 function numberToSpaced(val: number): string {
-  return val.toLocaleString("en-ZA").replace(/,/g, " ");
+  return formatNumberInput(String(val));
 }
 
 export default function PropertyDetailPage() {
@@ -193,7 +194,7 @@ function PropertyDetailContent() {
 
           <div>
             <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-stone-400">Price (ZAR) — use spaces: e.g. 4 500 000</label>
-            <input className="w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none placeholder:text-stone-500 font-mono" value={editPrice} onChange={(e) => { const cleaned = e.target.value.replace(/[^0-9 ]/g, ""); setEditPrice(cleaned); }} />
+            <input className="w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none placeholder:text-stone-500 font-mono" value={editPrice} onChange={(e) => setEditPrice(formatNumberInput(e.target.value))} />
             {editPrice && !isNaN(spacedToNumber(editPrice)) && spacedToNumber(editPrice) > 0 && (
               <p className="mt-2 text-xs text-stone-500">→ {formatMoney(spacedToNumber(editPrice))}</p>
             )}
