@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useState, useCallback, useRef, useEffect } from "react";
@@ -174,7 +174,7 @@ const fieldConfig: Record<string, FieldType> = {
   outstandingBalance: "number",
 };
 
-/** Ordered keys for table columns Ã¢â‚¬â€ new layout as requested */
+/** Ordered keys for table columns - new layout as requested */
 const columnOrder = [
   "date", "month", "buyer", "seller", "originalAmount", "amountPaid",
   "deposit", "lostDeed", "commission", "transferCosts", "masterFees",
@@ -278,7 +278,7 @@ function BooksContent() {
       setCellColors(colors);
       setData(mapped);
     } catch (err) {
-      setUploadResult(`âŒ Failed to load ledger from database: ${err instanceof Error ? err.message : "Unknown error"}`);
+      setUploadResult(`Failed to load ledger from database: ${err instanceof Error ? err.message : "Unknown error"}`);
     } finally {
       setLoading(false);
     }
@@ -445,10 +445,10 @@ function BooksContent() {
       });
 
       setData((prev) => [...newEntries, ...prev]);
-      setUploadResult(`Ã¢Å“â€¦ Successfully imported ${newEntries.length} row${newEntries.length !== 1 ? "s" : ""} from ${file.name}. The data has been auto-filled into the Books table.`);
+      setUploadResult(`Successfully imported ${newEntries.length} row${newEntries.length !== 1 ? "s" : ""} from ${file.name}. The data has been auto-filled into the Books table.`);
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (err) {
-      setUploadResult(`Ã¢ÂÅ’ Failed to parse Excel file: ${err instanceof Error ? err.message : "Unknown error"}`);
+      setUploadResult(`Failed to parse Excel file: ${err instanceof Error ? err.message : "Unknown error"}`);
     } finally {
       setUploading(false);
     }
@@ -590,7 +590,6 @@ function BooksContent() {
       <span onClick={(e) => handleCellClick(row, field, e)}
         className={`cursor-pointer rounded px-1 py-0.5 transition hover:bg-amber-200/15 ${colorClass} ${bgClass} ${isOutstanding || isLostDeedRed ? "font-semibold" : ""} ${isCommissionHighlight ? "font-semibold" : ""}`}>
         {display}
-        <span className="ml-1 opacity-0 group-hover:opacity-100 text-stone-500 text-xs">Ã¢Å“Å½</span>
       </span>
     );
   }
@@ -600,7 +599,7 @@ function BooksContent() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-semibold text-white">Books</h1>
-          <p className="mt-1 text-sm text-stone-400">Transaction ledger Ã¢â‚¬â€ all deals, commissions & balances.</p>
+          <p className="mt-1 text-sm text-stone-400">Transaction ledger - all deals, commissions & balances.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}
@@ -608,7 +607,7 @@ function BooksContent() {
             {months.map((m) => (<option key={m} value={m}>{m === "ALL" ? "All Months" : m}</option>))}
           </select>
           <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-200 transition hover:bg-emerald-500/20">
-            {uploading ? "Ã¢ÂÂ³ Importing..." : "Ã°Å¸â€œÅ  Upload Excel"}
+            {uploading ? "Importing..." : "Upload Excel"}
             <input
               ref={fileInputRef}
               type="file"
@@ -634,7 +633,7 @@ function BooksContent() {
           <p className="mt-2 text-2xl font-semibold text-white">{formatMoney(totalTransfer) || "R0"}</p>
         </div>
         <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-5">
-          <p className="text-xs uppercase tracking-[0.3em] text-stone-400">Ã°Å¸ÂÂ  Flipped Houses</p>
+          <p className="text-xs uppercase tracking-[0.3em] text-stone-400">Flipped Houses</p>
           <p className="mt-2 text-2xl font-semibold text-purple-200">{flippedCount}</p>
         </div>
         <div className="rounded-[1.5rem] border border-white/10 bg-black/20 p-5">
@@ -642,11 +641,11 @@ function BooksContent() {
           <p className="mt-2 text-2xl font-semibold text-white">{formatMoney(totalMasterFees) || "R0"}</p>
         </div>
         <div className="rounded-[1.5rem] border border-rose-300/20 bg-rose-500/10 p-5">
-          <p className="text-xs uppercase tracking-[0.3em] text-rose-300">Ã°Å¸â€™Â³ Pending Payments</p>
+          <p className="text-xs uppercase tracking-[0.3em] text-rose-300">Pending Payments</p>
           <p className="mt-2 text-2xl font-semibold text-rose-200">{formatMoney(totalOutstanding) || "R0"}</p>
         </div>
         <div className="rounded-[1.5rem] border border-amber-300/20 bg-amber-500/10 p-5">
-          <p className="text-xs uppercase tracking-[0.3em] text-amber-300">Ã°Å¸â€œÅ  Outstanding Total</p>
+          <p className="text-xs uppercase tracking-[0.3em] text-amber-300">Outstanding Total</p>
           <p className="mt-2 text-2xl font-semibold text-amber-200">{formatMoney(totalOutstandingUnfiltered) || "R0"}</p>
         </div>
       </div>
@@ -707,10 +706,10 @@ function BooksContent() {
                     <div className="flex flex-col gap-1">
                       <button onClick={() => cycleBookStatusColor(row.id)}
                         className={`rounded-full px-2.5 py-0.5 text-xs font-medium transition cursor-pointer hover:ring-2 hover:ring-white/20 ${row.statusColor === "green" ? "bg-emerald-500/20 text-emerald-200" : row.statusColor === "red" ? "bg-rose-500/20 text-rose-200" : "bg-white/5 text-stone-300"}`}>
-                        {row.statusColor === "green" ? "Ã¢Å“â€œ Done" : row.statusColor === "red" ? "Ã¢Å“â€¢ Declined" : "Ã¢â€”â€¹ Pending"}
+                        {row.statusColor === "green" ? "Done" : row.statusColor === "red" ? "Declined" : "Pending"}
                       </button>
                       {isFlipped && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-purple-500/20 px-2.5 py-0.5 text-xs font-medium text-purple-200">Ã°Å¸ÂÂ  Flipped</span>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-purple-500/20 px-2.5 py-0.5 text-xs font-medium text-purple-200">Flipped</span>
                       )}
                     </div>
                   </td>
@@ -727,7 +726,7 @@ function BooksContent() {
         </table>
       </div>
 
-      {/* Color picker popover Ã¢â‚¬â€ anchored right below the clicked cell */}
+      {/* Color picker popover - anchored right below the clicked cell */}
       {colorPickerCell && colorPickerPos && (
         <div
           className="fixed z-50 rounded-[2rem] border border-amber-200/30 bg-[#1d2736] p-5 shadow-[0_30px_100px_rgba(0,0,0,0.6)]"
@@ -765,25 +764,25 @@ function BooksContent() {
               <button onClick={() => handleAddColorSelected("green")}
                 className={`flex h-9 w-9 items-center justify-center rounded-full border-2 text-xs font-bold uppercase tracking-wider transition hover:scale-110 ${editSelectedColor === "green" ? "ring-2 ring-amber-300" : ""} border-emerald-400/70 bg-emerald-600 text-white hover:border-emerald-300 hover:bg-emerald-500`}>G</button>
               <button onClick={handleFinishAddEntry}
-                className="ml-1 rounded-full bg-amber-200 px-3 py-1.5 text-xs font-semibold text-stone-950 transition hover:bg-amber-100">Ã¢Å“â€œ Done</button>
+                className="ml-1 rounded-full bg-amber-200 px-3 py-1.5 text-xs font-semibold text-stone-950 transition hover:bg-amber-100">Done</button>
             </div>
           )}
         </div>
         <button onClick={handleRemoveRow} disabled={!selectedRow}
           className={`flex items-center gap-2 rounded-full border-2 px-8 py-4 text-base transition ${selectedRow ? "border-rose-400/40 text-rose-300 hover:border-rose-300/60 hover:bg-rose-500/10 hover:text-rose-200" : "border-white/10 text-stone-600 cursor-not-allowed"}`}>
-          <span className="text-2xl font-light">Ã¢Å“â€¢</span><span>Remove selected row</span>
+          <span>Remove selected row</span>
         </button>
       </div>
 
       {flippedCount > 0 && (
         <div className="rounded-[2rem] border border-purple-300/20 bg-purple-500/5 p-6">
-          <h2 className="text-lg font-semibold text-white">Ã°Å¸ÂÂ  Flipped Houses (Commission {">"} R39,000)</h2>
+          <h2 className="text-lg font-semibold text-white">Flipped Houses (Commission {">"} R39,000)</h2>
           <p className="text-sm text-stone-400">These deals have commission amounts exceeding R39,000. Click a row to jump to it in the table above.</p>
           <div className="mt-4 space-y-2">
             {data.filter((d) => d.commission > 39000).map((d) => (
               <div key={d.id} onClick={() => scrollToBookRow(d.id)}
                 className="flex cursor-pointer items-center justify-between rounded-2xl border border-purple-300/10 bg-black/20 px-5 py-3 transition hover:border-amber-300/30 hover:bg-amber-200/10 hover:scale-[1.01]">
-                <div><p className="text-sm font-medium text-white">{d.buyer} Ã¢â€ â€™ {d.seller}</p><p className="text-xs text-stone-400">{d.month} Ã‚Â· {d.area}</p></div>
+                <div><p className="text-sm font-medium text-white">{d.buyer} - {d.seller}</p><p className="text-xs text-stone-400">{d.month} - {d.area}</p></div>
                 <span className="text-sm font-semibold text-purple-200">{formatMoney(d.commission)}</span>
               </div>
             ))}
@@ -794,12 +793,12 @@ function BooksContent() {
       <div className="flex justify-center">
         <Link href="/admin/books/understanding"
           className="inline-flex items-center gap-2 rounded-full border border-white/10 px-6 py-3 text-sm text-stone-400 transition hover:border-amber-200/40 hover:text-amber-200">
-          <span>Ã°Å¸â€œâ€“</span><span>Books Understanding Ã¢â‚¬â€ learn how this page works</span>
+          <span>Books Understanding - learn how this page works</span>
         </Link>
       </div>
 
       <p className="text-center text-xs text-stone-600">
-        Click "Add new entry" then pick a color (white/red/green) and click any cell to fill it in. The color picker stays until you click "Ã¢Å“â€œ Done". Click any existing cell to edit with its own color picker. Press Enter to save, Escape to cancel. Double-click a row to select it, then click "Remove selected row" to delete it. Hit "Save Changes" to persist to the database.
+        Click "Add new entry" then pick a color (white/red/green) and click any cell to fill it in. The color picker stays until you click "Done". Click any existing cell to edit with its own color picker. Press Enter to save, Escape to cancel. Double-click a row to select it, then click "Remove selected row" to delete it. Hit "Save Changes" to persist to the database.
       </p>
     </div>
   );
