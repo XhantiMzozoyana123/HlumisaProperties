@@ -35,7 +35,7 @@ function BooksUnderstandingContent() {
           The <strong className="text-amber-200">Books</strong> section is a transaction ledger that records all property deals handled by Hlumisa Properties. Each row represents a single deal between a buyer and a seller. The table stores key financial figures for each transaction, including the amount due to the seller, commissions earned, transfer costs, electrical certificate fees, water account balances, Section 118 figures, and outstanding balances.
         </p>
         <p className="mt-2 text-sm leading-relaxed text-stone-300">
-          You can edit any editable cell by clicking on it. <strong className="text-amber-200">First a color picker popup appears</strong> — choose white, red, or green to highlight the cell value. Then type your value and press <kbd className="rounded bg-white/10 px-1.5 py-0.5 text-xs text-amber-200">Enter</kbd> to save or <kbd className="rounded bg-white/10 px-1.5 py-0.5 text-xs text-stone-400">Esc</kbd> to cancel. When you click the "Save Changes" button, everything is persisted to <strong className="text-stone-200">the database</strong> via the API.
+          You can edit any editable cell by clicking on it. <strong className="text-amber-200">First a color picker popup appears</strong> — choose white, red, or green to highlight the cell value. Then type your value and press <kbd className="rounded bg-white/10 px-1.5 py-0.5 text-xs text-amber-200">Enter</kbd> to save or <kbd className="rounded bg-white/10 px-1.5 py-0.5 text-xs text-stone-400">Esc</kbd> to cancel. When you click the "Save Changes" button, everything is written to <strong className="text-stone-200">books.csv stored on the API server</strong> (read/write using CsvHelper — no database).
         </p>
       </section>
 
@@ -271,7 +271,7 @@ function BooksUnderstandingContent() {
           </li>
           <li className="flex items-start gap-3">
             <span className="mt-0.5 text-emerald-200">5.</span>
-            <span>When you click "<strong className="text-white">Save Changes</strong>", all the current data is persisted to the <strong className="text-white">database</strong> (new rows are created, edits updated, and removed rows deleted).</span>
+            <span>When you click "<strong className="text-white">Save Changes</strong>", all the current data is written to the <strong className="text-white">books.csv</strong> file on the server (edits updated, rows added/removed).</span>
           </li>
           <li className="flex items-start gap-3">
             <span className="mt-0.5 text-emerald-200">6.</span>
@@ -294,7 +294,7 @@ function BooksUnderstandingContent() {
           </li>
           <li className="flex items-start gap-3">
             <span className="mt-0.5 text-amber-200">•</span>
-            <span><strong className="text-white">Save Changes</strong> writes everything to the <strong className="text-white">database</strong>, so your records persist across devices and browsers (it no longer relies on your browser's localStorage).</span>
+            <span><strong className="text-white">Save Changes</strong> writes everything to the <strong className="text-white">books.csv</strong> file stored on the API server (no database). Click <strong className="text-white">Download CSV</strong> to download a copy of the file.</span>
           </li>
           <li className="flex items-start gap-3">
             <span className="mt-0.5 text-amber-200">•</span>

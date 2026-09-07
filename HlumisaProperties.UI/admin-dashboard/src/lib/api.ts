@@ -288,6 +288,24 @@ export async function deleteProperty(id: number): Promise<void> {
   if (!response.ok) throw new Error(`Failed to delete property (${response.status})`);
 }
 
+// Books CSV (Books table stored as a CSV file on the API server — no database)
+export async function fetchBooksCsv(): Promise<string> {
+  const response = await fetch(apiUrl("/api/books-csv"), { cache: "no-store", headers: authHeaders() });
+  if (!response.ok) throw new Error(`Failed to load books.csv (${response.status})`);
+  return response.text();
+}
+
+export async function saveBooksCsv(csv: string): Promise<string> {
+  const response = await fetch(apiUrl("/api/books-csv"), {
+    method: "PUT",
+    headers: mergeHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ csv }),
+  });
+  if (!response.ok) throw new Error(`Failed to save books.csv (${response.status})`);
+  const json = await response.json();
+  return json.csv ?? csv;
+}
+
 // Transaction Ledger (Books)
 export type TransactionLedger = {
   id: number;

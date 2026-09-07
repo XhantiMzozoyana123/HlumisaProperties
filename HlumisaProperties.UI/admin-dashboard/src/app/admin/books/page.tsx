@@ -3,14 +3,8 @@
 import Link from "next/link";
 import { useState, useCallback, useRef, useEffect } from "react";
 import RequireZola from "@/components/RequireZola";
-import { parseExcelFile } from "@/lib/excelParser";
-import {
-  fetchTransactionLedger,
-  createTransactionLedgerEntry,
-  updateTransactionLedgerEntry,
-  deleteTransactionLedgerEntry,
-  type TransactionLedger,
-} from "@/lib/api";
+import { parseExcelFile, parseCsvText, entriesToCsv } from "@/lib/excelParser";
+import { fetchBooksCsv, saveBooksCsv } from "@/lib/api";
 
 type BookStatusColor = "white" | "red" | "green";
 
@@ -35,9 +29,10 @@ type BookEntry = {
   area: string;
   outstandingBalance: number;
   statusColor: BookStatusColor;
-  /** Database id (set once the entry has been persisted server-side). */
-  backendId?: number;
 };
+
+/** Bundled CSV file served from the admin-dashboard public folder — local-dev fallback only. */
+const BOOKS_CSV_FALLBACK_URL = "/books.csv";
 
 /** Get today's date in South African timezone as YYYY-MM-DD */
 function getTodaySA(): string {
@@ -77,9 +72,9 @@ function monthRank(m: string): number {
 
 /**
  * Returns a YYYY-MM-DD date for a row. If the row has an explicit date we keep it;
- * otherwise we derive a representative date from the Month so the backend's
- * auto-derived Month always matches the selected month (e.g. an empty date in month
- * MARCH becomes 2026-03-01 and never gets mislabelled as JANUARY by the server).
+ * otherwise we derive a representative date from the Month so the round-tripped
+ * CSV always carries a valid date that matches the selected month (e.g. an empty
+ * date in month MARCH becomes 2026-03-01).
  */
 function resolveDate(dateStr: string, month: string): string {
   if (dateStr && /^\d{4}-\d{2}-\d{2}/.test(dateStr)) return dateStr;
@@ -88,68 +83,6 @@ function resolveDate(dateStr: string, month: string): string {
   if (m < 1) return `${year}-01-01`;
   return `${year}-${String(m).padStart(2, "0")}-01`;
 }
-
-/** Map a database entry onto the UI BookEntry model (id is namespaced as db-<id>). */
-function dbToEntry(r: TransactionLedger): BookEntry {
-  const rawDate = String(r.date ?? "");
-  return {
-    id: `db-${r.id}`,
-    backendId: r.id,
-    date: rawDate.slice(0, 10),
-    month: r.month || "",
-    buyer: r.buyer || "",
-    seller: r.seller || "",
-    originalAmount: Number(r.originalAmount) || 0,
-    amountPaid: Number(r.dueToSeller) || 0,
-    deposit: Number(r.deposit) || 0,
-    lostDeed: Number(r.lostDeed) || 0,
-    commission: Number(r.commission) || 0,
-    transferCosts: Number(r.transferCosts) || 0,
-    masterFees: Number(r.masterFees) || 0,
-    balance: 0,
-    electricalCertificate: Number(r.elecCert) || 0,
-    waterAccount: Number(r.waterAccount) || 0,
-    section118: Number(r.section118) || 0,
-    erfNumber: r.erfNumber || "",
-    area: r.area || "",
-    outstandingBalance: Number(r.balance) || 0,
-    statusColor: (r.status as BookStatusColor) || "white",
-  };
-}
-
-/** Build the API payload from a UI row, mapping UI column names onto DB columns. */
-function toLedgerPayload(
-  entry: BookEntry,
-  colors: Record<string, BookStatusColor>
-): Partial<TransactionLedger> {
-  const rowColors: Record<string, BookStatusColor> = {};
-  Object.entries(colors).forEach(([k, v]) => {
-    if (k.startsWith(`${entry.id}_`)) rowColors[k.slice(entry.id.length + 1)] = v;
-  });
-
-  return {
-    date: resolveDate(entry.date, entry.month),
-    month: entry.month,
-    buyer: entry.buyer,
-    seller: entry.seller,
-    originalAmount: entry.originalAmount,
-    dueToSeller: entry.amountPaid,
-    deposit: entry.deposit,
-    lostDeed: entry.lostDeed,
-    commission: entry.commission,
-    transferCosts: entry.transferCosts,
-    masterFees: entry.masterFees,
-    elecCert: entry.electricalCertificate,
-    waterAccount: entry.waterAccount,
-    section118: entry.section118,
-    balance: entry.outstandingBalance,
-    erfNumber: entry.erfNumber,
-    area: entry.area,
-    status: entry.statusColor,
-    cellColors: JSON.stringify(rowColors),
-  };
-}
-
 
 type FieldType = "number" | "text" | "readonly";
 
@@ -250,35 +183,79 @@ function BooksContent() {
 
   const [cellColors, setCellColors] = useState<Record<string, BookStatusColor>>({});
 
-  // Load the transaction ledger from the database on mount.
+  // Load the Books table from the books.csv file stored on the API server (no database).
+  // Falls back to the bundled public/books.csv file so local dev works without the API.
   const loadLedger = useCallback(async () => {
     try {
       setLoading(true);
-      const rows = await fetchTransactionLedger();
-      const mapped = rows.map(dbToEntry);
-      const colors: Record<string, BookStatusColor> = {};
-      rows.forEach((r) => {
-        let stored: Record<string, string> = {};
+      setUploadResult(null);
+
+      let csvText: string;
+      try {
+        csvText = await fetchBooksCsv();
+      } catch (apiErr) {
         try {
-          stored = JSON.parse(r.cellColors || "{}");
+          const response = await fetch(`${BOOKS_CSV_FALLBACK_URL}?v=${Date.now()}`, { cache: "no-store" });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          csvText = await response.text();
         } catch {
-          stored = {};
+          throw apiErr instanceof Error
+            ? new Error(`API unavailable (${apiErr.message}) and no local fallback`)
+            : apiErr;
         }
-        Object.entries(stored).forEach(([f, c]) => {
-          if (c === "red" || c === "green" || c === "white") colors[`db-${r.id}_${f}`] = c;
-        });
+      }
+
+      const parsed = await parseCsvText(csvText);
+      const entries: BookEntry[] = parsed.map((row, idx) => ({
+        id: `csv-${idx}`,
+        date: row.date || getTodaySA(),
+        month: row.month || "",
+        buyer: row.buyer || "",
+        seller: row.seller || "",
+        originalAmount: row.originalAmount || 0,
+        amountPaid: row.amountPaid || 0,
+        deposit: row.deposit || 0,
+        lostDeed: row.lostDeed || 0,
+        commission: row.commission || 0,
+        transferCosts: row.transferCosts || 0,
+        masterFees: row.masterFees || 0,
+        balance: row.balance || 0,
+        electricalCertificate: row.electricalCertificate || 0,
+        waterAccount: row.waterAccount || 0,
+        section118: row.section118 || 0,
+        erfNumber: row.erfNumber || "",
+        area: row.area || "",
+        outstandingBalance: row.outstandingBalance || row.balance || 0,
+        statusColor: row.status === "red" || row.status === "green" ? row.status : "white",
+      }));
+
+      // Per-cell highlight colours are stored per-row in the CSV "Cell Colors" column.
+      const colors: Record<string, BookStatusColor> = {};
+      entries.forEach((entry, idx) => {
+        const storedRaw = parsed[idx].cellColors;
+        if (!storedRaw) return;
+        try {
+          const stored = JSON.parse(storedRaw);
+          Object.entries(stored).forEach(([field, c]) => {
+            if (c === "red" || c === "green" || c === "white") colors[`${entry.id}_${field}`] = c;
+          });
+        } catch {
+          // ignore malformed Cell Colors JSON
+        }
       });
+
       // Derive the semantic highlight colours that used to be hardcoded.
-      mapped.forEach((row) => {
+      entries.forEach((row) => {
         if (row.outstandingBalance > 0) colors[`${row.id}_outstandingBalance`] = colors[`${row.id}_outstandingBalance`] || "red";
         if (row.lostDeed === 7800) colors[`${row.id}_lostDeed`] = colors[`${row.id}_lostDeed`] || "red";
         if (row.lostDeed === 50000) colors[`${row.id}_lostDeed`] = colors[`${row.id}_lostDeed`] || "red";
         if (row.commission > 39000) colors[`${row.id}_commission`] = colors[`${row.id}_commission`] || "green";
       });
+
       setCellColors(colors);
-      setData(mapped);
+      setData(entries);
     } catch (err) {
-      setUploadResult(`Failed to load ledger from database: ${err instanceof Error ? err.message : "Unknown error"}`);
+      setUploadResult(`Failed to load books.csv: ${err instanceof Error ? err.message : "Unknown error"}`);
     } finally {
       setLoading(false);
     }
@@ -440,11 +417,30 @@ function BooksContent() {
           erfNumber: row.erfNumber || "",
           area: row.area || "",
           outstandingBalance: row.outstandingBalance || row.balance || 0,
-          statusColor: "white",
+          statusColor: row.status === "red" || row.status === "green" ? row.status : "white",
         };
       });
 
       setData((prev) => [...newEntries, ...prev]);
+
+      // Carry per-cell highlight colours over from the imported Cell Colors column when present.
+      const importedColors: Record<string, BookStatusColor> = {};
+      newEntries.forEach((entry, idx) => {
+        const raw = parsed[idx].cellColors;
+        if (!raw) return;
+        try {
+          const stored = JSON.parse(raw);
+          Object.entries(stored).forEach(([field, c]) => {
+            if (c === "red" || c === "green" || c === "white") importedColors[`${entry.id}_${field}`] = c;
+          });
+        } catch {
+          // ignore malformed Cell Colors JSON
+        }
+      });
+      if (Object.keys(importedColors).length > 0) {
+        setCellColors((prev) => ({ ...prev, ...importedColors }));
+      }
+
       setUploadResult(`Successfully imported ${newEntries.length} row${newEntries.length !== 1 ? "s" : ""} from ${file.name}. The data has been auto-filled into the Books table.`);
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (err) {
@@ -499,47 +495,51 @@ function BooksContent() {
     setEditCell(null);
   };
 
-  const handleRemoveRow = async () => {
-  if (!selectedRow) return;
-  const target = data.find((d) => d.id === selectedRow);
-  setData((prev) => prev.filter((d) => d.id !== selectedRow));
-  setSelectedRow(null);
-  if (target?.backendId != null) {
-    try {
-      await deleteTransactionLedgerEntry(target.backendId);
-    } catch (err) {
-      setUploadResult(`Failed to delete from database: ${err instanceof Error ? err.message : "Unknown error"}`);
-      await loadLedger();
-    }
-  }
-};
+  const handleRemoveRow = () => {
+    if (!selectedRow) return;
+    setData((prev) => prev.filter((d) => d.id !== selectedRow));
+    setSelectedRow(null);
+  };
 
   const handleRowDoubleClick = (rowId: string) => {
     setSelectedRow((prev) => (prev === rowId ? null : rowId));
   };
 
   const handleSaveAll = async () => {
-  if (!data.length) { setSaved(true); setTimeout(() => setSaved(false), 1500); return; }
-  setSaving(true);
-  try {
-    for (const entry of data) {
-      const payload = toLedgerPayload(entry, cellColors);
-      if (entry.backendId != null) {
-        await updateTransactionLedgerEntry(entry.backendId, payload);
-      } else {
-        await createTransactionLedgerEntry(payload);
-      }
+    if (!data.length) { setSaved(true); setTimeout(() => setSaved(false), 1500); return; }
+    setSaving(true);
+    try {
+      const exportRows = data.map((d) => ({ ...d, date: resolveDate(d.date, d.month) }));
+      const csvText = entriesToCsv(exportRows, cellColors);
+      await saveBooksCsv(csvText);
+      setUploadResult(`Saved ${data.length} entry${data.length === 1 ? "" : "ies"} to books.csv on the server.`);
+      setSaved(true);
+    } catch (err) {
+      setUploadResult(`Failed to save books.csv to the server: ${err instanceof Error ? err.message : "Unknown error"}`);
+    } finally {
+      setSaving(false);
+      setTimeout(() => setSaved(false), 2000);
     }
-    await loadLedger();
-    setSaved(true);
-    setUploadResult(`Saved ${data.length} entry${data.length === 1 ? "" : "ies"} to the database.`);
-  } catch (err) {
-    setUploadResult(`Failed to save to database: ${err instanceof Error ? err.message : "Unknown error"}`);
-  } finally {
-    setSaving(false);
-    setTimeout(() => setSaved(false), 2000);
-  }
-};
+  };
+
+  /** Download the current table as a books.csv file. */
+  const handleDownloadCsv = () => {
+    const exportRows = data.map((d) => ({ ...d, date: resolveDate(d.date, d.month) }));
+    const csvText = entriesToCsv(exportRows, cellColors);
+    const blob = new Blob([csvText], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "books.csv";
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+
+  /** Discard unsaved edits and reload the latest books.csv straight from the server. */
+  const handleResetCsv = () => {
+    if (!window.confirm("Reload books.csv from the server? Unsaved edits will be discarded.")) return;
+    void loadLedger();
+  };
 
   const totalCommission = filtered.reduce((s, d) => s + d.commission, 0);
   const totalTransfer = filtered.reduce((s, d) => s + d.transferCosts, 0);
@@ -620,6 +620,16 @@ function BooksContent() {
             className="rounded-full bg-amber-200 px-6 py-2 text-sm font-semibold text-stone-950 transition hover:bg-amber-100">
             {saving ? "Saving..." : saved ? "Saved!" : "Save Changes"}
           </button>
+          <button onClick={handleDownloadCsv}
+            className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-200 transition hover:bg-emerald-500/20"
+            title="Download the current table as books.csv">
+            Download CSV
+          </button>
+          <button onClick={handleResetCsv}
+            className="rounded-full border border-rose-400/30 bg-rose-500/10 px-4 py-2 text-sm font-medium text-rose-200 transition hover:bg-rose-500/20"
+            title="Discard unsaved edits and reload books.csv from the server">
+            Reset CSV
+          </button>
         </div>
       </div>
 
@@ -662,7 +672,7 @@ function BooksContent() {
 
       {uploadResult && (
         <div className={`rounded-[1.5rem] border px-6 py-4 text-sm ${
-          uploadResult.startsWith("Saved")
+          uploadResult.startsWith("Saved") || uploadResult.startsWith("Loaded") || uploadResult.startsWith("Successfully imported")
             ? "border-emerald-400/20 bg-emerald-500/10 text-emerald-200"
             : "border-rose-400/20 bg-rose-500/10 text-rose-200"
         }`}>
@@ -672,7 +682,9 @@ function BooksContent() {
 
       {!uploadResult && (
         <div className="rounded-[1.5rem] border border-white/10 bg-black/20 px-6 py-4 text-xs leading-relaxed text-stone-500">
-          <strong className="text-emerald-300">Excel Upload:</strong> Upload an <strong>.xlsx</strong>, <strong>.xls</strong>, or <strong>.csv</strong> file and the data will <strong className="text-amber-200">auto-fill into the Books table</strong>. The first row must contain column headers such as <em>Buyer, Seller, Commission, Transfer Costs, Due to Seller, Balance, ERF, Area</em>, etc. Supported columns: Date, Month, Buyer, Seller, Original Amount, Due to Seller/Amount Paid, Deposit, Lost Deed, Commission, Transfer Costs, Master Fees, Elec Cert, Water Account, Section 118, Balance/Outstanding Balance, ERF, Area.
+          <strong className="text-emerald-300">Books data:</strong> the table is loaded straight from the <strong className="text-amber-200">books.csv</strong> file stored on the API server (no database). Edit cells on the UI and hit <em>Save Changes</em> to write the updated file back to the server using CsvHelper. <em>Download CSV</em> to grab a copy, <em>Reset CSV</em> to reload from the server.
+          <br />
+          <strong className="text-emerald-300">Excel Upload:</strong> upload an <strong>.xlsx</strong>, <strong>.xls</strong>, or <strong>.csv</strong> file and the data will <strong className="text-amber-200">auto-fill into the Books table</strong>. The first row must contain column headers such as <em>Buyer, Seller, Commission, Transfer Costs, Due to Seller, Balance, ERF, Area</em>, etc. Supported columns: Date, Month, Buyer, Seller, Original Amount, Due to Seller/Amount Paid, Deposit, Lost Deed, Commission, Transfer Costs, Master Fees, Elec Cert, Water Account, Section 118, Balance/Outstanding Balance, ERF, Area.
         </div>
       )}
 
@@ -717,7 +729,7 @@ function BooksContent() {
               );
             })}
             {loading && (
-              <tr><td colSpan={columnOrder.length + 1} className="px-4 py-8 text-center text-sm text-stone-500">Loading ledger from the database…</td></tr>
+              <tr><td colSpan={columnOrder.length + 1} className="px-4 py-8 text-center text-sm text-stone-500">Loading books from the server's books.csv…</td></tr>
             )}
             {!loading && filtered.length === 0 && (
               <tr><td colSpan={columnOrder.length + 1} className="px-4 py-8 text-center text-sm text-stone-500">No entries for this month.</td></tr>
@@ -798,7 +810,7 @@ function BooksContent() {
       </div>
 
       <p className="text-center text-xs text-stone-600">
-        Click "Add new entry" then pick a color (white/red/green) and click any cell to fill it in. The color picker stays until you click "Done". Click any existing cell to edit with its own color picker. Press Enter to save, Escape to cancel. Double-click a row to select it, then click "Remove selected row" to delete it. Hit "Save Changes" to persist to the database.
+        Click "Add new entry" then pick a color (white/red/green) and click any cell to fill it in. The color picker stays until you click "Done". Click any existing cell to edit with its own color picker. Press Enter to save, Escape to cancel. Double-click a row to select it, then click "Remove selected row" to delete it. Hit "Save Changes" to persist everything to books.csv on the server, then "Download CSV" to grab a copy.
       </p>
     </div>
   );

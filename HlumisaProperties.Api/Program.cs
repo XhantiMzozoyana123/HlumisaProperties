@@ -4,6 +4,7 @@ using Hangfire;
 using Hangfire.InMemory;
 using HlumisaProperties.Api;
 using HlumisaProperties.Application.Interfaces;
+using HlumisaProperties.Application.Dtos;
 using HlumisaProperties.Infrastructure.Services;
 using HlumisaProperties.Domain;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -20,6 +21,12 @@ var jwtSection = builder.Configuration.GetSection("Jwt");
 builder.Services.Configure<JwtSettings>(jwtSection);
 var jwtSettings = jwtSection.Get<JwtSettings>()
     ?? throw new InvalidOperationException("Jwt settings are not configured.");
+
+// ======================================================
+// BOOKS CSV SETTINGS (books.csv file stored on the API — no database)
+// ======================================================
+var booksCsvSection = builder.Configuration.GetSection("BooksCsv");
+builder.Services.Configure<BooksCsvSettings>(booksCsvSection);
 
 // ======================================================
 // CONTROLLERS + OPEN API
@@ -116,6 +123,7 @@ builder.Services.AddScoped<ILeadExtractionService, LeadExtractionService>();
 
 // CRUD domain services
 builder.Services.AddScoped<IPropertyListingService, PropertyListingService>();
+builder.Services.AddScoped<IBooksCsvService, BooksCsvService>();
 builder.Services.AddScoped<ITransactionLedgerService, TransactionLedgerService>();
 builder.Services.AddScoped<IReferralService, ReferralService>();
 builder.Services.AddScoped<IBuyerService, BuyerService>();
@@ -227,27 +235,34 @@ async Task TrySetupDatabaseAsync(IServiceProvider services)
     {
         Console.WriteLine($"WARNING: Could not seed admin user (will retry in background): {ex.Message}");
     }
+}
 
-    // Seed the transaction ledger (Books) when the table is empty.
+/// <summary>
+/// Seeds the Books CSV file (stored on the API server — no database) from the known
+/// seed data the first time the file does not exist. Runs even if MySQL is down.
+/// </summary>
+async Task TryEnsureBooksCsvAsync(IServiceProvider services)
+{
     try
     {
-        using var seedScope = services.CreateScope();
-        var seedContext = seedScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        if (!seedContext.TransactionLedgers.Any())
+        using var scope = services.CreateScope();
+        var booksCsvService = scope.ServiceProvider.GetRequiredService<IBooksCsvService>();
+        if (!booksCsvService.Exists())
         {
-            seedContext.TransactionLedgers.AddRange(TransactionLedgerSeedData.Rows);
-            seedContext.SaveChanges();
-            Console.WriteLine($"Seeded {TransactionLedgerSeedData.Rows.Length} transaction ledger entries.");
+            var rows = TransactionLedgerSeedData.Rows.Select(BooksCsvMapper.ToRow).ToArray();
+            await booksCsvService.WriteRowsAsync(rows);
+            Console.WriteLine($"Seeded books.csv with {rows.Length} rows.");
         }
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"WARNING: Could not seed transaction ledger (will retry in background): {ex.Message}");
+        Console.WriteLine($"WARNING: Could not seed books.csv (will retry in background): {ex.Message}");
     }
 }
 
 // Attempt initial setup
 await TrySetupDatabaseAsync(app.Services);
+await TryEnsureBooksCsvAsync(app.Services);
 
 // Start background retry loop â€” every 30s, keep trying until setup succeeds.
 // This makes the API self-healing: if MySQL comes online after the API starts,
@@ -260,6 +275,7 @@ _ = Task.Run(async () =>
         try
         {
             await TrySetupDatabaseAsync(app.Services);
+            await TryEnsureBooksCsvAsync(app.Services);
         }
         catch (Exception ex)
         {

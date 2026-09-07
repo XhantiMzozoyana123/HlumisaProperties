@@ -23,4 +23,11 @@ services:
       - AdminUser__Password=Zola Mzozoyana 1970
       - AdminUser__FirstName=Zola
       - AdminUser__LastName=Mzozoyana
+      - BooksCsv__FilePath=/app/data/books.csv
+    volumes:
+      # Persist the Books CSV file (no database) across container restarts.
+      - books-csv-data:/app/data
     restart: always
+
+volumes:
+  books-csv-data:
