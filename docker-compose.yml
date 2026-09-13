@@ -15,7 +15,7 @@ services:
       - Facebook__VerifyToken=${FACEBOOK_VERIFY_TOKEN}
       - Facebook__PageAccessToken=${FACEBOOK_PAGE_ACCESS_TOKEN}
       - Facebook__PageId=${FACEBOOK_PAGE_ID}
-      - ConnectionStrings__DefaultConnection=Data Source=/app/data/hlumisaproperties.db
+      # ConnectionStrings are read from appsettings.json (native MySQL on the VPS host).
       - Jwt__Secret=${JWT_SECRET:-HlumisaProperties_SuperSecretKey_2026_MustBeLongEnough}
       - Jwt__Issuer=${JWT_ISSUER}
       - Jwt__Audience=${JWT_AUDIENCE}
@@ -25,7 +25,7 @@ services:
       - AdminUser__LastName=Mzozoyana
       - BooksCsv__FilePath=/app/data/books.csv
     volumes:
-      # Persist the SQLite database file + Books CSV file across container restarts.
+      # Persist the Books CSV file across container restarts (MySQL runs on the host).
       - books-csv-data:/app/data
     restart: always
 

@@ -22,10 +22,9 @@ namespace HlumisaProperties.Domain
         }
 
         /// <summary>
-        /// The schema is created by the SQLite baseline migration at startup. The
-        /// design-time "pending model changes" check compares the model against the
-        /// migration tooling's stored snapshot only when generating new migrations;
-        /// it is not relevant at runtime, so ignore it to allow migrations to apply.
+        /// Ignores the "pending model changes" warning so runtime migrations and
+        /// design-time tooling are not blocked by snapshot comparison noise.
+        /// The schema is created by the MySQL migrations applied at startup.
         /// </summary>
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -51,7 +50,7 @@ namespace HlumisaProperties.Domain
             modelBuilder.Entity<ApplicationUser>(eb =>
             {
                 eb.Property(u => u.ProfilePictureBase64)
-                    .HasColumnType("text")
+                    .HasColumnType("longtext")
                     .IsRequired(false);
             });
 
@@ -142,11 +141,11 @@ namespace HlumisaProperties.Domain
                     .HasDefaultValue(true);
 
                 eb.Property(pl => pl.ImageBase64)
-                    .HasColumnType("text")
+                    .HasColumnType("longtext")
                     .HasDefaultValue("");
 
                 eb.Property(pl => pl.Images)
-                    .HasColumnType("text")
+                    .HasColumnType("longtext")
                     .HasDefaultValue("[]");
 
                 eb.Property(pl => pl.DateAdded)
@@ -295,7 +294,7 @@ namespace HlumisaProperties.Domain
                     .HasDefaultValue("Pending");
 
                 eb.Property(t => t.CellColors)
-                    .HasColumnType("text")
+                    .HasColumnType("longtext")
                     .HasDefaultValue("{}");
             });
 
@@ -373,8 +372,16 @@ namespace HlumisaProperties.Domain
             var builder = new DbContextOptionsBuilder<ApplicationDbContext>();
             var connectionString = configuration.GetConnectionString("DefaultConnection");
 
-            // SQLite provider
-            builder.UseSqlite(connectionString);
+            // MySQL provider (Pomelo) — try to auto-detect the server version;
+            // fall back to a known version when MySQL is unreachable (e.g. design-time tooling).
+            try
+            {
+                builder.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+            }
+            catch
+            {
+                builder.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 37)));
+            }
 
             return builder.Options;
         }

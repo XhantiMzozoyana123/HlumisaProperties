@@ -90,11 +90,29 @@ builder.Services.AddAuthentication(options =>
 // ======================================================
 // YOUR APPLICATION SERVICES
 // ======================================================
-// Database (SQLite)
+// Database (MySQL via Pomelo)
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
-    options.UseSqlite(connectionString);
+    try
+    {
+        // Try to auto-detect the MySQL server version (requires a live connection)
+        options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString),
+            mySqlOptions => mySqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 10,
+                maxRetryDelay: TimeSpan.FromSeconds(30),
+                errorNumbersToAdd: null));
+    }
+    catch
+    {
+        // If the DB is temporarily unreachable, fall back to a known version so the app can start.
+        // The app will retry DB operations when the database comes back online.
+        options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 37)),
+            mySqlOptions => mySqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 10,
+                maxRetryDelay: TimeSpan.FromSeconds(30),
+                errorNumbersToAdd: null));
+    }
 });
 
 // ASP.NET Core Identity
@@ -286,37 +304,7 @@ async Task TryEnsureBooksCsvAsync(IServiceProvider services)
     }
 }
 
-// Ensure the SQLite database file's parent directory exists before opening it.
-// (e.g. "Data Source=data/hlumisaproperties.db" -> creates the ./data folder on first run.)
-void EnsureSqliteDirectory(string? connectionString)
-{
-    if (string.IsNullOrWhiteSpace(connectionString))
-        return;
-
-    try
-    {
-        var pathPart = connectionString.Split(';')
-            .Select(part => part.Split('='))
-            .Where(kv => kv.Length == 2 && kv[0].Trim() == "Data Source")
-            .Select(kv => kv[1].Trim())
-            .FirstOrDefault();
-
-        if (string.IsNullOrWhiteSpace(pathPart) || pathPart.StartsWith(":memory:") || pathPart.Contains("mode=memory"))
-            return;
-
-        var fullPath = Path.GetFullPath(pathPart);
-        var dir = Path.GetDirectoryName(fullPath);
-        if (!string.IsNullOrWhiteSpace(dir))
-            Directory.CreateDirectory(dir);
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"WARNING: Could not ensure SQLite data directory: {ex.Message}");
-    }
-}
-
 // Attempt initial setup
-EnsureSqliteDirectory(connectionString);
 await TrySetupDatabaseAsync(app.Services);
 await TryEnsureBooksCsvAsync(app.Services);
 
