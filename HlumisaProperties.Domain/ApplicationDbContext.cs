@@ -296,6 +296,19 @@ namespace HlumisaProperties.Domain
                 eb.Property(t => t.CellColors)
                     .HasColumnType("longtext")
                     .HasDefaultValue("{}");
+
+                // Indexes for fast Books loading and filtering. NOTE: single-column
+                // indexes on Month/Date/Status already exist further below in
+                // OnModelCreating ("TransactionLedger Indexes"); here we add the ones
+                // that are genuinely new:
+                // - (Month, Date): month-filter queries filter + order in one lookup.
+                // - Buyer/Seller: name lookups used by the dashboard filters.
+                eb.HasIndex(t => new { t.Month, t.Date })
+                    .HasDatabaseName("IX_TransactionLedgers_Month_Date");
+                eb.HasIndex(t => t.Buyer)
+                    .HasDatabaseName("IX_TransactionLedgers_Buyer");
+                eb.HasIndex(t => t.Seller)
+                    .HasDatabaseName("IX_TransactionLedgers_Seller");
             });
 
             // Referral Indexes

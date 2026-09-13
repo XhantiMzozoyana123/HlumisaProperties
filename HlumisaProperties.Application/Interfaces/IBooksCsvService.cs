@@ -23,5 +23,11 @@ namespace HlumisaProperties.Application.Interfaces
 
         /// <summary>Writes the given rows to the file with CsvHelper and returns the serialized CSV.</summary>
         Task<string> WriteRowsAsync(IEnumerable<BooksCsvRow> rows);
+
+        /// <summary>Parses CSV text into rows with CsvHelper (no file I/O) — used for DB import.</summary>
+        Task<List<BooksCsvRow>> ParseRowsAsync(string csvText);
+
+        /// <summary>Serializes rows to CSV text with CsvHelper (no file I/O) — used for DB export.</summary>
+        Task<string> RowsToCsvAsync(IEnumerable<BooksCsvRow> rows);
     }
 }

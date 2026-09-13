@@ -49,6 +49,16 @@ namespace HlumisaProperties.Infrastructure.Services
             return csvText;
         }
 
+        public Task<List<BooksCsvRow>> ParseRowsAsync(string csvText)
+        {
+            return Task.FromResult(ParseCsv(csvText));
+        }
+
+        public Task<string> RowsToCsvAsync(IEnumerable<BooksCsvRow> rows)
+        {
+            return Task.FromResult(ToCsv(rows));
+        }
+
         /// <summary>
         /// Parses the incoming CSV text with CsvHelper so we validate it and normalize
         /// the formatting before persisting. Column headers are matched case-insensitively

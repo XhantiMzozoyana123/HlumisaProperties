@@ -61,7 +61,7 @@ namespace HlumisaProperties.Infrastructure.Services
 
             return await _context.Set<TransactionLedger>()
                 .AsNoTracking()
-                .Where(e => e.Month.ToUpper() == month.ToUpper())
+                .Where(e => e.Month == month.Trim().ToUpperInvariant())
                 .OrderByDescending(e => e.Date)
                 .ToListAsync();
         }

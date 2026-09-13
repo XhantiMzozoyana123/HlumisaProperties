@@ -283,6 +283,35 @@ async Task TrySetupDatabaseAsync(IServiceProvider services)
             }
         }
 
+        // 4) Books (transaction ledger): make the physical database the source of
+        //    truth. If the table is empty, import the existing books.csv file (so
+        //    the data edited via the dashboard is preserved), otherwise seed from
+        //    the built-in seed data. Runs only after migrations succeed.
+        using (var booksScope = services.CreateScope())
+        {
+            var booksDb = booksScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var booksCsvService = booksScope.ServiceProvider.GetRequiredService<IBooksCsvService>();
+
+            if (!await booksDb.TransactionLedgers.AsNoTracking().AnyAsync())
+            {
+                List<BooksCsvRow> rows;
+                if (booksCsvService.Exists())
+                {
+                    rows = await booksCsvService.ParseRowsAsync(await booksCsvService.ReadCsvAsync());
+                    Console.WriteLine($"Books: importing {rows.Count} rows from books.csv into the database.");
+                }
+                else
+                {
+                    rows = TransactionLedgerSeedData.Rows.Select(BooksCsvMapper.ToRow).ToList();
+                    Console.WriteLine($"Books: seeding {rows.Count} rows from seed data into the database.");
+                }
+
+                booksDb.TransactionLedgers.AddRange(rows.Select(BooksCsvMapper.FromRow));
+                await booksDb.SaveChangesAsync();
+                Console.WriteLine("Books table is ready in the database.");
+            }
+        }
+
         Console.WriteLine("Database setup completed successfully.");
     }
     catch (Exception ex)
