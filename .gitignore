@@ -372,3 +372,4 @@ FodyWeavers.xsd
 .next/
 HlumisaProperties.UI/admin-dashboard/.next/
 HlumisaProperties.UI/luxury-referrals-landing/.next/
+HlumisaProperties.UI/admin-dashboard/tsconfig.tsbuildinfo
