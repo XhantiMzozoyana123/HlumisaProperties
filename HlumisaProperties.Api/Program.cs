@@ -47,17 +47,20 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddCors(options =>
 {
-    // Landing page (public referral form) â€” allow all origins
+    // Allow ALL origins, methods and headers.
+    // NOTE: we reflect the request origin instead of returning "*" because the
+    // UIs send credentials (Authorization header / cookies) - browsers reject
+    // the literal "*" wildcard when credentials are involved.
     options.AddPolicy("LandingPage", policy =>
-        policy.AllowAnyHeader()
+        policy.SetIsOriginAllowed(_ => true)
+              .AllowAnyHeader()
               .AllowAnyMethod()
-              .AllowAnyOrigin());
+              .AllowCredentials());
 
-    // API (admin dashboard, landing page, local dev) â€” allow known origins
     options.AddPolicy("Api", policy =>
-        policy.AllowAnyHeader()
+        policy.SetIsOriginAllowed(_ => true)
+              .AllowAnyHeader()
               .AllowAnyMethod()
-              .SetIsOriginAllowed(origin => true) // Allow all origins (incl. mobile apps / bots)
               .AllowCredentials());
 });
 
