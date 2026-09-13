@@ -16,7 +16,7 @@ services:
       - Facebook__PageAccessToken=${FACEBOOK_PAGE_ACCESS_TOKEN}
       - Facebook__PageId=${FACEBOOK_PAGE_ID}
       - ConnectionStrings__DefaultConnection=Data Source=/app/data/hlumisaproperties.db
-      - Jwt__Secret=${JWT_SECRET}
+      - Jwt__Secret=${JWT_SECRET:-HlumisaProperties_SuperSecretKey_2026_MustBeLongEnough}
       - Jwt__Issuer=${JWT_ISSUER}
       - Jwt__Audience=${JWT_AUDIENCE}
       - AdminUser__Email=mzozoyanaz@gmail.com

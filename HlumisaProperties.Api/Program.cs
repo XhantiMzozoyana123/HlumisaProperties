@@ -22,6 +22,16 @@ builder.Services.Configure<JwtSettings>(jwtSection);
 var jwtSettings = jwtSection.Get<JwtSettings>()
     ?? throw new InvalidOperationException("Jwt settings are not configured.");
 
+// Fail fast with a clear error instead of a cryptic IDX10703 (zero-length
+// SymmetricSecurityKey) on the first request when Jwt:Secret is empty,
+// e.g. when JWT_SECRET is missing from the deployment environment.
+if (string.IsNullOrWhiteSpace(jwtSettings.Secret) || jwtSettings.Secret.Length < 16)
+{
+    throw new InvalidOperationException(
+        "Jwt:Secret is missing or too short (minimum 16 characters). " +
+        "Set the JWT_SECRET environment variable (e.g. in the deployment .env file).");
+}
+
 // ======================================================
 // BOOKS CSV SETTINGS (books.csv file stored on the API — no database)
 // ======================================================
