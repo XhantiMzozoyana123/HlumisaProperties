@@ -167,12 +167,24 @@ async Task TrySetupDatabaseAsync(IServiceProvider services)
         using (var scope = services.CreateScope())
         {
             var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
             var adminConfig = builder.Configuration.GetSection("AdminUser");
             var adminEmail = adminConfig["Email"];
             var adminPassword = adminConfig["Password"];
 
             if (!string.IsNullOrWhiteSpace(adminEmail) && !string.IsNullOrWhiteSpace(adminPassword))
             {
+                // 1) Ensure the "Admin" role exists (Identity roles are seeded on startup too).
+                const string adminRoleName = "Admin";
+                if (!await roleManager.RoleExistsAsync(adminRoleName))
+                {
+                    var roleResult = await roleManager.CreateAsync(new IdentityRole(adminRoleName));
+                    Console.WriteLine(roleResult.Succeeded
+                        ? $"Admin role created: {adminRoleName}"
+                        : $"Failed to create Admin role: {string.Join(", ", roleResult.Errors.Select(e => e.Description))}");
+                }
+
+                // 2) Ensure the admin user exists.
                 var existingUser = await userManager.FindByEmailAsync(adminEmail);
                 if (existingUser == null)
                 {
@@ -184,8 +196,15 @@ async Task TrySetupDatabaseAsync(IServiceProvider services)
                         FirstName = adminConfig["FirstName"] ?? "Zola",
                         LastName = adminConfig["LastName"] ?? "Mzozoyana"
                     };
-                    await userManager.CreateAsync(adminUser, adminPassword);
-                    Console.WriteLine($"Admin user created: {adminEmail}");
+                    var createResult = await userManager.CreateAsync(adminUser, adminPassword);
+                    if (createResult.Succeeded)
+                    {
+                        Console.WriteLine($"Admin user created: {adminEmail}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Failed to create admin user {adminEmail}: {string.Join(", ", createResult.Errors.Select(e => e.Description))}");
+                    }
                 }
                 else
                 {
@@ -222,6 +241,16 @@ async Task TrySetupDatabaseAsync(IServiceProvider services)
                     {
                         Console.WriteLine($"Admin user password updated: {adminEmail}");
                     }
+                }
+
+                // 3) Ensure the admin user is a member of the "Admin" role.
+                var adminForRole = await userManager.FindByEmailAsync(adminEmail);
+                if (adminForRole != null && !await userManager.IsInRoleAsync(adminForRole, adminRoleName))
+                {
+                    var addRoleResult = await userManager.AddToRoleAsync(adminForRole, adminRoleName);
+                    Console.WriteLine(addRoleResult.Succeeded
+                        ? $"Admin user added to '{adminRoleName}' role: {adminEmail}"
+                        : $"Failed to add admin user to role: {string.Join(", ", addRoleResult.Errors.Select(e => e.Description))}");
                 }
             }
         }
