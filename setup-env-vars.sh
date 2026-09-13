@@ -27,6 +27,7 @@ while IFS= read -r line || [ -n "$line" ]; do
         FACEBOOK_PAGE_ACCESS_TOKEN) export Facebook__PageAccessToken="$value" ;;
         FACEBOOK_PAGE_ID) export Facebook__PageId="$value" ;;
         CONNECTION_STRING) export ConnectionStrings__DefaultConnection="$value" ;;
+        # ^ For SQLite use: Data Source=/app/data/hlumisaproperties.db (Docker) or Data Source=data/hlumisaproperties.db (local).
         JWT_SECRET) export Jwt__Secret="$value" ;;
         JWT_ISSUER) export Jwt__Issuer="$value" ;;
         JWT_AUDIENCE) export Jwt__Audience="$value" ;;

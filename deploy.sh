@@ -23,19 +23,11 @@ else
 fi
 
 echo ""
-echo "Step 3: Checking if MySQL is running on 127.0.0.1:3306..."
-if command -v mysqladmin &> /dev/null; then
-    if mysqladmin ping -h 127.0.0.1 -P 3306 -u zola -p'Zola123!' --silent 2>/dev/null; then
-        echo "MySQL is running and reachable."
-    else
-        echo "WARNING: MySQL is not responding on 127.0.0.1:3306."
-        echo "The API will start in self-healing mode and retry migrations automatically every 30 seconds."
-        echo "Once MySQL comes online, the API will apply migrations and seed the admin user automatically."
-    fi
-else
-    echo "mysqladmin not found - skipping MySQL connectivity check."
-    echo "The API will self-heal once MySQL becomes available."
-fi
+echo "Step 3: Preparing SQLite database..."
+echo "The API uses a SQLite database file (hlumisaproperties.db) stored in the"
+echo "persistent /app/data volume - no external database server is required."
+echo "Data (including the Books CSV file) is preserved across container restarts."
+echo ""
 
 echo ""
 echo "Step 4: Rebuilding and restarting API..."

@@ -26,7 +26,7 @@ It runs independently of the ASP.NET Core API but complements it.
 │   - Authentication (JWT), property listings, buyers/sellers  │
 │   - Transaction ledger, admin dashboard, public frontend API │
 │   - Lead extraction from conversations (Hangfire, daily)     │
-│   - Stores inbound/outbound messages in MySQL                │
+│   - Stores inbound/outbound messages in SQLite               │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -38,7 +38,7 @@ It runs independently of the ASP.NET Core API but complements it.
 | Mark as read / typing indicator  | Bot          | `me/messages` sender_action via Graph API            |
 | Send reply to user               | Bot          | `me/messages` via Graph API (Page Access Token)      |
 | AI auto-responder (Llama 3)      | Bot          | `llm-service.ts` + `ai-constants.ts`                 |
-| Conversation/message storage     | ASP.NET Core | `FacebookMessages` table (MySQL)                     |
+| Conversation/message storage     | ASP.NET Core | `FacebookMessages` table (SQLite)                    |
 | Lead extraction / CRM writes     | ASP.NET Core | `LeadExtractionService` via Hangfire (daily)         |
 | Auth, listings, buyers/sellers   | ASP.NET Core | JWT + domain services                                |
 
@@ -72,7 +72,7 @@ npm start          # http://localhost:3001/webhook
 
 ### Bot + ASP.NET Core
 Run the ASP.NET Core API (with `Facebook:*` and `LLM:*` configured) for auth, CRM
-and lead extraction, and the Bot for real-time messaging. They share the same MySQL
+and lead extraction, and the Bot for real-time messaging. They share the same SQLite
 database for message storage.
 
 ## Removed (Legacy)

@@ -4,7 +4,7 @@
 A **completely standalone, production-ready microservice** for Facebook Messenger
 automation using:
 - **Official Meta Graph API (v21.0)** — send/receive messages, typing indicator, read receipts
-- **Direct MySQL** is **not** required by the bot (the ASP.NET Core API owns the DB)
+- **Direct database access** is **not** required by the bot (the ASP.NET Core API owns the DB)
 - **LLM (Llama 3 / Ollama)** for AI-powered buyer/seller lead qualification
 - **Zero dependencies** on ASP.NET Core for chatbot messaging
 - **Zero browser automation** (no Puppeteer, no Chromium)

@@ -1,6 +1,7 @@
 ﻿using HlumisaProperties.Domain.Entities;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
@@ -20,6 +21,19 @@ namespace HlumisaProperties.Domain
         {
         }
 
+        /// <summary>
+        /// The schema is created by the SQLite baseline migration at startup. The
+        /// design-time "pending model changes" check compares the model against the
+        /// migration tooling's stored snapshot only when generating new migrations;
+        /// it is not relevant at runtime, so ignore it to allow migrations to apply.
+        /// </summary>
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            base.OnConfiguring(optionsBuilder);
+            optionsBuilder.ConfigureWarnings(warnings =>
+                warnings.Ignore(RelationalEventId.PendingModelChangesWarning));
+        }
+
         // DbSets for entities
         public DbSet<PropertyListing> PropertyListings { get; set; }
         public DbSet<Buyer> Buyers { get; set; }
@@ -37,7 +51,7 @@ namespace HlumisaProperties.Domain
             modelBuilder.Entity<ApplicationUser>(eb =>
             {
                 eb.Property(u => u.ProfilePictureBase64)
-                    .HasColumnType("longtext")
+                    .HasColumnType("text")
                     .IsRequired(false);
             });
 
@@ -128,11 +142,11 @@ namespace HlumisaProperties.Domain
                     .HasDefaultValue(true);
 
                 eb.Property(pl => pl.ImageBase64)
-                    .HasColumnType("longtext")
+                    .HasColumnType("text")
                     .HasDefaultValue("");
 
                 eb.Property(pl => pl.Images)
-                    .HasColumnType("longtext")
+                    .HasColumnType("text")
                     .HasDefaultValue("[]");
 
                 eb.Property(pl => pl.DateAdded)
@@ -281,7 +295,7 @@ namespace HlumisaProperties.Domain
                     .HasDefaultValue("Pending");
 
                 eb.Property(t => t.CellColors)
-                    .HasColumnType("longtext")
+                    .HasColumnType("text")
                     .HasDefaultValue("{}");
             });
 
@@ -359,8 +373,8 @@ namespace HlumisaProperties.Domain
             var builder = new DbContextOptionsBuilder<ApplicationDbContext>();
             var connectionString = configuration.GetConnectionString("DefaultConnection");
 
-            // MySQL provider (Pomelo)
-            builder.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+            // SQLite provider
+            builder.UseSqlite(connectionString);
 
             return builder.Options;
         }

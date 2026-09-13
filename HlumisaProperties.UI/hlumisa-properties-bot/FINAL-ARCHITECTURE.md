@@ -256,7 +256,7 @@ The following functionality moved from ASP.NET Core to Messenger-Bot:
 - **Runtime**: .NET 9.0
 - **Framework**: ASP.NET Core
 - **Language**: C#
-- **Database**: MySQL (Pomelo)
+- **Database**: SQLite (Microsoft.EntityFrameworkCore.Sqlite)
 - **Auth**: JWT Bearer
 - **Job Scheduler**: Hangfire
 

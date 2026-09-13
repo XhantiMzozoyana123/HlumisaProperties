@@ -65,9 +65,11 @@ def main():
         # Step 3: Go to project directory and pull latest code
         run_remote_command(ssh, f"cd {project_dir} && git pull origin master")
 
-        # Step 4: Check MySQL status
-        run_remote_command(ssh, "mysqladmin ping -h 127.0.0.1 -P 3306 -u zola -p'Zola123!' --silent 2>&1 || echo 'MySQL ping failed'")
-        run_remote_command(ssh, "service mysql status 2>&1 | head -5 || systemctl status mysql 2>&1 | head -5 || true")
+        # Step 4: Prepare SQLite database
+        # The API uses a SQLite database file (hlumisaproperties.db) in the persistent
+        # /app/data volume - no external database server is required.
+        print("\\nSQLite database is used - no external database server required.")
+        run_remote_command(ssh, "ls -la /app/data 2>/dev/null || echo 'The /app/data volume will be created on first start'")
 
         # Step 5: Rebuild and restart the API
         print("\n=== Rebuilding and restarting API... ===")
