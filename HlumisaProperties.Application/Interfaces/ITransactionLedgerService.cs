@@ -13,5 +13,12 @@ namespace HlumisaProperties.Application.Interfaces
         Task<IEnumerable<TransactionLedger>> GetByMonthAsync(string month);
         Task<TransactionLedger> UpdateAsync(TransactionLedger entry);
         Task<bool> DeleteAsync(int id);
+
+        /// <summary>
+        /// Replaces the whole ledger with the supplied entries in a single
+        /// transaction (set-based delete + bulk insert). Returns the row count.
+        /// Used by the dashboard "Save Changes" (JSON) and CSV import endpoints.
+        /// </summary>
+        Task<int> ReplaceAllAsync(IEnumerable<TransactionLedger> entries);
     }
 }

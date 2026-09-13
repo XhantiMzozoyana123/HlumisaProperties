@@ -123,5 +123,21 @@ namespace HlumisaProperties.Infrastructure.Services
 
             return true;
         }
+
+        public async Task<int> ReplaceAllAsync(IEnumerable<TransactionLedger> entries)
+        {
+            if (entries == null)
+                throw new ArgumentNullException(nameof(entries));
+
+            var list = entries.ToList();
+
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            await _context.Set<TransactionLedger>().ExecuteDeleteAsync();
+            _context.Set<TransactionLedger>().AddRange(list);
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return list.Count;
+        }
     }
 }

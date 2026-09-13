@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useState, useCallback, useRef, useEffect } from "react";
 import RequireZola from "@/components/RequireZola";
-import { parseExcelFile, parseCsvText, entriesToCsv } from "@/lib/excelParser";
-import { fetchBooksCsv, saveBooksCsv } from "@/lib/api";
+import { parseExcelFile, entriesToCsv } from "@/lib/excelParser";
+import { fetchTransactionLedger, saveBooksBulk, importBooksCsvFile } from "@/lib/api";
 
 type BookStatusColor = "white" | "red" | "green";
 
@@ -30,9 +30,6 @@ type BookEntry = {
   outstandingBalance: number;
   statusColor: BookStatusColor;
 };
-
-/** Bundled CSV file served from the admin-dashboard public folder — local-dev fallback only. */
-const BOOKS_CSV_FALLBACK_URL = "/books.csv";
 
 /** Get today's date in South African timezone as YYYY-MM-DD */
 function getTodaySA(): string {
@@ -82,6 +79,46 @@ function resolveDate(dateStr: string, month: string): string {
   const year = new Date().getFullYear();
   if (m < 1) return `${year}-01-01`;
   return `${year}-${String(m).padStart(2, "0")}-01`;
+}
+
+/** Map UI book rows (+ their per-cell colors) to the JSON shape the API expects.
+ *  Rows with a numeric id keep their database identity; new rows get id 0 (insert).
+ *  This is the only "save" format — JSON, never CSV. */
+function toDbRows(
+  entries: BookEntry[],
+  colors: Record<string, BookStatusColor>
+) {
+  return entries.map((d) => {
+    const rowColors: Record<string, string> = {};
+    Object.entries(colors).forEach(([key, value]) => {
+      const prefix = `${d.id}_`;
+      if (key.startsWith(prefix)) rowColors[key.slice(prefix.length)] = value;
+    });
+
+    const numericId = Number(d.id);
+    return {
+      id: Number.isFinite(numericId) && numericId > 0 ? numericId : 0,
+      date: resolveDate(d.date, d.month),
+      month: (d.month || "").toUpperCase(),
+      buyer: d.buyer || "",
+      seller: d.seller || "",
+      originalAmount: d.originalAmount || 0,
+      dueToSeller: d.amountPaid || 0,
+      deposit: d.deposit || 0,
+      lostDeed: d.lostDeed || 0,
+      commission: d.commission || 0,
+      transferCosts: d.transferCosts || 0,
+      masterFees: d.masterFees || 0,
+      elecCert: d.electricalCertificate || 0,
+      waterAccount: d.waterAccount || 0,
+      section118: d.section118 || 0,
+      balance: d.outstandingBalance || 0,
+      erfNumber: d.erfNumber || "",
+      area: d.area || "",
+      status: d.statusColor || "white",
+      cellColors: Object.keys(rowColors).length > 0 ? JSON.stringify(rowColors) : "{}",
+    };
+  });
 }
 
 type FieldType = "number" | "text" | "readonly";
@@ -181,66 +218,54 @@ function BooksContent() {
   const [uploadResult, setUploadResult] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [importingCsv, setImportingCsv] = useState(false);
+  const csvInputRef = useRef<HTMLInputElement>(null);
+
   const [cellColors, setCellColors] = useState<Record<string, BookStatusColor>>({});
 
-  // Load the Books table from the books.csv file stored on the API server (no database).
-  // Falls back to the bundled public/books.csv file so local dev works without the API.
+  // Load the Books table straight from the MySQL database (JSON — no CSV over the wire).
   const loadLedger = useCallback(async () => {
     try {
       setLoading(true);
       setUploadResult(null);
 
-      let csvText: string;
-      try {
-        csvText = await fetchBooksCsv();
-      } catch (apiErr) {
-        try {
-          const response = await fetch(`${BOOKS_CSV_FALLBACK_URL}?v=${Date.now()}`, { cache: "no-store" });
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
-          csvText = await response.text();
-        } catch {
-          throw apiErr instanceof Error
-            ? new Error(`API unavailable (${apiErr.message}) and no local fallback`)
-            : apiErr;
-        }
-      }
+      const rows = await fetchTransactionLedger();
 
-      const parsed = await parseCsvText(csvText);
-      const entries: BookEntry[] = parsed.map((row, idx) => ({
-        id: `csv-${idx}`,
-        date: row.date || getTodaySA(),
-        month: row.month || "",
-        buyer: row.buyer || "",
-        seller: row.seller || "",
-        originalAmount: row.originalAmount || 0,
-        amountPaid: row.amountPaid || 0,
-        deposit: row.deposit || 0,
-        lostDeed: row.lostDeed || 0,
-        commission: row.commission || 0,
-        transferCosts: row.transferCosts || 0,
-        masterFees: row.masterFees || 0,
-        balance: row.balance || 0,
-        electricalCertificate: row.electricalCertificate || 0,
-        waterAccount: row.waterAccount || 0,
-        section118: row.section118 || 0,
-        erfNumber: row.erfNumber || "",
-        area: row.area || "",
-        outstandingBalance: row.outstandingBalance || row.balance || 0,
-        statusColor: row.status === "red" || row.status === "green" ? row.status : "white",
+      const entries: BookEntry[] = rows.map((t) => ({
+        id: String(t.id),
+        date: (t.date || "").split("T")[0],
+        month: t.month || "",
+        buyer: t.buyer || "",
+        seller: t.seller || "",
+        originalAmount: t.originalAmount || 0,
+        amountPaid: t.dueToSeller || 0,
+        deposit: t.deposit || 0,
+        lostDeed: t.lostDeed || 0,
+        commission: t.commission || 0,
+        transferCosts: t.transferCosts || 0,
+        masterFees: t.masterFees || 0,
+        balance: 0,
+        electricalCertificate: t.elecCert || 0,
+        waterAccount: t.waterAccount || 0,
+        section118: t.section118 || 0,
+        erfNumber: t.erfNumber || "",
+        area: t.area || "",
+        outstandingBalance: t.balance || 0,
+        statusColor: t.status === "red" || t.status === "green" ? (t.status as BookStatusColor) : "white",
       }));
 
-      // Per-cell highlight colours are stored per-row in the CSV "Cell Colors" column.
+      // Per-cell highlight colours are stored per-row in the database cellColors column.
       const colors: Record<string, BookStatusColor> = {};
       entries.forEach((entry, idx) => {
-        const storedRaw = parsed[idx].cellColors;
+        const storedRaw = rows[idx]?.cellColors;
         if (!storedRaw) return;
         try {
           const stored = JSON.parse(storedRaw);
           Object.entries(stored).forEach(([field, c]) => {
-            if (c === "red" || c === "green" || c === "white") colors[`${entry.id}_${field}`] = c;
+            if (c === "red" || c === "green" || c === "white") colors[`${entry.id}_${field}`] = c as BookStatusColor;
           });
         } catch {
-          // ignore malformed Cell Colors JSON
+          // ignore malformed cellColors JSON
         }
       });
 
@@ -255,7 +280,7 @@ function BooksContent() {
       setCellColors(colors);
       setData(entries);
     } catch (err) {
-      setUploadResult(`Failed to load books.csv: ${err instanceof Error ? err.message : "Unknown error"}`);
+      setUploadResult(`Failed to load books from the database: ${err instanceof Error ? err.message : "Unknown error"}`);
     } finally {
       setLoading(false);
     }
@@ -509,13 +534,12 @@ function BooksContent() {
     if (!data.length) { setSaved(true); setTimeout(() => setSaved(false), 1500); return; }
     setSaving(true);
     try {
-      const exportRows = data.map((d) => ({ ...d, date: resolveDate(d.date, d.month) }));
-      const csvText = entriesToCsv(exportRows, cellColors);
-      await saveBooksCsv(csvText);
-      setUploadResult(`Saved ${data.length} entry${data.length === 1 ? "" : "ies"} to books.csv on the server.`);
+      const count = await saveBooksBulk(toDbRows(data, cellColors));
+      setUploadResult(`Saved ${count} entr${count === 1 ? "y" : "ies"} to the database.`);
       setSaved(true);
+      await loadLedger(); // refresh row identities from the database after the bulk replace
     } catch (err) {
-      setUploadResult(`Failed to save books.csv to the server: ${err instanceof Error ? err.message : "Unknown error"}`);
+      setUploadResult(`Failed to save books to the database: ${err instanceof Error ? err.message : "Unknown error"}`);
     } finally {
       setSaving(false);
       setTimeout(() => setSaved(false), 2000);
@@ -535,10 +559,33 @@ function BooksContent() {
     URL.revokeObjectURL(url);
   };
 
-  /** Discard unsaved edits and reload the latest books.csv straight from the server. */
-  const handleResetCsv = () => {
-    if (!window.confirm("Reload books.csv from the server? Unsaved edits will be discarded.")) return;
-    void loadLedger();
+  /** Discard unsaved edits and reload the latest books straight from the database. */
+  const handleResetCsv = async () => {
+    if (!window.confirm("Reload books from the database? Unsaved edits will be discarded.")) return;
+    await loadLedger();
+  };
+
+  /** Upload a CSV file: parsed server-side with CsvHelper and imported into the
+   *  MySQL Books table (full replace), then reloaded into the table from JSON. */
+  const handleCsvImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!window.confirm(`Import "${file.name}"? This REPLACES all books currently saved in the database with the rows in this file.`)) {
+      e.target.value = "";
+      return;
+    }
+    setImportingCsv(true);
+    setUploadResult(null);
+    try {
+      const count = await importBooksCsvFile(file);
+      setUploadResult(`Imported ${count} row${count === 1 ? "" : "s"} from ${file.name} into the database.`);
+      await loadLedger();
+    } catch (err) {
+      setUploadResult(`Failed to import CSV: ${err instanceof Error ? err.message : "Unknown error"}`);
+    } finally {
+      setImportingCsv(false);
+      if (csvInputRef.current) csvInputRef.current.value = "";
+    }
   };
 
   const totalCommission = filtered.reduce((s, d) => s + d.commission, 0);
@@ -616,6 +663,16 @@ function BooksContent() {
               onChange={handleExcelUpload}
             />
           </label>
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-sky-400/30 bg-sky-500/10 px-4 py-2 text-sm font-medium text-sky-200 transition hover:bg-sky-500/20">
+            {importingCsv ? "Uploading..." : "Upload CSV to database"}
+            <input
+              ref={csvInputRef}
+              type="file"
+              accept=".csv,text/csv"
+              className="hidden"
+              onChange={handleCsvImport}
+            />
+          </label>
           <button onClick={handleSaveAll}
             className="rounded-full bg-amber-200 px-6 py-2 text-sm font-semibold text-stone-950 transition hover:bg-amber-100">
             {saving ? "Saving..." : saved ? "Saved!" : "Save Changes"}
@@ -627,8 +684,8 @@ function BooksContent() {
           </button>
           <button onClick={handleResetCsv}
             className="rounded-full border border-rose-400/30 bg-rose-500/10 px-4 py-2 text-sm font-medium text-rose-200 transition hover:bg-rose-500/20"
-            title="Discard unsaved edits and reload books.csv from the server">
-            Reset CSV
+            title="Discard unsaved edits and reload books from the database">
+            Reset
           </button>
         </div>
       </div>
@@ -729,7 +786,7 @@ function BooksContent() {
               );
             })}
             {loading && (
-              <tr><td colSpan={columnOrder.length + 1} className="px-4 py-8 text-center text-sm text-stone-500">Loading books from the server's books.csv…</td></tr>
+              <tr><td colSpan={columnOrder.length + 1} className="px-4 py-8 text-center text-sm text-stone-500">Loading books from the database…</td></tr>
             )}
             {!loading && filtered.length === 0 && (
               <tr><td colSpan={columnOrder.length + 1} className="px-4 py-8 text-center text-sm text-stone-500">No entries for this month.</td></tr>
@@ -810,7 +867,7 @@ function BooksContent() {
       </div>
 
       <p className="text-center text-xs text-stone-600">
-        Click "Add new entry" then pick a color (white/red/green) and click any cell to fill it in. The color picker stays until you click "Done". Click any existing cell to edit with its own color picker. Press Enter to save, Escape to cancel. Double-click a row to select it, then click "Remove selected row" to delete it. Hit "Save Changes" to persist everything to books.csv on the server, then "Download CSV" to grab a copy.
+        Click "Add new entry" then pick a color (white/red/green) and click any cell to fill it in. The color picker stays until you click "Done". Click any existing cell to edit with its own color picker. Press Enter to save, Escape to cancel. Double-click a row to select it, then click "Remove selected row" to delete it. Hit "Save Changes" to persist everything to the MySQL database, "Upload CSV to database" to replace the database contents with a CSV file, then "Download CSV" to grab a copy of the current table.
       </p>
     </div>
   );

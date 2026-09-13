@@ -291,22 +291,32 @@ export async function deleteProperty(id: number): Promise<void> {
   if (!response.ok) throw new Error(`Failed to delete property (${response.status})`);
 }
 
-// Books CSV (Books table stored as a CSV file on the API server — no database)
-export async function fetchBooksCsv(): Promise<string> {
-  const response = await fetch(apiUrl("/api/books-csv"), { cache: "no-store", headers: authHeaders() });
-  if (!response.ok) throw new Error(`Failed to load books.csv (${response.status})`);
-  return response.text();
-}
-
-export async function saveBooksCsv(csv: string): Promise<string> {
-  const response = await fetch(apiUrl("/api/books-csv"), {
+// Books (transaction ledger) — JSON only over the wire. CSV is only ever sent as a
+// multipart file upload (see importBooksCsvFile) and parsed server-side.
+export async function saveBooksBulk(
+  rows: Array<Partial<TransactionLedger>>
+): Promise<number> {
+  const response = await fetch(apiUrl("/api/transaction-ledger/bulk"), {
     method: "PUT",
     headers: mergeHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify({ csv }),
+    body: JSON.stringify(rows),
   });
-  if (!response.ok) throw new Error(`Failed to save books.csv (${response.status})`);
+  if (!response.ok) throw new Error(`Failed to save books (${response.status})`);
   const json = await response.json();
-  return json.csv ?? csv;
+  return json.count ?? 0;
+}
+
+export async function importBooksCsvFile(file: File): Promise<number> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await fetch(apiUrl("/api/transaction-ledger/import-csv"), {
+    method: "POST",
+    headers: authHeaders(),
+    body: formData,
+  });
+  if (!response.ok) throw new Error(`Failed to import CSV (${response.status})`);
+  const json = await response.json();
+  return json.imported ?? 0;
 }
 
 // Transaction Ledger (Books)

@@ -148,7 +148,6 @@ builder.Services.AddScoped<ILeadExtractionService, LeadExtractionService>();
 
 // CRUD domain services
 builder.Services.AddScoped<IPropertyListingService, PropertyListingService>();
-builder.Services.AddScoped<IBooksCsvService, BooksCsvService>();
 builder.Services.AddScoped<ITransactionLedgerService, TransactionLedgerService>();
 builder.Services.AddScoped<IReferralService, ReferralService>();
 builder.Services.AddScoped<IBuyerService, BuyerService>();
@@ -283,35 +282,6 @@ async Task TrySetupDatabaseAsync(IServiceProvider services)
             }
         }
 
-        // 4) Books (transaction ledger): make the physical database the source of
-        //    truth. If the table is empty, import the existing books.csv file (so
-        //    the data edited via the dashboard is preserved), otherwise seed from
-        //    the built-in seed data. Runs only after migrations succeed.
-        using (var booksScope = services.CreateScope())
-        {
-            var booksDb = booksScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            var booksCsvService = booksScope.ServiceProvider.GetRequiredService<IBooksCsvService>();
-
-            if (!await booksDb.TransactionLedgers.AsNoTracking().AnyAsync())
-            {
-                List<BooksCsvRow> rows;
-                if (booksCsvService.Exists())
-                {
-                    rows = await booksCsvService.ParseRowsAsync(await booksCsvService.ReadCsvAsync());
-                    Console.WriteLine($"Books: importing {rows.Count} rows from books.csv into the database.");
-                }
-                else
-                {
-                    rows = TransactionLedgerSeedData.Rows.Select(BooksCsvMapper.ToRow).ToList();
-                    Console.WriteLine($"Books: seeding {rows.Count} rows from seed data into the database.");
-                }
-
-                booksDb.TransactionLedgers.AddRange(rows.Select(BooksCsvMapper.FromRow));
-                await booksDb.SaveChangesAsync();
-                Console.WriteLine("Books table is ready in the database.");
-            }
-        }
-
         Console.WriteLine("Database setup completed successfully.");
     }
     catch (Exception ex)
@@ -320,32 +290,8 @@ async Task TrySetupDatabaseAsync(IServiceProvider services)
     }
 }
 
-/// <summary>
-/// Seeds the Books CSV file (stored on the API server — no database) from the known
-/// seed data the first time the file does not exist. Runs independently of the database.
-/// </summary>
-async Task TryEnsureBooksCsvAsync(IServiceProvider services)
-{
-    try
-    {
-        using var scope = services.CreateScope();
-        var booksCsvService = scope.ServiceProvider.GetRequiredService<IBooksCsvService>();
-        if (!booksCsvService.Exists())
-        {
-            var rows = TransactionLedgerSeedData.Rows.Select(BooksCsvMapper.ToRow).ToArray();
-            await booksCsvService.WriteRowsAsync(rows);
-            Console.WriteLine($"Seeded books.csv with {rows.Length} rows.");
-        }
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"WARNING: Could not seed books.csv (will retry in background): {ex.Message}");
-    }
-}
-
 // Attempt initial setup
 await TrySetupDatabaseAsync(app.Services);
-await TryEnsureBooksCsvAsync(app.Services);
 
 // Start background retry loop — every 30s, keep trying until setup succeeds.
 // This makes the API self-healing: if a transient failure occurs, migrations +
@@ -358,7 +304,6 @@ _ = Task.Run(async () =>
         try
         {
             await TrySetupDatabaseAsync(app.Services);
-            await TryEnsureBooksCsvAsync(app.Services);
         }
         catch (Exception ex)
         {
