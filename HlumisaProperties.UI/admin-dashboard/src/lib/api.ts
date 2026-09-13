@@ -1,4 +1,7 @@
-const apiBaseUrl = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://api.hlumisaproperties.online").replace(/\/$/, "");
+// Hardcoded production API base URL — intentionally NOT read from an env var,
+// so a stale build-time value can never make a deployed UI talk to the wrong API.
+// For local development against a local API, temporarily change this constant.
+const apiBaseUrl = "https://api.hlumisaproperties.online";
 
 export function apiUrl(path: string) {
   return `${apiBaseUrl}${path}`;
