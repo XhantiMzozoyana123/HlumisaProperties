@@ -32,6 +32,16 @@ if (string.IsNullOrWhiteSpace(jwtSettings.Secret) || jwtSettings.Secret.Length <
         "Set the JWT_SECRET environment variable (e.g. in the deployment .env file).");
 }
 
+// Issuer/Audience must be set: tokens are issued with them and validated against
+// them. Empty values produce tokens without iss/aud claims that fail validation
+// with "The audience 'empty' is invalid" on every authorized request.
+if (string.IsNullOrWhiteSpace(jwtSettings.Issuer) || string.IsNullOrWhiteSpace(jwtSettings.Audience))
+{
+    throw new InvalidOperationException(
+        "Jwt:Issuer and Jwt:Audience must be configured. " +
+        "Set the JWT_ISSUER and JWT_AUDIENCE environment variables (e.g. in the deployment .env file).");
+}
+
 // ======================================================
 // BOOKS CSV SETTINGS (books.csv file stored on the API — no database)
 // ======================================================

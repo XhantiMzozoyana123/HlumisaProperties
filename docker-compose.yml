@@ -8,17 +8,17 @@ services:
       - .env
     environment:
       - ASPNETCORE_URLS=http://0.0.0.0:5000
-      - Twilio__AccountSid=${TWILIO_ACCOUNT_SID}
-      - Twilio__AuthToken=${TWILIO_AUTH_TOKEN}
-      - Twilio__MessagingSenderId=${TWILIO_MESSAGING_SENDER_ID}
-      - Twilio__WhatsAppFromNumber=${TWILIO_WHATSAPP_FROM_NUMBER}
-      - Facebook__VerifyToken=${FACEBOOK_VERIFY_TOKEN}
-      - Facebook__PageAccessToken=${FACEBOOK_PAGE_ACCESS_TOKEN}
-      - Facebook__PageId=${FACEBOOK_PAGE_ID}
+      - Twilio__AccountSid=${TWILIO_ACCOUNT_SID:-YOUR_TWILIO_ACCOUNT_SID}
+      - Twilio__AuthToken=${TWILIO_AUTH_TOKEN:-YOUR_TWILIO_AUTH_TOKEN}
+      - Twilio__MessagingSenderId=${TWILIO_MESSAGING_SENDER_ID:-messenger:465490577284245}
+      - Twilio__WhatsAppFromNumber=${TWILIO_WHATSAPP_FROM_NUMBER:-+14155238886}
+      - Facebook__VerifyToken=${FACEBOOK_VERIFY_TOKEN:-z2-SpX122701!}
+      - Facebook__PageAccessToken=${FACEBOOK_PAGE_ACCESS_TOKEN:-YOUR_META_PAGE_ACCESS_TOKEN}
+      - Facebook__PageId=${FACEBOOK_PAGE_ID:-YOUR_FACEBOOK_PAGE_ID}
       # ConnectionStrings are read from appsettings.json (native MySQL on the VPS host).
       - Jwt__Secret=${JWT_SECRET:-HlumisaProperties_SuperSecretKey_2026_MustBeLongEnough}
-      - Jwt__Issuer=${JWT_ISSUER}
-      - Jwt__Audience=${JWT_AUDIENCE}
+      - Jwt__Issuer=${JWT_ISSUER:-api.hlumisaproperties.online}
+      - Jwt__Audience=${JWT_AUDIENCE:-admin-dashboard.hlumisaproperties.online}
       - AdminUser__Email=mzozoyanaz@gmail.com
       - AdminUser__Password=Zola Mzozoyana 1970
       - AdminUser__FirstName=Zola
