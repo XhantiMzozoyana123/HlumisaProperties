@@ -131,6 +131,17 @@ namespace HlumisaProperties.Infrastructure.Services
 
             var list = entries.ToList();
 
+            // The dashboard submits rows as plain JSON without CreatedAt/UpdatedAt,
+            // so they deserialize to DateTime.MinValue (0001-01-01). MySQL's
+            // datetime(6) column cannot store that value and the insert would throw,
+            // surfacing as HTTP 500 on "Save Changes". Stamp the audit fields here.
+            var now = DateTime.UtcNow;
+            foreach (var entry in list)
+            {
+                entry.CreatedAt = now;
+                entry.UpdatedAt = now;
+            }
+
             await using var transaction = await _context.Database.BeginTransactionAsync();
             await _context.Set<TransactionLedger>().ExecuteDeleteAsync();
             _context.Set<TransactionLedger>().AddRange(list);
