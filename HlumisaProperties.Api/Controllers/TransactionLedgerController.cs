@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json;
 using CsvHelper;
 using CsvHelper.Configuration;
 using CsvHelper.Configuration.Attributes;
@@ -195,13 +196,110 @@ namespace HlumisaProperties.Api.Controllers
         /// The dashboard "Save Changes" button posts the full edited table here.
         /// </summary>
         [HttpPut("bulk")]
-        public async Task<IActionResult> BulkReplace([FromBody] List<TransactionLedger> entries)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> BulkReplace([FromBody] JsonElement body)
         {
-            if (entries == null)
-                return BadRequest(new { message = "Transaction ledger payload is required." });
+            List<BookRowDto>? rows = null;
+            var jsonOptions = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+            };
+            try
+            {
+                if (body.ValueKind == JsonValueKind.Array)
+                    rows = body.Deserialize<List<BookRowDto>>(jsonOptions);
+                else if (body.ValueKind == JsonValueKind.Object
+                    && body.TryGetProperty("entries", out var entriesProp)
+                    && entriesProp.ValueKind == JsonValueKind.Array)
+                    rows = entriesProp.Deserialize<List<BookRowDto>>(jsonOptions);
+            }
+            catch (JsonException ex)
+            {
+                return BadRequest(new { message = "Invalid books payload.", detail = ex.Message });
+            }
 
-            var count = await _transactionLedgerService.ReplaceAllAsync(entries);
+            if (rows == null)
+                return BadRequest(new { message = "Invalid books payload: expected a JSON array of rows or { \"entries\": [...] }." });
+
+            var entities = rows.Select(ToEntity).ToList();
+            var count = await _transactionLedgerService.ReplaceAllAsync(entities);
             return Ok(new { count, message = $"Books table now contains {count} rows." });
+        }
+
+        private static TransactionLedger ToEntity(BookRowDto row)
+        {
+            return new TransactionLedger
+            {
+                Id = ParseRowId(row.Id),
+                Date = ParseRowDate(row.Date),
+                Month = NormalizeMonth(row.Month),
+                Buyer = row.Buyer ?? string.Empty,
+                Seller = row.Seller ?? string.Empty,
+                OriginalAmount = row.OriginalAmount ?? 0m,
+                DueToSeller = row.DueToSeller ?? row.AmountPaid ?? 0m,
+                Deposit = row.Deposit ?? 0m,
+                LostDeed = row.LostDeed ?? 0m,
+                Commission = row.Commission ?? 0m,
+                TransferCosts = row.TransferCosts ?? 0m,
+                MasterFees = row.MasterFees ?? 0m,
+                ElecCert = row.ElecCert ?? row.ElectricalCertificate ?? 0m,
+                WaterAccount = row.WaterAccount ?? 0m,
+                Section118 = row.Section118 ?? 0m,
+                Balance = row.Balance ?? row.OutstandingBalance ?? 0m,
+                ErfNumber = row.ErfNumber ?? string.Empty,
+                Area = row.Area ?? string.Empty,
+                Status = NormalizeStatus(row.Status ?? row.StatusColor),
+                CellColors = string.IsNullOrWhiteSpace(row.CellColors) ? "{}" : row.CellColors!,
+            };
+        }
+
+        private static int ParseRowId(object? id)
+        {
+            // New UI rows carry temp ids like "new-1757965220439" -> insert (Id = 0).
+            if (id is null) return 0;
+            if (id is JsonElement el)
+            {
+                if (el.ValueKind == JsonValueKind.Number && el.TryGetInt32(out var n) && n > 0) return n;
+                if (el.ValueKind == JsonValueKind.String)
+                {
+                    var s = el.GetString();
+                    if (int.TryParse(s, out var p) && p > 0) return p;
+                    return 0;
+                }
+                return 0;
+            }
+            if (id is int i && i > 0) return i;
+            if (id is long l && l > 0 && l <= int.MaxValue) return (int)l;
+            if (id is string s2 && int.TryParse(s2, out var parsed) && parsed > 0) return parsed;
+            return 0;
+        }
+
+        private static DateTime ParseRowDate(string? value)
+        {
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                var formats = new[] { "yyyy-MM-dd", "yyyy/MM/dd", "dd/MM/yyyy", "MM/dd/yyyy" };
+                if (DateTime.TryParseExact(value, formats, CsvCulture, DateTimeStyles.None, out var exact))
+                    return DateTime.SpecifyKind(exact, DateTimeKind.Utc);
+                if (DateTime.TryParse(value, CsvCulture, DateTimeStyles.None, out var parsed))
+                    return DateTime.SpecifyKind(parsed, DateTimeKind.Utc);
+            }
+            return DateTime.UtcNow.Date;
+        }
+
+        private static string NormalizeMonth(string? month)
+            => string.IsNullOrWhiteSpace(month) ? string.Empty : month.Trim().ToUpperInvariant();
+
+        private static string NormalizeStatus(string? status)
+        {
+            var s = (status ?? string.Empty).Trim().ToLowerInvariant();
+            return s switch
+            {
+                "white" or "red" or "green" => s,
+                "pending" or "declined" or "done" => s,
+                "" => "white",
+                _ => s.Length <= 50 ? s : s[..50],
+            };
         }
 
         /// <summary>
