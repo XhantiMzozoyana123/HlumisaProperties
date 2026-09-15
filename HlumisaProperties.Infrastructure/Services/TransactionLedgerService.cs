@@ -140,15 +140,44 @@ namespace HlumisaProperties.Infrastructure.Services
             {
                 entry.CreatedAt = now;
                 entry.UpdatedAt = now;
+
+                // Defensive: the Date column is NOT NULL and Month drives the
+                // varchar(20) index. Never let a client-supplied row slip through
+                // with a null date or a blank month.
+                if (entry.Date == null)
+                    entry.Date = now;
+
+                if (string.IsNullOrWhiteSpace(entry.Month))
+                    entry.Month = entry.Date.ToString("MMMM").ToUpper();
             }
 
-            await using var transaction = await _context.Database.BeginTransactionAsync();
-            await _context.Set<TransactionLedger>().ExecuteDeleteAsync();
-            _context.Set<TransactionLedger>().AddRange(list);
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
-
-            return list.Count;
+            // Program.cs registers the DbContext with EnableRetryOnFailure(...), which installs
+            // MySqlRetryingExecutionStrategy. That strategy REJECTS user-initiated transactions:
+            // BeginTransactionAsync() throws
+            //   InvalidOperationException: "The configured execution strategy
+            //   'MySqlRetryingExecutionStrategy' does not support user-initiated transactions."
+            // so the previous BeginTransactionAsync()-wrapped delete+insert 500'd on EVERY save
+            // (the "Fix books save 500" stamping change alone could not help — the strategy
+            // exception fires before any row is written).
+            //
+            // The supported pattern (EF Core "connection resiliency and database retries") is to hand
+            // the whole delete+insert unit to the execution strategy via ExecuteInTransactionAsync:
+            // it opens the transaction through the strategy itself and, on a transient failure,
+            // retries the entire unit. It is also atomic — if the insert fails (e.g. one bad row),
+            // the delete is rolled back and the previous rows stay intact instead of leaving the
+            // table empty and the dashboard with a 500.
+            var executionStrategy = _context.Database.CreateExecutionStrategy();
+            return await ExecutionStrategyExtensions.ExecuteInTransactionAsync<int>(
+                executionStrategy,
+                async (cancellationToken) =>
+                {
+                    await _context.Set<TransactionLedger>().ExecuteDeleteAsync();
+                    _context.Set<TransactionLedger>().AddRange(list);
+                    await _context.SaveChangesAsync();
+                    return list.Count;
+                },
+                async (cancellationToken) => true,
+                CancellationToken.None);
         }
     }
 }
