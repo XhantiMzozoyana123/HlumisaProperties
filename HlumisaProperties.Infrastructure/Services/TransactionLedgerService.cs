@@ -48,9 +48,12 @@ namespace HlumisaProperties.Infrastructure.Services
 
         public async Task<IEnumerable<TransactionLedger>> GetAllAsync()
         {
+            // Order by primary key (auto-increment Id) so the newest records land
+            // at the BOTTOM of the ledger — matching the dashboard's expectation
+            // that the latest entry appears last.
             return await _context.Set<TransactionLedger>()
                 .AsNoTracking()
-                .OrderByDescending(e => e.Date)
+                .OrderBy(e => e.Id)
                 .ToListAsync();
         }
 
@@ -59,10 +62,11 @@ namespace HlumisaProperties.Infrastructure.Services
             if (string.IsNullOrWhiteSpace(month))
                 throw new ArgumentException("Month cannot be null or empty", nameof(month));
 
+            // Ascending by Id keeps the newest records at the bottom within each month.
             return await _context.Set<TransactionLedger>()
                 .AsNoTracking()
                 .Where(e => e.Month == month.Trim().ToUpperInvariant())
-                .OrderByDescending(e => e.Date)
+                .OrderBy(e => e.Id)
                 .ToListAsync();
         }
 

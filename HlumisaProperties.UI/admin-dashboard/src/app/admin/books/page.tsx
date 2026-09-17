@@ -67,6 +67,14 @@ function monthRank(m: string): number {
   return i === -1 ? MONTH_NAMES.length : i;
 }
 
+/** Numeric sort key for a row's Id. Database rows have positive numeric ids (1, 2, 3…);
+ *  unsaved/new rows carry ids like "new-1757965220439" and are treated as Infinity
+ *  so they always land at the bottom of their month group. */
+function rowSortKey(row: BookEntry): number {
+  const n = Number(row.id);
+  return Number.isFinite(n) && n > 0 ? n : Infinity;
+}
+
 /**
  * Returns a YYYY-MM-DD date for a row. If the row has an explicit date we keep it;
  * otherwise we derive a representative date from the Month so the round-tripped
@@ -310,12 +318,18 @@ function BooksContent() {
   const tableRef = useRef<HTMLDivElement>(null);
   const addEntryRef = useRef<HTMLDivElement>(null);
 
-  const months = ["ALL", "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST"];
+  const months = ["ALL", ...MONTH_NAMES];
 
-  // Sort rows chronologically by month so JANUARY sits on top and AUGUST at the bottom.
+  // Sort rows chronologically by month (JANUARY on top → DECEMBER at the bottom).
+  // Within the same month, order by insertion (Id) so the latest record always
+  // sits at the bottom of its month group.
   const filtered = (selectedMonth === "ALL" ? data : data.filter((d) => d.month === selectedMonth))
     .slice()
-    .sort((a, b) => monthRank(a.month) - monthRank(b.month));
+    .sort((a, b) => {
+      const monthDiff = monthRank(a.month) - monthRank(b.month);
+      if (monthDiff !== 0) return monthDiff;
+      return rowSortKey(a) - rowSortKey(b);
+    });
 
   const monthlyTotals: Record<string, { commission: number; transferCosts: number }> = {};
   data.forEach((d) => {
@@ -446,7 +460,8 @@ function BooksContent() {
         };
       });
 
-      setData((prev) => [...newEntries, ...prev]);
+      // Append imported rows at the bottom so the latest records always sit last.
+      setData((prev) => [...prev, ...newEntries]);
 
       // Carry per-cell highlight colours over from the imported Cell Colors column when present.
       const importedColors: Record<string, BookStatusColor> = {};
@@ -718,7 +733,9 @@ function BooksContent() {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {Object.entries(monthlyTotals).map(([month, t]) => (
+        {Object.entries(monthlyTotals)
+          .sort((a, b) => monthRank(a[0]) - monthRank(b[0]))
+          .map(([month, t]) => (
           <div key={month} className="rounded-xl border border-white/10 bg-black/20 px-4 py-2 text-xs">
             <span className="text-stone-400">{month}</span>
             <span className="ml-2 text-amber-200">C: {formatMoney(t.commission)}</span>
