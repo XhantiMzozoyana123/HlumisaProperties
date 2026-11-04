@@ -542,13 +542,32 @@ function BooksContent() {
     setSelectedRows(new Set());
   };
 
-  const handleRowDoubleClick = (rowId: string) => {
-    setSelectedRows((prev) => {
-      const next = new Set(prev);
-      if (next.has(rowId)) next.delete(rowId);
-      else next.add(rowId);
-      return next;
-    });
+  const handleRowClick = (rowId: string, event: React.MouseEvent) => {
+    // Ctrl+click toggles a single row into/out of the multi-selection
+    if (event.ctrlKey || event.metaKey) {
+      setSelectedRows((prev) => {
+        const next = new Set(prev);
+        if (next.has(rowId)) next.delete(rowId);
+        else next.add(rowId);
+        return next;
+      });
+      return;
+    }
+  };
+
+  const handleRowDoubleClick = (rowId: string, event: React.MouseEvent) => {
+    // Ctrl+double-click toggles one row in multi-select;
+    // plain double-click selects just that row (replaces selection).
+    if (event.ctrlKey || event.metaKey) {
+      setSelectedRows((prev) => {
+        const next = new Set(prev);
+        if (next.has(rowId)) next.delete(rowId);
+        else next.add(rowId);
+        return next;
+      });
+    } else {
+      setSelectedRows(new Set([rowId]));
+    }
   };
 
   const handleSaveAll = async () => {
@@ -809,7 +828,8 @@ function BooksContent() {
               const isSelected = selectedRows.has(row.id);
               return (
                 <tr key={row.id} id={`book-row-${row.id}`}
-                  onDoubleClick={() => handleRowDoubleClick(row.id)}
+                  onClick={(e) => handleRowClick(row.id, e)}
+                  onDoubleClick={(e) => handleRowDoubleClick(row.id, e)}
                   className={`border-b border-white/5 transition cursor-pointer ${isSelected ? "bg-amber-400/20 ring-2 ring-amber-400/50" : isHighlighted ? "bg-amber-200/20 ring-2 ring-amber-300/40" : idx % 2 === 0 ? "bg-black/10 hover:bg-white/5" : "hover:bg-white/5"}`}>
                   {columnOrder.map((field) => (
                     <td key={field} className={`px-4 py-3 ${rightAlignedFields.has(field) ? "text-right" : ""}`}>
@@ -912,7 +932,7 @@ function BooksContent() {
       </div>
 
       <p className="text-center text-xs text-stone-600">
-        Click "Add new entry" then pick a color (white/red/green) and click any cell to fill it in. The color picker stays until you click "Done". Click any existing cell to edit with its own color picker. Press Enter to save, Escape to cancel. Double-click rows to select them (click again to deselect), then click "Remove X selected rows" to batch-delete them all at once. Hit "Save Changes" to persist everything to the MySQL database, "Upload CSV to database" to replace the database contents with a CSV file, then "Download CSV" to grab a copy of the current table.
+        Click "Add new entry" then pick a color (white/red/green) and click any cell to fill it in. The color picker stays until you click "Done". Click any existing cell to edit with its own color picker. Press Enter to save, Escape to cancel. Double-click a row to select it. Hold Ctrl and double-click (or single-click) rows to add more to the selection — then click "Remove X selected rows" to batch-delete them all at once. Hit "Save Changes" to persist everything to the MySQL database, "Upload CSV to database" to replace the database contents with a CSV file, then "Download CSV" to grab a copy of the current table.
       </p>
     </div>
   );
