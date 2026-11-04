@@ -219,7 +219,7 @@ function BooksContent() {
   const [editValue, setEditValue] = useState<string>("");
   const [saved, setSaved] = useState(false);
   const [highlightedRow, setHighlightedRow] = useState<string | null>(null);
-  const [selectedRow, setSelectedRow] = useState<string | null>(null);
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [pendingFields, setPendingFields] = useState<Record<string, boolean>>({});
 
   const [uploading, setUploading] = useState(false);
@@ -536,14 +536,19 @@ function BooksContent() {
     setEditCell(null);
   };
 
-  const handleRemoveRow = () => {
-    if (!selectedRow) return;
-    setData((prev) => prev.filter((d) => d.id !== selectedRow));
-    setSelectedRow(null);
+  const handleRemoveSelectedRows = () => {
+    if (selectedRows.size === 0) return;
+    setData((prev) => prev.filter((d) => !selectedRows.has(d.id)));
+    setSelectedRows(new Set());
   };
 
   const handleRowDoubleClick = (rowId: string) => {
-    setSelectedRow((prev) => (prev === rowId ? null : rowId));
+    setSelectedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(rowId)) next.delete(rowId);
+      else next.add(rowId);
+      return next;
+    });
   };
 
   const handleSaveAll = async () => {
@@ -674,7 +679,7 @@ function BooksContent() {
   }
 
   return (
-    <div className="space-y-6" onDoubleClick={() => { if (selectedRow) setSelectedRow(null); }}>
+    <div className="space-y-6" onDoubleClick={() => { if (selectedRows.size > 0) setSelectedRows(new Set()); }}>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-semibold text-white">Books</h1>
@@ -801,7 +806,7 @@ function BooksContent() {
             {filtered.map((row, idx) => {
               const isFlipped = row.commission > 39000;
               const isHighlighted = highlightedRow === row.id;
-              const isSelected = selectedRow === row.id;
+              const isSelected = selectedRows.has(row.id);
               return (
                 <tr key={row.id} id={`book-row-${row.id}`}
                   onDoubleClick={() => handleRowDoubleClick(row.id)}
@@ -877,9 +882,9 @@ function BooksContent() {
             </div>
           )}
         </div>
-        <button onClick={handleRemoveRow} disabled={!selectedRow}
-          className={`flex items-center gap-2 rounded-full border-2 px-8 py-4 text-base transition ${selectedRow ? "border-rose-400/40 text-rose-300 hover:border-rose-300/60 hover:bg-rose-500/10 hover:text-rose-200" : "border-white/10 text-stone-600 cursor-not-allowed"}`}>
-          <span>Remove selected row</span>
+        <button onClick={handleRemoveSelectedRows} disabled={selectedRows.size === 0}
+          className={`flex items-center gap-2 rounded-full border-2 px-8 py-4 text-base transition ${selectedRows.size > 0 ? "border-rose-400/40 text-rose-300 hover:border-rose-300/60 hover:bg-rose-500/10 hover:text-rose-200" : "border-white/10 text-stone-600 cursor-not-allowed"}`}>
+          <span>Remove {selectedRows.size} selected row{selectedRows.size !== 1 ? "s" : ""}</span>
         </button>
       </div>
 
@@ -907,7 +912,7 @@ function BooksContent() {
       </div>
 
       <p className="text-center text-xs text-stone-600">
-        Click "Add new entry" then pick a color (white/red/green) and click any cell to fill it in. The color picker stays until you click "Done". Click any existing cell to edit with its own color picker. Press Enter to save, Escape to cancel. Double-click a row to select it, then click "Remove selected row" to delete it. Hit "Save Changes" to persist everything to the MySQL database, "Upload CSV to database" to replace the database contents with a CSV file, then "Download CSV" to grab a copy of the current table.
+        Click "Add new entry" then pick a color (white/red/green) and click any cell to fill it in. The color picker stays until you click "Done". Click any existing cell to edit with its own color picker. Press Enter to save, Escape to cancel. Double-click rows to select them (click again to deselect), then click "Remove X selected rows" to batch-delete them all at once. Hit "Save Changes" to persist everything to the MySQL database, "Upload CSV to database" to replace the database contents with a CSV file, then "Download CSV" to grab a copy of the current table.
       </p>
     </div>
   );
