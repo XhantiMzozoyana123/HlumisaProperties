@@ -46,3 +46,26 @@ function formatLocalDigits(digits: string): string {
   }
   return parts.join(" ");
 }
+
+// Validate a South African phone number.
+// Accepts the national 10-digit format (0XX XXX XXXX) or the international
+// +27 / 27 format (country code + the 9 remaining digits = 10-digit national number).
+// Anything below 10 digits or not matching SA formats is invalid.
+export function validateZaPhone(value: string): { valid: boolean; normalized: string } {
+  const digits = value.replace(/\D/g, "");
+
+  let normalized = "";
+  let valid = false;
+
+  // International format: +27 82 555 0000 -> digits "27825550000" (11 chars)
+  if (digits.startsWith("27") && digits.length === 11) {
+    normalized = `0${digits.slice(2)}`;
+    valid = true;
+  } else if (digits.startsWith("0") && digits.length === 10) {
+    // Local format: 082 555 0000 -> exactly 10 digits
+    normalized = digits;
+    valid = true;
+  }
+
+  return { valid, normalized };
+}

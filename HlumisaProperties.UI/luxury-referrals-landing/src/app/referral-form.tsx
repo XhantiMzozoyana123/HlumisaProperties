@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { formatZaPhone } from "@/lib/formatUtils";
+import { formatZaPhone, validateZaPhone } from "@/lib/formatUtils";
 
 type PersonForm = {
   fullName: string;
@@ -28,14 +28,35 @@ function splitFullName(fullName: string) {
   return { firstName, lastName };
 }
 
+// Lenient name validation: never block real (including African) names,
+// but reject obvious gibberish like "jjjj", "slksalkj", "xgagn".
+function isValidName(fullName: string): boolean {
+  const trimmed = fullName.trim();
+  if (trimmed.length < 2) return false;
+
+  // Only letters, spaces, apostrophes and hyphens are allowed.
+  if (!/^[\p{L}\s'-]+$/u.test(trimmed)) return false;
+
+  // Must contain at least one vowel - catches consonant-only gibberish.
+  if (!/[aeiou]/i.test(trimmed)) return false;
+
+  // Not all the same character - catches "jjjj", "aaaa", "5555".
+  const letters = trimmed.replace(/\s/g, "");
+  if (new Set(letters).size <= 1) return false;
+
+  return true;
+}
+
 type PersonCardProps = {
   title: string;
   subtitle?: string;
   form: PersonForm;
   onChange: (updated: PersonForm) => void;
+  nameError?: string;
+  phoneError?: string;
 };
 
-function PersonCard({ title, subtitle, form, onChange }: PersonCardProps) {
+function PersonCard({ title, subtitle, form, onChange, nameError, phoneError }: PersonCardProps) {
   return (
     <div className="rounded-[1.25rem] border border-white/10 bg-black/20 p-4 sm:rounded-[1.5rem] sm:p-5">
       <h3 className="text-lg font-semibold text-white sm:text-xl">{title}</h3>
@@ -43,14 +64,15 @@ function PersonCard({ title, subtitle, form, onChange }: PersonCardProps) {
 
       <div className="mt-4 space-y-3 sm:mt-5 sm:space-y-4">
         <input
-          className="w-full rounded-xl border border-white/10 bg-black/40 px-3.5 py-3 text-sm text-white outline-none placeholder:text-stone-500 focus:border-amber-200/30 sm:rounded-2xl sm:px-4"
+          className={`w-full rounded-xl border ${nameError ? "border-rose-500/70" : "border-white/10"} bg-black/40 px-3.5 py-3 text-sm text-white outline-none placeholder:text-stone-500 focus:border-amber-200/30 sm:rounded-2xl sm:px-4`}
           placeholder="Full name"
           value={form.fullName}
           onChange={(e) => onChange({ ...form, fullName: e.target.value })}
           required
         />
+        {nameError && <p className="mt-1 text-xs text-rose-400">{nameError}</p>}
         <input
-          className="w-full rounded-xl border border-white/10 bg-black/40 px-3.5 py-3 text-sm text-white outline-none placeholder:text-stone-500 focus:border-amber-200/30 sm:rounded-2xl sm:px-4"
+          className={`w-full rounded-xl border ${phoneError ? "border-rose-500/70" : "border-white/10"} bg-black/40 px-3.5 py-3 text-sm text-white outline-none placeholder:text-stone-500 focus:border-amber-200/30 sm:rounded-2xl sm:px-4`}
           placeholder="Phone number"
           type="tel"
           inputMode="tel"
@@ -58,6 +80,7 @@ function PersonCard({ title, subtitle, form, onChange }: PersonCardProps) {
           onChange={(e) => onChange({ ...form, phoneNumber: formatZaPhone(e.target.value) })}
           required
         />
+        {phoneError && <p className="mt-1 text-xs text-rose-400">{phoneError}</p>}
       </div>
     </div>
   );
@@ -69,6 +92,8 @@ export function ReferralForm() {
     phoneNumber: "",
   });
   const [saving, setSaving] = useState(false);
+  const [nameError, setNameError] = useState("");
+  const [phoneError, setPhoneError] = useState("");
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isDuplicate, setIsDuplicate] = useState(false);
@@ -103,6 +128,29 @@ export function ReferralForm() {
     setIsDuplicate(false);
 
     const { firstName: referrerFirstName, lastName: referrerLastName } = splitFullName(referrer.fullName);
+
+    let nextNameError = "";
+    let nextPhoneError = "";
+
+    if (!isValidName(referrer.fullName)) {
+      nextNameError = "Please enter a real name.";
+    }
+
+    const phoneCheck = validateZaPhone(referrer.phoneNumber);
+    if (!phoneCheck.valid) {
+      nextPhoneError =
+        "Please fill in a correct South African number (10 digits), or please check this number is right.";
+    }
+
+    if (nextNameError || nextPhoneError) {
+      setNameError(nextNameError);
+      setPhoneError(nextPhoneError);
+      setSaving(false);
+      return;
+    }
+
+    setNameError("");
+    setPhoneError("");
 
     try {
       const response = await fetch(apiUrl("/api/referrals"), {
@@ -153,7 +201,13 @@ export function ReferralForm() {
             title="Your details"
             subtitle="So we know who to pay."
             form={referrer}
-            onChange={setReferrer}
+            onChange={(updated) => {
+              setNameError("");
+              setPhoneError("");
+              setReferrer(updated);
+            }}
+            nameError={nameError}
+            phoneError={phoneError}
           />
 
           <button
