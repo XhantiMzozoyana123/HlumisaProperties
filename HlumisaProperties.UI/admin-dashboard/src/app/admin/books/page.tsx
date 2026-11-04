@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useCallback, useRef, useEffect } from "react";
 import RequireZola from "@/components/RequireZola";
 import { parseExcelFile, entriesToCsv } from "@/lib/excelParser";
-import { fetchTransactionLedger, saveBooksBulk, importBooksCsvFile } from "@/lib/api";
+import { fetchTransactionLedger, saveBooksBulk, importBooksCsvFile, clearAllTransactionLedger } from "@/lib/api";
 
 type BookStatusColor = "white" | "red" | "green";
 
@@ -230,6 +230,7 @@ function BooksContent() {
   const csvInputRef = useRef<HTMLInputElement>(null);
 
   const [cellColors, setCellColors] = useState<Record<string, BookStatusColor>>({});
+  const [clearingAll, setClearingAll] = useState(false);
 
   // Load the Books table straight from the MySQL database (JSON — no CSV over the wire).
   const loadLedger = useCallback(async () => {
@@ -574,6 +575,22 @@ function BooksContent() {
     URL.revokeObjectURL(url);
   };
 
+  /** Delete ALL books from the actual database (irreversible). Requires confirmation. */
+  const handleClearAllBooks = async () => {
+    if (!window.confirm("WARNING: This will DELETE ALL book records from the database permanently. This cannot be undone. Continue?")) return;
+    setClearingAll(true);
+    setUploadResult(null);
+    try {
+      const count = await clearAllTransactionLedger();
+      setUploadResult(`Deleted ${count} book record(s) from the database.`);
+      await loadLedger(); // reload the now-empty ledger from the database
+    } catch (err) {
+      setUploadResult(`Failed to clear books from the database: ${err instanceof Error ? err.message : "Unknown error"}`);
+    } finally {
+      setClearingAll(false);
+    }
+  };
+
   /** Discard unsaved edits and reload the latest books straight from the database. */
   const handleResetCsv = async () => {
     if (!window.confirm("Reload books from the database? Unsaved edits will be discarded.")) return;
@@ -701,6 +718,12 @@ function BooksContent() {
             className="rounded-full border border-rose-400/30 bg-rose-500/10 px-4 py-2 text-sm font-medium text-rose-200 transition hover:bg-rose-500/20"
             title="Discard unsaved edits and reload books from the database">
             Reset
+          </button>
+          <button onClick={handleClearAllBooks}
+            disabled={clearingAll}
+            className="rounded-full border-2 border-rose-500/40 bg-rose-500/20 px-4 py-2 text-sm font-semibold text-rose-300 transition hover:bg-rose-500/30 hover:border-rose-500/60 disabled:opacity-60 disabled:cursor-not-allowed"
+            title="Delete ALL book records from the database (irreversible)">
+            {clearingAll ? "Removing all..." : "Remove all data"}
           </button>
         </div>
       </div>

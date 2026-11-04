@@ -15,6 +15,12 @@ namespace HlumisaProperties.Application.Interfaces
         Task<bool> DeleteAsync(int id);
 
         /// <summary>
+        /// Deletes ALL transaction ledger entries from the database (irreversible).
+        /// Returns the number of rows deleted.
+        /// </summary>
+        Task<int> DeleteAllAsync();
+
+        /// <summary>
         /// Replaces the whole ledger with the supplied entries in a single
         /// transaction (set-based delete + bulk insert). Returns the row count.
         /// Used by the dashboard "Save Changes" (JSON) and CSV import endpoints.

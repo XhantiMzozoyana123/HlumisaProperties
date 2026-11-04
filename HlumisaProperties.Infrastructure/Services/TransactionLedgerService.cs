@@ -128,6 +128,25 @@ namespace HlumisaProperties.Infrastructure.Services
             return true;
         }
 
+        public async Task<int> DeleteAllAsync()
+        {
+            // Program.cs registers the DbContext with EnableRetryOnFailure(...), which installs
+            // MySqlRetryingExecutionStrategy. That strategy REJECTS user-initiated transactions,
+            // so we hand the whole delete unit to the execution strategy itself via
+            // ExecuteInTransactionAsync (the same supported pattern used by ReplaceAllAsync).
+            var executionStrategy = _context.Database.CreateExecutionStrategy();
+            return await ExecutionStrategyExtensions.ExecuteInTransactionAsync<int>(
+                executionStrategy,
+                async (cancellationToken) =>
+                {
+                    var count = await _context.Set<TransactionLedger>().ExecuteDeleteAsync();
+                    await _context.SaveChangesAsync();
+                    return count;
+                },
+                async (cancellationToken) => true,
+                CancellationToken.None);
+        }
+
         public async Task<int> ReplaceAllAsync(IEnumerable<TransactionLedger> entries)
         {
             if (entries == null)

@@ -381,3 +381,14 @@ export async function deleteTransactionLedgerEntry(id: number, keepalive = false
   });
   if (!response.ok) throw new Error(`Failed to delete entry (${response.status})`);
 }
+
+// Delete ALL transaction ledger (Books) entries from the database (irreversible).
+export async function clearAllTransactionLedger(): Promise<number> {
+  const response = await fetch(apiUrl("/api/transaction-ledger/clear-all"), {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!response.ok) throw new Error(`Failed to clear books (${response.status})`);
+  const json = await response.json();
+  return json.deleted ?? 0;
+}

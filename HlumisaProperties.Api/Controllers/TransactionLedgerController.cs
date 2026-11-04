@@ -188,6 +188,17 @@ namespace HlumisaProperties.Api.Controllers
             return NoContent();
         }
 
+        /// <summary>
+        /// Deletes ALL transaction ledger (Books) entries from the database (irreversible).
+        /// Returns the number of rows deleted.
+        /// </summary>
+        [HttpDelete("clear-all")]
+        public async Task<IActionResult> ClearAll()
+        {
+            var count = await _transactionLedgerService.DeleteAllAsync();
+            return Ok(new { deleted = count, message = $"Deleted {count} book record(s) from the database." });
+        }
+
         // ====== BULK + IMPORT (used by the dashboard Books page) ======
 
         /// <summary>
